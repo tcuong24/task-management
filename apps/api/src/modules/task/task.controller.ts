@@ -103,7 +103,7 @@ export async function updateTaskHandler(req: Request, res: Response, next: NextF
     };
     if (data.dueDate === null) updateData.dueDate = null;
 
-    const task = await taskService.updateTask(taskId, projectId, updateData);
+   const task = await taskService.updateTask(taskId, userId, updateData);
     res.json({ success: true, task });
   } catch (err) {
     next(err);
@@ -148,7 +148,7 @@ export async function moveTaskHandler(req: Request, res: Response, next: NextFun
 
     const data = validateMoveTask(req.body);
 
-    const task = await taskService.moveTask(taskId, projectId, data.newStatus, data.newPosition);
+    const task = await taskService.moveTask(taskId, projectId, data.newStatus, data.newPosition, userId);
     res.json({ success: true, task });
   } catch (err) {
     next(err);

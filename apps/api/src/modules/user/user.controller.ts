@@ -59,3 +59,13 @@ export async function uploadAvatarHandler(req: Request, res: Response, next: Nex
     next(err);
   }
 }
+
+export async function searchUsersHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const q = (req.query.q as string) || '';
+    const users = await userService.searchUsers(q);
+    res.json({ success: true, users });
+  } catch (err) {
+    next(err);
+  }
+}

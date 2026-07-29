@@ -1,5 +1,6 @@
 import { prisma } from '@repo/database';
 import { AppError } from '../../common/errors/app-error';
+import { logActivity } from '../../common/services/activityLog.service';
 
 /**
  * Generate a project key from the project name
@@ -63,6 +64,18 @@ export async function createProject(
     },
   });
 
+  logActivity({
+    organizationId,
+    entityType: 'PROJECT',
+    entityId: project.id,
+    actorId: ownerId,
+    action: 'created',
+    metadata: {
+      projectName: project.name,
+      projectKey: project.key,
+    },
+  });
+
   return project;
 }
 
@@ -73,6 +86,7 @@ export async function getProjects(orgId: string) {
       owner: {
         select: {
           fullName: true,
+          avatarUrl: true,
         },
       },
     },
@@ -95,6 +109,7 @@ export async function getProjectByKey(organizationId: string, key: string) {
       owner: {
         select: {
           fullName: true,
+          avatarUrl: true,
         },
       },
     },

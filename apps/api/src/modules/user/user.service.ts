@@ -160,3 +160,25 @@ export async function uploadUserAvatar(userId: string, fileBuffer: Buffer, mimeT
 
   return updatedUser;
 }
+
+export async function searchUsers(query: string) {
+  if (!query || query.trim().length === 0) return [];
+  const q = query.trim();
+  return prisma.user.findMany({
+    where: {
+      OR: [
+        { username: { contains: q, mode: 'insensitive' } },
+        { fullName: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ],
+    },
+    select: {
+      id: true,
+      username: true,
+      fullName: true,
+      email: true,
+      avatarUrl: true,
+    },
+    take: 10,
+  });
+}

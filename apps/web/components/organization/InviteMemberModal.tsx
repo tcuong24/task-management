@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Modal, Form, Input, Select, Button, message } from 'antd';
-import { MailOutlined, UserAddOutlined } from '@ant-design/icons';
+import React, { useState, useCallback } from 'react';
+import { Modal, Form, Select, Button, message, Avatar, Spin } from 'antd';
+import { UserAddOutlined } from '@ant-design/icons';
 import { OrgRole } from '@repo/permissions';
 import { inviteMember } from '../../services/organization';
+import { searchUsers, SearchedUser } from '../../services/auth';
 
 const { Option } = Select;
 
@@ -18,6 +19,26 @@ interface InviteMemberModalProps {
 export default function InviteMemberModal({ organizationId, isOpen, onClose, onSuccess }: InviteMemberModalProps) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchedUsers, setSearchedUsers] = useState<SearchedUser[]>([]);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query || query.trim().length === 0) {
+      setSearchedUsers([]);
+      return;
+    }
+    try {
+      setSearching(true);
+      const res = await searchUsers(query);
+      if (res.success) {
+        setSearchedUsers(res.users || []);
+      }
+    } catch (err) {
+      console.error('Error searching users:', err);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
 
   const handleFinish = async (values: { email: string; role: OrgRole }) => {
     try {
@@ -26,6 +47,7 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
       if (res.success) {
         message.success(`Đã gửi lời mời tới ${values.email} thành công.`);
         form.resetFields();
+        setSearchedUsers([]);
         onSuccess();
         onClose();
       }
@@ -51,11 +73,12 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
       open={isOpen}
       onCancel={() => {
         form.resetFields();
+        setSearchedUsers([]);
         onClose();
       }}
       footer={null}
       centered
-      width={400}
+      width={420}
       className="invite-member-modal"
     >
       <Form
@@ -67,19 +90,42 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
         className="mt-4"
       >
         <Form.Item
-          label={<span className="text-gray-700 text-sm font-semibold">Địa chỉ Email</span>}
+          label={<span className="text-gray-700 text-sm font-semibold">Tên người dùng / Email</span>}
           name="email"
-          rules={[
-            { required: true, message: 'Vui lòng nhập email.' },
-            { type: 'email', message: 'Định dạng email không hợp lệ.' },
-          ]}
+          rules={[{ required: true, message: 'Vui lòng nhập Username hoặc Email.' }]}
         >
-          <Input
+          <Select
+            showSearch
             size="large"
-            placeholder="member@domain.com"
-            prefix={<MailOutlined className="text-gray-300" />}
-            className="rounded-xl border-gray-200"
-          />
+            placeholder="Gõ username (ví dụ: cuong) hoặc email..."
+            notFoundContent={searching ? <Spin size="small" /> : 'Nhập username/email để tìm kiếm hoặc thêm trực tiếp'}
+            filterOption={false}
+            onSearch={handleSearch}
+            defaultActiveFirstOption={false}
+            className="rounded-xl overflow-hidden"
+          >
+            {searchedUsers.map((u) => (
+              <Option key={u.id} value={u.username}>
+                <div className="flex items-center gap-2 py-1">
+                  <Avatar
+                    size={24}
+                    src={u.avatarUrl || undefined}
+                    className="bg-indigo-100 text-indigo-700 font-bold text-xs shrink-0"
+                  >
+                    {u.fullName.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-xs text-gray-900 leading-tight truncate">
+                      {u.fullName}
+                    </span>
+                    <span className="text-[10px] text-gray-400 truncate">
+                      @{u.username} {u.email ? `• ${u.email}` : ''}
+                    </span>
+                  </div>
+                </div>
+              </Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item
@@ -98,9 +144,10 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
             disabled={submitting}
             onClick={() => {
               form.resetFields();
+              setSearchedUsers([]);
               onClose();
             }}
-            className="flex-1 rounded-xl h-10 text-sm font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+            className="flex-1 rounded-xl h-10 text-sm font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center cursor-pointer"
           >
             Hủy
           </Button>
@@ -108,7 +155,7 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
             type="primary"
             htmlType="submit"
             loading={submitting}
-            className="flex-1 rounded-xl h-10 text-sm font-bold bg-blue-600 hover:bg-blue-700 border-none text-white shadow-md flex items-center justify-center"
+            className="flex-1 rounded-xl h-10 text-sm font-bold bg-blue-600 hover:bg-blue-700 border-none text-white shadow-md flex items-center justify-center cursor-pointer"
           >
             Gửi lời mời
           </Button>

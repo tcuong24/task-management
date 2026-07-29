@@ -2,6 +2,7 @@ import { prisma } from '@repo/database';
 import { TaskStatus, TaskPriority } from '@repo/database';
 import { AppError } from '../../common/errors';
 import cloudinary from '../../config/cloudinary';
+import { logActivity } from '../../common/services/activityLog.service';
 import {
   broadcastTaskCreated,
   broadcastTaskUpdated,
@@ -58,6 +59,8 @@ export async function getTaskById(taskId: string, projectId?: string) {
           title: true,
           status: true,
           priority: true,
+          dueDate: true,
+          assignee: { select: { id: true, fullName: true, username: true } },
           project: { select: { key: true } },
         },
         orderBy: { createdAt: 'asc' },
@@ -71,12 +74,6 @@ export async function getTaskById(taskId: string, projectId?: string) {
           project: { select: { key: true } },
         },
       },
-      taskActivities: {
-        include: {
-          actor: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      },
     },
   });
 
@@ -84,10 +81,22 @@ export async function getTaskById(taskId: string, projectId?: string) {
     throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy task.');
   }
 
+  const taskActivities = await prisma.activityLog.findMany({
+    where: {
+      entityType: 'TASK',
+      entityId: taskId,
+    },
+    include: {
+      actor: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
   const projectKey = task.project.key;
 
   return {
     ...task,
+    taskActivities,
     displayCode: `${projectKey}-${task.taskNumber}`,
     subTasks: task.subTasks.map((st: any) => ({
       ...st,
@@ -127,7 +136,7 @@ export async function createTask(data: {
     const project = await tx.project.update({
       where: { id: projectId },
       data: { taskCounter: { increment: 1 } },
-      select: { id: true, key: true, name: true, taskCounter: true },
+      select: { id: true, key: true, name: true, taskCounter: true, organizationId: true },
     });
 
     const taskNumber = project.taskCounter;
@@ -163,14 +172,20 @@ export async function createTask(data: {
       },
     });
 
-    // 4. Log TaskActivity
+    // 4. Log ActivityLog
     const displayCode = `${project.key}-${taskNumber}`;
-    await tx.taskActivity.create({
-      data: {
-        taskId: newTask.id,
-        actorId: reporterId,
-        action: 'created',
-        newValue: displayCode,
+    logActivity({
+      organizationId: project.organizationId,
+      entityType: 'TASK',
+      entityId: newTask.id,
+      actorId: reporterId,
+      action: 'created',
+      newValue: displayCode,
+      metadata: {
+        taskTitle: title,
+        taskNumber,
+        projectName: project.name,
+        projectKey: project.key,
       },
     });
 
@@ -198,7 +213,7 @@ export async function updateTask(taskId: string, actorId: string, data: {
   const currentTask = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: { select: { id: true, organizationId: true, key: true } },
+      project: { select: { id: true, organizationId: true, key: true, name: true } },
       assignee: { select: { id: true, fullName: true, username: true } },
       labels: { select: { labelId: true } },
     },
@@ -318,16 +333,37 @@ export async function updateTask(taskId: string, actorId: string, data: {
       });
     }
 
-    // Insert TaskActivities
+    // Insert ActivityLogs
     for (const act of activities) {
-      await tx.taskActivity.create({
-        data: {
-          taskId,
-          actorId,
-          action: act.action,
-          oldValue: act.oldValue,
-          newValue: act.newValue,
-        },
+      let metadata: Record<string, unknown> = {
+        taskTitle: currentTask.title,
+        taskNumber: currentTask.taskNumber,
+        projectName: currentTask.project.name,
+        projectKey: currentTask.project.key,
+      };
+
+      if (act.action === 'status_changed') {
+        metadata = {
+          taskTitle: currentTask.title,
+          taskNumber: currentTask.taskNumber,
+          projectName: currentTask.project.name,
+        };
+      } else if (act.action === 'assignee_changed') {
+        metadata = {
+          taskTitle: currentTask.title,
+          assigneeName: act.newValue || 'Unassigned',
+        };
+      }
+
+      logActivity({
+        organizationId: currentTask.project.organizationId,
+        entityType: 'TASK',
+        entityId: taskId,
+        actorId,
+        action: act.action,
+        oldValue: act.oldValue,
+        newValue: act.newValue,
+        metadata,
       });
     }
 
@@ -377,11 +413,17 @@ export async function updateTask(taskId: string, actorId: string, data: {
   });
 }
 
-export async function moveTask(taskId: string, projectId: string, newStatus: TaskStatus | undefined, newPosition: number) {
-  const task = await prisma.task.findUnique({ where: { id: taskId, projectId } });
+export async function moveTask(taskId: string, projectId: string, newStatus: TaskStatus | undefined, newPosition: number, actorId?: string) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId, projectId },
+    include: {
+      project: { select: { id: true, organizationId: true, name: true, key: true } },
+    },
+  });
   if (!task) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy task.');
 
   const targetStatus = newStatus || task.status;
+  const isStatusChanged = newStatus !== undefined && newStatus !== task.status;
 
   const updated = await prisma.task.update({
     where: { id: taskId },
@@ -390,6 +432,25 @@ export async function moveTask(taskId: string, projectId: string, newStatus: Tas
       position: newPosition,
     },
   });
+
+  if (isStatusChanged) {
+    logActivity({
+      organizationId: task.project.organizationId,
+      entityType: 'TASK',
+      entityId: taskId,
+      actorId: actorId || task.reporterId || 'system',
+      action: 'status_changed',
+      oldValue: task.status,
+      newValue: targetStatus,
+      metadata: {
+        taskTitle: task.title,
+        taskNumber: task.taskNumber,
+        projectName: task.project.name,
+        projectKey: task.project.key,
+      },
+    });
+  }
+
   broadcastTaskUpdated(projectId, taskId, { status: targetStatus, position: newPosition });
   return updated;
 }

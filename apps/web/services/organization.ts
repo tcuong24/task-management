@@ -208,6 +208,13 @@ export async function getOrganizationStats(id: string): Promise<GetOrgStatsRespo
   });
 }
 
+export interface WorkloadItem {
+  assigneeId: string | null;
+  assigneeName: string;
+  avatarUrl: string | null;
+  taskCount: number;
+}
+
 export interface DashboardSummaryResponse {
   success: boolean;
   summary: {
@@ -216,19 +223,16 @@ export interface DashboardSummaryResponse {
       dueSoonTasksCount: number;
       overdueTasksCount: number;
       completedThisWeekCount: number;
+      blockedOrCriticalCount?: number;
     };
-    upcomingTasks: {
-      id: string;
-      title: string;
-      status: string;
-      priority: string;
-      dueDate: string | null;
-      project?: {
-        id: string;
-        key: string;
-        name: string;
-      };
-    }[];
+    statusBreakdown?: {
+      TODO: number;
+      IN_PROGRESS: number;
+      IN_REVIEW: number;
+      DONE: number;
+    };
+    workload?: WorkloadItem[];
+    totalTasksCount?: number;
     projectsProgress: {
       id: string;
       key: string;
@@ -236,6 +240,49 @@ export interface DashboardSummaryResponse {
       totalTasks: number;
       doneTasks: number;
       progressPercentage: number;
+      overdueCount?: number;
+      owner?: {
+        fullName: string;
+        avatarUrl: string | null;
+      };
+    }[];
+    attentionItems?: {
+      overdueTasks: {
+        id: string;
+        title: string;
+        displayCode: string;
+        dueDate: string | null;
+        priority: string;
+        projectKey: string;
+        assigneeName: string;
+        assigneeAvatarUrl?: string | null;
+      }[];
+      unassignedTasks: {
+        id: string;
+        title: string;
+        displayCode: string;
+        priority: string;
+        projectKey: string;
+      }[];
+      criticalTasks: {
+        id: string;
+        title: string;
+        displayCode: string;
+        status: string;
+        projectKey: string;
+        assigneeName: string;
+      }[];
+    };
+    upcomingDeadlines?: {
+      id: string;
+      title: string;
+      displayCode: string;
+      dueDate: string | null;
+      priority: string;
+      status: string;
+      projectKey: string;
+      assigneeName: string;
+      assigneeAvatarUrl?: string | null;
     }[];
   };
 }
@@ -257,6 +304,36 @@ export async function getMyTasksInOrg(
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
   return request<{ success: boolean; tasks: any[] }>(`/organizations/${id}/my-tasks${queryString}`, {
+    method: 'GET',
+  });
+}
+
+export interface ActivityLogItem {
+  id: string;
+  organizationId: string;
+  entityType: 'TASK' | 'PROJECT' | 'ORGANIZATION' | 'MEMBER';
+  entityId: string;
+  actorId: string;
+  action: string;
+  oldValue: string | null;
+  newValue: string | null;
+  metadata: Record<string, any> | null;
+  createdAt: string;
+  actor: {
+    id: string;
+    fullName: string;
+    username: string;
+    avatarUrl?: string | null;
+  };
+}
+
+export interface GetActivitiesResponse {
+  success: boolean;
+  activities: ActivityLogItem[];
+}
+
+export async function getOrganizationActivities(id: string, limit = 20): Promise<GetActivitiesResponse> {
+  return request<GetActivitiesResponse>(`/organizations/${id}/activities?limit=${limit}`, {
     method: 'GET',
   });
 }

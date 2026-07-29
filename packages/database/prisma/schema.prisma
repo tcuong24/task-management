@@ -42,6 +42,13 @@ enum TaskPriority {
   CRITICAL
 }
 
+enum ActivityEntityType {
+  TASK
+  PROJECT
+  ORGANIZATION
+  MEMBER
+}
+
 // ============ USERS ============
 model User {
   id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -66,7 +73,7 @@ model User {
   refreshTokens      RefreshToken[]
   sentInvitations    OrganizationInvitation[]
   notifications      Notification[]
-  taskActivities     TaskActivity[]
+  activityLogs       ActivityLog[]
 
   @@map("users")
 }
@@ -84,6 +91,7 @@ model Organization {
   members   OrganizationMember[]
   projects  Project[]
   invitations OrganizationInvitation[]
+  activityLogs ActivityLog[]
 
   @@map("organizations")
 }
@@ -158,7 +166,6 @@ model Task {
   comments       Comment[]
   labels         TaskLabel[]
   attachments    Attachment[]
-  taskActivities TaskActivity[]
 
   @@unique([projectId, taskNumber])
   @@index([projectId], map: "idx_tasks_project")
@@ -167,21 +174,25 @@ model Task {
   @@map("tasks")
 }
 
-// ============ TASK ACTIVITIES ============
-model TaskActivity {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  taskId    String   @map("task_id") @db.Uuid
-  actorId   String   @map("actor_id") @db.Uuid
-  action    String   @db.VarChar(50)   // "status_changed" | "assignee_changed" | "priority_changed" | "due_date_changed" | "created" | "title_changed" | "description_changed"
-  oldValue  String?  @map("old_value")
-  newValue  String?  @map("new_value")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+// ============ ACTIVITY LOGS ============
+model ActivityLog {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  entityType     ActivityEntityType @map("entity_type")
+  entityId       String             @map("entity_id") @db.Uuid
+  actorId        String             @map("actor_id") @db.Uuid
+  action         String             @db.VarChar(50)
+  oldValue       String?            @map("old_value")
+  newValue       String?            @map("new_value")
+  metadata       Json?
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
 
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  actor     User     @relation(fields: [actorId], references: [id])
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor          User               @relation(fields: [actorId], references: [id])
 
-  @@index([taskId], map: "idx_task_activities_task")
-  @@map("task_activities")
+  @@index([organizationId, createdAt], map: "idx_activity_log_org_time")
+  @@index([entityType, entityId], map: "idx_activity_log_entity")
+  @@map("activity_logs")
 }
 
 // ============ COMMENTS ============

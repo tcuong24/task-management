@@ -105,7 +105,7 @@ export async function updateMemberRoleHandler(req: Request, res: Response, next:
       return;
     }
 
-    const updated = await orgService.updateMemberRole(id, memberId, role as OrgRole);
+    const updated = await orgService.updateMemberRole(id, memberId, role as OrgRole, req.user?.userId);
     res.status(200).json({ success: true, member: updated });
   } catch (err) {
     next(err);
@@ -120,7 +120,7 @@ export async function removeMemberHandler(req: Request, res: Response, next: Nex
       throw new ValidationError('Thiếu mã tổ chức hoặc mã thành viên.');
     }
 
-    await orgService.removeMember(id, memberId);
+    await orgService.removeMember(id, memberId, req.user?.userId);
     res.status(200).json({ success: true, message: 'Đã tạm khóa thành viên khỏi tổ chức.' });
   } catch (err) {
     next(err);
@@ -309,6 +309,22 @@ export async function getDashboardSummaryHandler(req: Request, res: Response, ne
 
     const summary = await orgService.getDashboardSummary(id, userId);
     res.status(200).json({ success: true, summary });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getOrganizationActivitiesHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params as { id: string };
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+
+    if (!id) {
+      throw new ValidationError('Mã tổ chức không được để trống.');
+    }
+
+    const activities = await orgService.getOrganizationActivities(id, limit);
+    res.status(200).json({ success: true, activities });
   } catch (err) {
     next(err);
   }

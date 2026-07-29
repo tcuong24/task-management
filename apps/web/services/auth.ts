@@ -26,6 +26,20 @@ export interface LogoutResponse {
   message: string;
 }
 
+export interface SearchedUser {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string | null;
+  avatarUrl: string | null;
+}
+
+export async function searchUsers(query: string): Promise<{ success: boolean; users: SearchedUser[] }> {
+  return request<{ success: boolean; users: SearchedUser[] }>(`/users/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+  });
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public errorCode: string, msg: string) {
     super(msg);

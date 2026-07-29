@@ -152,6 +152,25 @@ export function TaskDetailContent({
     }
   }, [message]);
 
+  const handleNavigateToTask = useCallback((id: string) => {
+    if (onClose) {
+      onClose(); // Triggers the drawer close animation
+      setTimeout(() => {
+        if (onOpenTask) {
+          onOpenTask(id);
+        } else {
+          router.push(`/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`);
+        }
+      }, 300); // 300ms matches standard Drawer transition duration
+    } else {
+      if (onOpenTask) {
+        onOpenTask(id);
+      } else {
+        router.push(`/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`);
+      }
+    }
+  }, [onClose, onOpenTask, router, orgSlug, projectKey]);
+
   useEffect(() => {
     if (taskId) {
       fetchTaskDetail(taskId);
@@ -402,6 +421,14 @@ export function TaskDetailContent({
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm gap-3">
         <div className="flex flex-col gap-1 overflow-hidden">
+          {task.parentTask && (
+            <button
+              onClick={() => handleNavigateToTask(task.parentTask!.id)}
+              className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-bold mb-1.5 cursor-pointer bg-transparent border-none p-0 w-fit"
+            >
+              ← Quay lại [{task.parentTask.displayCode}] {task.parentTask.title}
+            </button>
+          )}
           <div className="flex items-center gap-2 text-xs font-bold text-gray-500 overflow-hidden">
             <ProjectOutlined className="text-indigo-600 text-sm" />
             <span className="truncate">{task.project?.name || 'Project'}</span>
@@ -508,7 +535,7 @@ export function TaskDetailContent({
 
           {/* Subtasks */}
           {(() => {
-            const subTasks = task.subTasks || [];
+            const subTasks = (task.subTasks || []) as unknown as taskService.SubTaskSummary[];
             return (
               <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
@@ -526,29 +553,65 @@ export function TaskDetailContent({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {subTasks.map((st) => (
-                    <div
-                      key={st.id}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-gray-100 hover:border-gray-200 transition-all"
-                    >
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <Checkbox
-                          checked={st.status === 'DONE'}
-                          onChange={() => handleToggleSubtask(st.id, st.status)}
-                        />
-                        <span
-                          className={`text-xs font-medium text-gray-800 truncate ${st.status === 'DONE' ? 'line-through text-gray-400' : ''
-                            }`}
-                        >
-                          {st.title}
-                        </span>
-                      </div>
+                  {subTasks.length > 0 && (
+                    <div className="flex flex-col gap-0.5 rounded-xl bg-blue-50/20 border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                      {subTasks.map((st) => {
+                        const isDone = st.status === 'DONE';
+                        const assigneeName = st.assignee?.fullName || st.assignee?.username || 'Chưa gán';
 
-                      <span className="text-[10px] font-mono font-bold text-gray-400 ml-2">
-                        {st.displayCode}
-                      </span>
+                        return (
+                          <div
+                            key={st.id}
+                            className="flex items-center gap-3 px-4 py-2.5 pl-6 hover:bg-blue-50/50 transition-colors group relative"
+                          >
+                            <Checkbox
+                              checked={isDone}
+                              onChange={() => handleToggleSubtask(st.id, st.status)}
+                              className="scale-105"
+                            />
+
+                            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                              {/* Title with link */}
+                              <span
+                                onClick={() => handleNavigateToTask(st.id)}
+                                className={`text-xs font-semibold cursor-pointer hover:text-indigo-600 hover:underline truncate ${isDone ? 'line-through text-gray-400 font-normal' : 'text-gray-800'
+                                  }`}
+                                title={`Xem chi tiết: ${st.displayCode} - ${st.title}`}
+                              >
+                                <span className="text-gray-400 font-mono text-[10px] mr-1">└─</span>
+                                {st.title}
+                              </span>
+
+                              {/* Metadata row */}
+                              <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
+                                <span className={`px-1.5 py-0.5 rounded-md font-semibold text-[9px] ${st.priority === 'CRITICAL' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                    st.priority === 'HIGH' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                      st.priority === 'MEDIUM' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                                        'bg-gray-50 text-gray-500 border border-gray-200'
+                                  }`}>
+                                  {PRIORITY_BADGES[st.priority]?.label || st.priority}
+                                </span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <UserOutlined className="text-[9px]" />
+                                  {assigneeName}
+                                </span>
+                                <span>•</span>
+                                <span className={st.dueDate && dayjs(st.dueDate).isBefore(dayjs(), 'day') ? 'text-red-500 font-bold' : ''}>
+                                  {st.dueDate ? dayjs(st.dueDate).format('DD/MM/YYYY') : 'Không có hạn'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Display Code */}
+                            <span className="text-[10px] font-mono font-bold text-gray-400 select-none group-hover:text-indigo-500 transition-colors">
+                              {st.displayCode}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
 
                   {addingSubtask && (
                     <div className="flex items-center gap-2 mt-1">
@@ -813,10 +876,13 @@ export function TaskDetailContent({
                 }
                 format="DD/MM/YYYY"
                 placeholder="Chọn ngày..."
-                className="w-full"
+                className="w-full!"
               />
             </div>
 
+
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <span className="font-semibold text-gray-500">Hạn hoàn thành</span>
               <DatePicker
@@ -826,7 +892,7 @@ export function TaskDetailContent({
                 }
                 format="DD/MM/YYYY"
                 placeholder="Chọn ngày..."
-                className="w-full"
+                className="w-full!"
               />
             </div>
           </div>
@@ -836,14 +902,7 @@ export function TaskDetailContent({
             <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-200/60">
               <span className="font-semibold text-gray-500">Task cha</span>
               <button
-                onClick={() => {
-                  const pUrl = `/dashboard/${orgSlug}/projects/${projectKey}/tasks/${task.parentTask!.id}`;
-                  if (onOpenTask) {
-                    onOpenTask(task.parentTask!.id);
-                  } else {
-                    router.push(pUrl);
-                  }
-                }}
+                onClick={() => handleNavigateToTask(task.parentTask!.id)}
                 className="flex items-center gap-1.5 p-2 rounded-xl bg-indigo-50/60 text-indigo-700 font-medium hover:bg-indigo-100 transition-colors text-left truncate cursor-pointer"
               >
                 <LinkOutlined />

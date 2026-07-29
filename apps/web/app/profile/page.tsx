@@ -670,15 +670,12 @@ export default function StandaloneProfilePage() {
           {activeTab === 'profile' && (
             /* PROFILE TAB (JIRA STYLE WITH ATLASSIAN SVG BANNER) */
             <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col">
-              {/* Cover Banner */}
-              <div
-                className="h-44 md:h-52 bg-slate-100 bg-cover bg-center relative overflow-hidden flex items-start justify-end p-4"
-                style={{ backgroundImage: 'url("https://home.atlassian.com/assets/0cdeb9d347de8dd7a9a6d0dce741c94d.svg")' }}
-              >
+              {/* Cover Banner with Token Gradient */}
+              <div className="h-44 md:h-52 bg-gradient-to-br from-indigo-500 via-blue-500 to-indigo-400 relative overflow-hidden flex items-start justify-end p-4 rounded-t-2xl">
                 <Button
                   icon={<PictureOutlined />}
                   onClick={() => avatarFileInputRef.current?.click()}
-                  className="relative z-10 bg-white/90 hover:!bg-white text-gray-700 border border-gray-200/80 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 px-3 py-1.5"
+                  className="relative z-10 bg-white/90 hover:!bg-white text-gray-700 border border-gray-200/80 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 px-3 py-1.5 cursor-pointer"
                 >
                   Thêm ảnh bìa
                 </Button>
@@ -688,15 +685,15 @@ export default function StandaloneProfilePage() {
               <div className="px-6 md:px-10 pb-6 border-b border-gray-200/80 relative">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                   <div className="flex items-end gap-5">
-                    {/* Avatar with Dropdown Popup Menu (Upload File to Cloudinary / Reset to Initials) */}
+                    {/* Avatar with Dropdown Popup Menu */}
                     <Dropdown menu={{ items: avatarMenuItems }} trigger={['click']} placement="bottomLeft">
                       <div
                         className="relative -mt-16 w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white text-3xl md:text-4xl font-bold cursor-pointer group shrink-0"
-                        style={{ backgroundColor: avatarBgColor }}
+                        style={{ backgroundColor: !user.avatarUrl ? avatarBgColor : undefined }}
                         title="Đổi ảnh hồ sơ"
                       >
                         {user.avatarUrl ? (
-                          <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
+                          <img src={user.avatarUrl} alt={user.fullName || user.username} className="w-full h-full object-cover" />
                         ) : (
                           firstLetter
                         )}
@@ -735,7 +732,7 @@ export default function StandaloneProfilePage() {
                           className="cursor-pointer text-indigo-600 hover:underline flex items-center gap-1 font-medium"
                           onClick={() => setEditingFullName(true)}
                         >
-                          + Thêm chi tiết về vai trò
+                          + Thêm chức danh công việc
                         </span>
                       </div>
                     </div>
@@ -761,13 +758,13 @@ export default function StandaloneProfilePage() {
               </div>
 
               {/* 2-Column Body Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 md:p-10 bg-white">
-                <div className="lg:col-span-2 flex flex-col gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 md:p-10 bg-slate-50/50">
+                <div className="lg:col-span-2 flex flex-col gap-6">
                   <div className="flex flex-col gap-3">
                     <h3 className="text-base font-bold text-gray-900 m-0">Làm việc với tôi</h3>
-                    <div className="p-4 rounded-xl bg-gray-50/70 border border-gray-200/70 text-sm text-gray-500 leading-relaxed italic hover:border-gray-300 transition-all cursor-pointer">
+                    <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-sm text-sm text-gray-600 leading-relaxed italic hover:border-gray-300 transition-all cursor-pointer">
                       {user.fullName ? (
-                        <span className="not-italic text-gray-700 font-normal">
+                        <span className="not-italic text-gray-800 font-medium">
                           Tôi là {user.fullName} (@{user.username}). Tôi ưu tiên cập nhật tiến độ công việc trên ứng dụng TaskFlow.
                         </span>
                       ) : (
@@ -776,54 +773,70 @@ export default function StandaloneProfilePage() {
                     </div>
                   </div>
 
+                  {/* Recent Tasks Styled Like Dashboard Activity Timeline */}
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-gray-900 m-0 flex items-center gap-1.5">
+                      <h3 className="text-base font-bold text-gray-900 m-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                          <CheckSquareOutlined className="text-sm" />
+                        </div>
                         <span>Công việc gần đây</span>
-                        <Tooltip title="Các task bạn thực hiện hoặc cập nhật gần đây">
-                          <InfoCircleOutlined className="text-gray-400 text-xs font-normal" />
-                        </Tooltip>
                       </h3>
                     </div>
 
                     {recentTasks.length > 0 ? (
-                      <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-col divide-y divide-gray-100 border border-gray-200/80 rounded-2xl p-2 bg-white shadow-sm">
                         {recentTasks.map((task) => (
                           <div
                             key={task.id}
-                            className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200/80 hover:border-indigo-200 hover:shadow-xs transition-all cursor-pointer bg-white group"
+                            className="py-3 px-3 first:pt-2 last:pb-2 flex items-start gap-3 hover:bg-slate-50/70 rounded-xl transition-colors cursor-pointer group"
+                            onClick={() => {
+                              const slug = user.memberships?.[0]?.organization?.slug;
+                              if (slug && task.projectKey) {
+                                router.push(`/dashboard/${slug}/projects/${task.projectKey}`);
+                              } else {
+                                router.push('/dashboard');
+                              }
+                            }}
                           >
-                            <div className="flex items-center gap-3.5 overflow-hidden">
-                              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                                <CheckSquareOutlined className="text-base" />
-                              </div>
-                              <div className="flex flex-col text-left overflow-hidden">
-                                <span className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0 mt-0.5">
+                              <CheckSquareOutlined className="text-xs" />
+                            </div>
+                            <div className="flex flex-col flex-grow overflow-hidden">
+                              <div className="text-sm text-gray-700 leading-snug">
+                                <span className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
                                   {task.title}
                                 </span>
-                                <span className="text-xs text-gray-400 font-mono">
-                                  {task.displayCode || `#${task.taskNumber || 'TASK'}`} · {task.status}
+                                <span className="text-xs text-gray-400 font-mono ml-2">
+                                  [{task.displayCode || `#${task.taskNumber || 'TASK'}`}]
                                 </span>
                               </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">
+                                  {task.status}
+                                </span>
+                                <span>·</span>
+                                <span>{dayjs(task.updatedAt || task.createdAt).fromNow()}</span>
+                              </div>
                             </div>
-
-                            <span className="text-xs text-gray-400 shrink-0 font-medium">
-                              {dayjs(task.updatedAt || task.createdAt).fromNow()}
-                            </span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="p-6 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 text-center text-xs text-gray-400">
+                      <div className="p-8 rounded-2xl border border-dashed border-gray-200 bg-white text-center text-xs text-gray-400 font-medium shadow-sm">
                         Chưa có công việc nào gần đây.
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="lg:col-span-1 flex flex-col gap-8 border-t lg:border-t-0 lg:border-l border-gray-100 lg:pl-8">
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-base font-bold text-gray-900 m-0">Chi tiết</h3>
+                {/* Right Column: Standalone Cards for Details & Organizations */}
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                  {/* Card 1: Chi tiết */}
+                  <Card className="rounded-2xl border border-gray-200/80 shadow-sm bg-white overflow-hidden">
+                    <h3 className="text-base font-bold text-gray-900 m-0 mb-4 pb-3 border-b border-gray-100">
+                      Chi tiết
+                    </h3>
 
                     <div className="flex flex-col gap-3.5 text-sm">
                       <div className="flex flex-col gap-1">
@@ -876,26 +889,32 @@ export default function StandaloneProfilePage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Card>
 
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-base font-bold text-gray-900 m-0">
-                      Tổ chức đang tham gia ({user.memberships.length})
+                  {/* Card 2: Tổ chức đang tham gia */}
+                  <Card className="rounded-2xl border border-gray-200/80 shadow-sm bg-white overflow-hidden">
+                    <h3 className="text-base font-bold text-gray-900 m-0 mb-4 pb-3 border-b border-gray-100 flex items-center justify-between">
+                      <span>Tổ chức đang tham gia</span>
+                      <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                        {user.memberships.length}
+                      </span>
                     </h3>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
                       {user.memberships.map((m) => (
                         <div
                           key={m.organization.id}
-                          className="p-3.5 rounded-xl border border-gray-200/80 bg-white hover:border-indigo-200 transition-all cursor-pointer flex items-center justify-between"
+                          className="flex items-center justify-between p-3 rounded-xl hover:bg-blue-50/50 transition-colors cursor-pointer border border-gray-100 group"
                           onClick={() => router.push(`/dashboard/${m.organization.slug}`)}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm uppercase">
-                              {m.organization.name.charAt(0)}
-                            </div>
+                            <Avatar shape="square" className="rounded-xl bg-indigo-100 text-indigo-600 font-bold text-sm shrink-0">
+                              {m.organization.name.charAt(0).toUpperCase()}
+                            </Avatar>
                             <div className="flex flex-col text-left">
-                              <span className="text-sm font-bold text-gray-900">{m.organization.name}</span>
+                              <span className="font-semibold text-sm text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                {m.organization.name}
+                              </span>
                               <span className="text-xs text-gray-400 font-mono">/{m.organization.slug}</span>
                             </div>
                           </div>
@@ -904,7 +923,7 @@ export default function StandaloneProfilePage() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </Card>
                 </div>
               </div>
             </div>

@@ -65,6 +65,12 @@ export interface SubTaskSummary {
   status: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   displayCode: string;
+  dueDate?: string | null;
+  assignee?: {
+    id: string;
+    fullName?: string;
+    username?: string;
+  } | null;
 }
 
 export interface ParentTaskSummary {

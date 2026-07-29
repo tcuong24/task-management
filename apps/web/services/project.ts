@@ -7,6 +7,7 @@ export interface ProjectInfo {
   description: string | null;
   status: 'ACTIVE' | 'ARCHIVED';
   owner: {
+    avatarUrl?: string | null;
     fullName: string;
   };
 }

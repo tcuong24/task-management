@@ -22,6 +22,7 @@ import {
   PaperClipOutlined,
   ProjectOutlined,
   CheckCircleFilled,
+  CheckSquareOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useParams, useRouter } from 'next/navigation';
@@ -290,7 +291,7 @@ export function KanbanBoard({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start min-h-[500px]">
           {statuses.map((status) => {
-            const colTasks = tasks.filter((t) => t.status === status);
+            const colTasks = tasks.filter((t) => t.status === status && !t.parentTaskId);
             const style = COLUMN_COLORS[status];
 
             return (
@@ -325,6 +326,9 @@ export function KanbanBoard({
                     const editable = isEditable(task);
                     const commentsCount = task._count?.comments ?? task.comments?.length ?? 0;
                     const attachmentsCount = task._count?.attachments ?? task.attachments?.length ?? 0;
+                    const hasSubtasks = task.subTasks && task.subTasks.length > 0;
+                    const completedSubtasks = hasSubtasks ? task.subTasks!.filter((st) => st.status === 'DONE').length : 0;
+                    const totalSubtasks = hasSubtasks ? task.subTasks!.length : 0;
 
                     return (
                       <div
@@ -332,8 +336,9 @@ export function KanbanBoard({
                         draggable={editable}
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onClick={() => handleTaskCardClick(task)}
-                        className={`bg-white p-3.5 rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group relative ${draggedTaskId === task.id ? 'opacity-40 scale-[0.98]' : ''
-                          }`}
+                        className={`bg-white p-3.5 rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group relative ${
+                          draggedTaskId === task.id ? 'opacity-40 scale-[0.98]' : ''
+                        } ${hasSubtasks ? 'border-l-4 border-l-indigo-300/80 pl-2.5' : ''}`}
                       >
                         {/* Project & Code Badge */}
                         <div className="mb-2 flex items-center justify-between gap-1.5">
@@ -361,6 +366,19 @@ export function KanbanBoard({
                           }`}>
                           {task.title}
                         </h4>
+
+                        {/* Subtask Progress Indicator */}
+                        {hasSubtasks && (
+                          <div
+                            className={`flex items-center gap-1.5 text-[11px] font-semibold mb-2.5 ${
+                              completedSubtasks === totalSubtasks ? 'text-emerald-500' : 'text-gray-400'
+                            }`}
+                            title="Tiến độ công việc con"
+                          >
+                            <CheckSquareOutlined className="text-[10px]" />
+                            <span>{completedSubtasks}/{totalSubtasks} subtasks</span>
+                          </div>
+                        )}
 
                         {/* Badges & Meta */}
                         <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-gray-100 text-xs text-gray-500">

@@ -2,34 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Progress, Tag, Spin, App, Avatar } from 'antd';
+import { Card, Progress, Tag, Spin, Avatar } from 'antd';
 import {
   ProjectOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
-  CalendarOutlined,
   RightOutlined,
-  UserOutlined,
+  ThunderboltFilled,
+  WarningOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useOrg } from '../../../contexts/OrgContext';
 import * as orgService from '../../../services/organization';
 import Link from 'next/link';
 
-const PRIORITY_BADGES: Record<string, string> = {
-  LOW: '!bg-gray-100 !text-gray-600 border-none',
-  MEDIUM: '!bg-blue-100 !text-blue-700 border-none',
-  HIGH: '!bg-orange-100 !text-orange-700 border-none',
-  CRITICAL: '!bg-red-100 !text-red-700 font-bold border-none',
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  LOW: 'Thấp',
-  MEDIUM: 'Trung bình',
-  HIGH: 'Cao',
-  CRITICAL: 'Khẩn cấp',
-};
+import ActivityFeed from '../../../components/organization/ActivityFeed';
+import { TaskStatusChart } from '../../../components/organization/TaskStatusChart';
+import { AttentionAlerts } from '../../../components/organization/AttentionAlerts';
+import { UpcomingDeadlines } from '../../../components/organization/UpcomingDeadlines';
 
 export default function OrgSlugDashboardPage() {
   const params = useParams();
@@ -76,9 +67,9 @@ export default function OrgSlugDashboardPage() {
     dueSoonTasksCount: 0,
     overdueTasksCount: 0,
     completedThisWeekCount: 0,
+    blockedOrCriticalCount: 0,
   };
 
-  const upcomingTasks = summaryData?.upcomingTasks || [];
   const projectsProgress = summaryData?.projectsProgress || [];
 
   return (
@@ -90,32 +81,32 @@ export default function OrgSlugDashboardPage() {
             Tổng quan tổ chức
           </h1>
           <p className="text-sm text-gray-500 font-medium mt-0.5">
-            Theo dõi tiến độ dự án và các nhiệm vụ cá nhân sắp đến hạn.
+            Theo dõi tiến độ dự án, các cảnh báo quan trọng và hoạt động gần đây.
           </p>
         </div>
 
         <Link href={`/dashboard/${orgSlug}/my-tasks`}>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold !bg-indigo-50 !text-indigo-600 hover:!bg-indigo-600 hover:!text-white transition-all shadow-sm">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium !bg-indigo-50 !text-indigo-600 hover:!bg-indigo-600 hover:!text-white transition-all shadow-sm cursor-pointer">
             <span>Đến Task của tôi</span>
             <RightOutlined className="text-xs" />
           </button>
         </Link>
       </div>
 
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tier 1: 5 Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Metric 1: Total Projects */}
         <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold flex-shrink-0 border border-indigo-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-indigo-100">
               <ProjectOutlined />
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="flex flex-col min-w-0">
+              <span className="text-2xl font-bold text-gray-900 leading-tight">
                 {metrics.totalProjects}
               </span>
-              <span className="text-xs font-semibold text-gray-500">
-                Tổng số dự án
+              <span className="text-xs font-semibold text-gray-500 truncate">
+                Tổng dự án
               </span>
             </div>
           </div>
@@ -123,16 +114,16 @@ export default function OrgSlugDashboardPage() {
 
         {/* Metric 2: Due Soon */}
         <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold flex-shrink-0 border border-amber-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-amber-100">
               <ClockCircleOutlined />
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="flex flex-col min-w-0">
+              <span className="text-2xl font-bold text-gray-900 leading-tight">
                 {metrics.dueSoonTasksCount}
               </span>
-              <span className="text-xs font-semibold text-gray-500">
-                Sắp đến hạn (7 ngày)
+              <span className="text-xs font-semibold text-gray-500 truncate">
+                Sắp đến hạn (7d)
               </span>
             </div>
           </div>
@@ -140,15 +131,15 @@ export default function OrgSlugDashboardPage() {
 
         {/* Metric 3: Overdue */}
         <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl font-bold flex-shrink-0 border border-red-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-red-100">
               <ExclamationCircleOutlined />
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="flex flex-col min-w-0">
+              <span className="text-2xl font-bold text-gray-900 leading-tight">
                 {metrics.overdueTasksCount}
               </span>
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 truncate">
                 Task quá hạn
               </span>
             </div>
@@ -157,143 +148,143 @@ export default function OrgSlugDashboardPage() {
 
         {/* Metric 4: Completed This Week */}
         <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold flex-shrink-0 border border-emerald-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-emerald-100">
               <CheckCircleOutlined />
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="flex flex-col min-w-0">
+              <span className="text-2xl font-bold text-gray-900 leading-tight">
                 {metrics.completedThisWeekCount}
               </span>
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 truncate">
                 Hoàn thành tuần này
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Metric 5: Critical / Blocked Tasks */}
+        <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-purple-100">
+              <ThunderboltFilled />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-2xl font-bold text-gray-900 leading-tight">
+                {metrics.blockedOrCriticalCount || 0}
+              </span>
+              <span className="text-xs font-semibold text-gray-500 truncate">
+                Mức khẩn cấp
               </span>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Main Content Layout: 2 Columns */}
+      {/* Tier 2: Row 1 - Chart (2/3) & Enhanced Projects Progress (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 cols width): Task sắp đến hạn */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 m-0">
-              <CalendarOutlined className="text-indigo-600" />
-              <span>Task sắp đến hạn của tôi</span>
-            </h2>
-            <Link href={`/dashboard/${orgSlug}/my-tasks`} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
-              Xem tất cả ({metrics.dueSoonTasksCount})
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {upcomingTasks.map((task) => (
-              <div
-                key={task.id}
-                className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-3"
-              >
-                <div className="flex flex-col gap-1.5 overflow-hidden">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {task.project && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                        <ProjectOutlined className="text-[10px]" />
-                        [{task.project.key}] {task.project.name}
-                      </span>
-                    )}
-
-                    <Tag className={`m-0 text-[10px] px-2 py-0.5 rounded-md font-semibold ${PRIORITY_BADGES[task.priority]}`}>
-                      {PRIORITY_LABELS[task.priority]}
-                    </Tag>
-                  </div>
-
-                  <span className="font-bold text-gray-800 text-sm truncate">
-                    {task.title}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  {task.dueDate && (
-                    <span
-                      className={`text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${dayjs(task.dueDate).isBefore(dayjs(), 'day')
-                        ? 'bg-red-50 text-red-600 border border-red-100'
-                        : 'bg-gray-100 text-gray-600'
-                        }`}
-                    >
-                      <ClockCircleOutlined />
-                      {dayjs(task.dueDate).format('DD/MM/YYYY')}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {upcomingTasks.length === 0 && (
-              <div className="bg-white p-8 rounded-2xl border border-dashed border-gray-200 text-center">
-                <p className="text-sm font-semibold text-gray-400 m-0">Không có công việc nào sắp đến hạn!</p>
-              </div>
-            )}
-          </div>
+        {/* Left (2 cols): Task Status Donut Chart */}
+        <div className="lg:col-span-2">
+          <TaskStatusChart statusBreakdown={summaryData?.statusBreakdown} />
         </div>
 
-        {/* Right Column (1 col width): Tiến độ dự án */}
+        {/* Right (1 col): Enhanced Projects Progress */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 m-0">
-              <ProjectOutlined className="text-indigo-600" />
-              <span>Dự án trong tổ chức</span>
-            </h2>
-            <Link href={`/dashboard/${orgSlug}/projects`} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
-              Xem tất cả ({metrics.totalProjects})
-            </Link>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col gap-4">
-            {projectsProgress.map((proj) => {
-              const percent = proj.progressPercentage;
-              const colorInfo =
-                percent < 30
-                  ? { strokeColor: '#3b82f6', textColor: 'text-blue-600' }
-                  : percent < 60
-                    ? { strokeColor: '#f59e0b', textColor: 'text-amber-500' }
-                    : { strokeColor: '#22c55e', textColor: 'text-green-600' };
-
-              return (
-                <Link key={proj.id} href={`/dashboard/${orgSlug}/projects/${proj.key}`}>
-                  <div className="p-3 rounded-xl hover:bg-gray-50/80 transition-colors border border-transparent hover:border-gray-200/60 cursor-pointer">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-sm text-gray-800 truncate" title={proj.name}>
-                        [{proj.key}] {proj.name}
-                      </span>
-                      <span className={`text-xs font-bold ${colorInfo.textColor} ml-2`}>
-                        {proj.progressPercentage}%
-                      </span>
-                    </div>
-
-                    <Progress
-                      percent={proj.progressPercentage}
-                      showInfo={false}
-                      strokeColor={colorInfo.strokeColor}
-                      trailColor="#f3f4f6"
-                      size="small"
-                    />
-
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 mt-1.5 font-medium">
-                      <span>{proj.doneTasks} / {proj.totalTasks} công việc hoàn thành</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-
-            {projectsProgress.length === 0 && (
-              <div className="py-8 text-center text-gray-400 text-sm">
-                Chưa có dự án nào.
+          <Card className="rounded-2xl border border-gray-200/80 shadow-md bg-white overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                  <ProjectOutlined className="text-base" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-gray-900 m-0">
+                    Dự án trong tổ chức
+                  </h3>
+                  <p className="text-xs text-gray-500 m-0 font-medium">
+                    Tiến độ hoàn thành dự án
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
+              <Link href={`/dashboard/${orgSlug}/projects`} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                Xem tất cả ({metrics.totalProjects})
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {projectsProgress.map((proj) => {
+                const percent = proj.progressPercentage;
+                const colorInfo =
+                  percent < 30
+                    ? { strokeColor: '#3b82f6', textColor: 'text-blue-600' }
+                    : percent < 60
+                      ? { strokeColor: '#f59e0b', textColor: 'text-amber-500' }
+                      : { strokeColor: '#22c55e', textColor: 'text-green-600' };
+
+                return (
+                  <Link key={proj.id} href={`/dashboard/${orgSlug}/projects/${proj.key}`}>
+                    <div className="p-3 rounded-xl hover:bg-slate-50/80 transition-colors border border-transparent hover:border-gray-200/60 cursor-pointer">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-bold text-xs text-gray-800 truncate" title={proj.name}>
+                            [{proj.key}] {proj.name}
+                          </span>
+                          {proj.overdueCount ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 shrink-0">
+                              {proj.overdueCount} quá hạn
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className={`text-xs font-bold ${colorInfo.textColor} ml-2 shrink-0`}>
+                          {proj.progressPercentage}%
+                        </span>
+                      </div>
+
+                      <Progress
+                        percent={proj.progressPercentage}
+                        showInfo={false}
+                        strokeColor={colorInfo.strokeColor}
+                        trailColor="#f3f4f6"
+                        size="small"
+                      />
+
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 mt-2 font-medium">
+                        <span>{proj.doneTasks} / {proj.totalTasks} task xong</span>
+                        <div className="flex items-center gap-1.5">
+                          <Avatar
+                            size={16}
+                            src={proj.owner?.avatarUrl || undefined}
+                            className="bg-indigo-100 text-indigo-600 text-[9px] font-bold"
+                          >
+                            {proj.owner?.fullName?.charAt(0) || 'O'}
+                          </Avatar>
+                          <span className="text-gray-500 font-medium truncate max-w-[90px]">
+                            {proj.owner?.fullName || 'Chủ dự án'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+
+              {projectsProgress.length === 0 && (
+                <div className="py-8 text-center text-gray-400 text-sm">
+                  Chưa có dự án nào trong tổ chức.
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
+
+      {/* Tier 3: Row 2 - Attention Alerts (1/2) & Upcoming Deadlines (1/2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AttentionAlerts orgSlug={orgSlug} attentionItems={summaryData?.attentionItems} />
+        <UpcomingDeadlines orgSlug={orgSlug} upcomingDeadlines={summaryData?.upcomingDeadlines} />
+      </div>
+
+      {/* Tier 4: Row 3 - Recent Activity Stream (Full Width) */}
+      {orgId && <ActivityFeed orgId={orgId} />}
     </div>
   );
 }

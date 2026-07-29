@@ -13,8 +13,8 @@ export default function TaskDetailPage() {
   const taskId = (params?.taskId as string) || '';
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto flex flex-col gap-4">
+    <div className="min-h-screen bg-gray-50/50 p-2 md:p-4">
+      <div className=" mx-auto flex flex-col gap-4">
         {/* Back Button */}
         <div className="flex items-center gap-3">
           <Link

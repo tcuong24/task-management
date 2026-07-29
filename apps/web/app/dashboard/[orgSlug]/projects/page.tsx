@@ -162,7 +162,7 @@ export default function OrgProjectsPage() {
 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-400 mt-2">
                   <div className="flex items-center gap-2">
-                    <Avatar size={22} className="bg-indigo-100 text-indigo-600 font-bold text-[10px]">
+                    <Avatar src={p.owner.avatarUrl} size={22} className="bg-indigo-100 text-indigo-600 font-bold text-[10px]">
                       {p.owner?.fullName?.charAt(0) || 'O'}
                     </Avatar>
                     <span>{p.owner?.fullName || 'Chủ dự án'}</span>

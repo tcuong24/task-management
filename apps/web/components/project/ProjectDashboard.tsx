@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Tabs, Avatar, Button, Empty, Spin, Modal, Form, Input, Select, DatePicker, App, Tooltip } from 'antd';
+import { Card, Tabs, Avatar, Button, Empty, Spin, Modal, Form, Input, Select, DatePicker, App, Tooltip, Dropdown, Switch } from 'antd';
 import {
   CheckCircleOutlined,
   SyncOutlined,
@@ -10,6 +10,10 @@ import {
   ShareAltOutlined,
   SettingOutlined,
   FullscreenOutlined,
+  FullscreenExitOutlined,
+  CopyOutlined,
+  UserAddOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { Pie, Column } from '@ant-design/charts';
 import dayjs from 'dayjs';
@@ -23,6 +27,7 @@ import { TaskCalendarView } from './TaskCalendarView';
 import { TaskTimelineView } from './TaskTimelineView';
 import { usePresence } from '../../hooks/usePresence';
 import { useTaskRealtimeSync } from '../../hooks/useTaskRealtimeSync';
+import InviteMemberModal from '../organization/InviteMemberModal';
 
 const STATUS_LABEL_MAP: Record<string, string> = {
   TODO: 'Cần làm',
@@ -59,6 +64,79 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
   const [calendarSubmitting, setCalendarSubmitting] = useState(false);
   const [calendarForm] = Form.useForm();
 
+  // Invite Modal State
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+
+  // Fullscreen State
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Automation Modal State & Rules State
+  const [automationModalOpen, setAutomationModalOpen] = useState(false);
+  const [automationRules, setAutomationRules] = useState({
+    autoStartDate: false,
+    autoCompleteParent: false,
+  });
+
+  // Load automation rules
+  useEffect(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const saved = localStorage.getItem(`taskflow:automation:${projectId}`);
+      if (saved) {
+        try {
+          setAutomationRules(JSON.parse(saved));
+        } catch (e) {
+          console.error('Error parsing automation rules:', e);
+        }
+      }
+    }
+  }, [projectId]);
+
+  const saveAutomationRules = (rules: typeof automationRules) => {
+    setAutomationRules(rules);
+    if (typeof window !== 'undefined' && projectId) {
+      localStorage.setItem(`taskflow:automation:${projectId}`, JSON.stringify(rules));
+    }
+  };
+
+  // Fullscreen handlers
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        message.error('Không thể kích hoạt chế độ toàn màn hình.');
+        console.error(err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  // Share dropdown menu items
+  const shareMenuItems = [
+    {
+      key: 'copy-link',
+      label: 'Sao chép liên kết dự án',
+      icon: <CopyOutlined />,
+      onClick: () => {
+        navigator.clipboard.writeText(window.location.href);
+        message.success('Đã sao chép liên kết dự án vào bộ nhớ tạm!');
+      },
+    },
+    {
+      key: 'invite',
+      label: 'Mời thành viên mới',
+      icon: <UserAddOutlined />,
+      onClick: () => setInviteModalOpen(true),
+    },
+  ];
+
   const [data, setData] = useState<ProjectDashboardData | null>(initialDashboardData);
 
   const { activeUsers } = usePresence(projectId ? `project:${projectId}` : undefined);
@@ -89,6 +167,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           res.members.map((m: any) => ({
             userId: m.userId,
             name: m.user?.fullName || m.user?.username || m.userId,
+            avatarUrl: m.user?.avatarUrl || null,
           }))
         );
       }
@@ -138,11 +217,53 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
   }, [activeTab, fetchProjectTasks, fetchProjectTimeline, fetchMembers]);
 
   const handleStatusChange = async (task: TaskItem, newStatus: TaskItem['status']) => {
+    // Determine if we need to auto-apply Start Date rule
+    const shouldAutoStart = automationRules.autoStartDate && newStatus === 'IN_PROGRESS' && !task.startDate;
+
     setBoardTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+      prev.map((t) => {
+        if (t.id === task.id) {
+          return {
+            ...t,
+            status: newStatus,
+            ...(shouldAutoStart ? { startDate: new Date().toISOString() } : {}),
+          };
+        }
+        return t;
+      })
     );
+
     try {
+      // First move the task status
       await taskService.moveTask(orgId, projectId, task.id, newStatus, 0);
+
+      // If automation triggers, update the start date
+      if (shouldAutoStart) {
+        await taskService.updateTask(orgId, projectId, task.id, {
+          startDate: new Date().toISOString(),
+        });
+        message.info('[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.');
+      }
+
+      // Check Rule 2: Auto complete parent task when all subtasks are DONE
+      if (automationRules.autoCompleteParent && newStatus === 'DONE' && task.parentTaskId) {
+        // Find parent task in current board tasks
+        const parentTask = boardTasks.find((t) => t.id === task.parentTaskId);
+        if (parentTask && parentTask.subTasks && parentTask.subTasks.length > 0) {
+          const allSiblingsDone = parentTask.subTasks.every((st) => {
+            if (st.id === task.id) return true;
+            return st.status === 'DONE';
+          });
+
+          if (allSiblingsDone && parentTask.status !== 'DONE') {
+            await taskService.updateTask(orgId, projectId, parentTask.id, {
+              status: 'DONE',
+            });
+            message.info('[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.');
+            fetchProjectTasks();
+          }
+        }
+      }
     } catch (err) {
       console.error('Error moving task:', err);
       fetchProjectTasks();
@@ -151,7 +272,34 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
 
   const handleTaskSave = async (taskData: any) => {
     if (taskData.id) {
-      await taskService.updateTask(orgId, projectId, taskData.id, taskData);
+      const shouldAutoStart = automationRules.autoStartDate && taskData.status === 'IN_PROGRESS' && !taskData.startDate;
+      const finalTaskData = shouldAutoStart
+        ? { ...taskData, startDate: new Date().toISOString() }
+        : taskData;
+
+      await taskService.updateTask(orgId, projectId, taskData.id, finalTaskData);
+      
+      if (shouldAutoStart) {
+        message.info('[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.');
+      }
+
+      // Check Rule 2: Auto complete parent task when all subtasks are DONE
+      if (automationRules.autoCompleteParent && taskData.status === 'DONE' && taskData.parentTaskId) {
+        const parentTask = boardTasks.find((t) => t.id === taskData.parentTaskId);
+        if (parentTask && parentTask.subTasks && parentTask.subTasks.length > 0) {
+          const allSiblingsDone = parentTask.subTasks.every((st) => {
+            if (st.id === taskData.id) return true;
+            return st.status === 'DONE';
+          });
+
+          if (allSiblingsDone && parentTask.status !== 'DONE') {
+            await taskService.updateTask(orgId, projectId, parentTask.id, {
+              status: 'DONE',
+            });
+            message.info('[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.');
+          }
+        }
+      }
     } else {
       await taskService.createTask(orgId, projectId, taskData);
     }
@@ -294,9 +442,17 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
               </div>
             )}
             <div className="h-6 w-px bg-gray-200 mx-1" />
-            <Button icon={<ShareAltOutlined />}>Chia sẻ</Button>
-            <Button icon={<SettingOutlined />}>Tự động hóa</Button>
-            <Button icon={<FullscreenOutlined />} type="text" />
+            <Dropdown menu={{ items: shareMenuItems }} trigger={['click']} placement="bottomRight">
+              <Button icon={<ShareAltOutlined />}>Chia sẻ</Button>
+            </Dropdown>
+            <Button icon={<RobotOutlined className="text-indigo-500" />} onClick={() => setAutomationModalOpen(true)}>
+              Tự động hóa
+            </Button>
+            <Button
+              icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+              type="text"
+              onClick={handleToggleFullscreen}
+            />
           </div>
         </div>
 
@@ -499,6 +655,94 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* Invite Member Modal */}
+      <InviteMemberModal
+        organizationId={orgId}
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onSuccess={() => {
+          setInviteModalOpen(false);
+          fetchMembers();
+        }}
+      />
+
+      {/* Automation Rules Config Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-indigo-600">
+            <RobotOutlined className="text-xl animate-bounce" />
+            <span className="font-bold text-base">Quy tắc tự động hóa dự án</span>
+          </div>
+        }
+        open={automationModalOpen}
+        onCancel={() => setAutomationModalOpen(false)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setAutomationModalOpen(false)} className="rounded-xl">
+            Đóng
+          </Button>
+        ]}
+        className="rounded-2xl"
+        width={500}
+      >
+        <div className="py-4 flex flex-col gap-5">
+          <p className="text-xs text-gray-500 -mt-2">
+            Thiết lập các hành động tự động xử lý công việc khi có sự thay đổi trạng thái trong dự án.
+          </p>
+
+          <div className="flex flex-col gap-4 divide-y divide-gray-100">
+            {/* Rule 1: Auto start date */}
+            <div className="flex items-start justify-between gap-4 pt-3 first:pt-0">
+              <div className="flex-1">
+                <div className="text-xs font-bold text-gray-800">
+                  Tự động cập nhật Ngày bắt đầu (Start Date) khi chuyển sang "Đang làm"
+                </div>
+                <div className="text-[11px] text-gray-500 mt-1">
+                  Khi công việc được chuyển sang trạng thái "Đang làm" (IN_PROGRESS), tự động thiết lập ngày bắt đầu là hôm nay nếu trường này đang để trống.
+                </div>
+              </div>
+              <Switch
+                checked={automationRules.autoStartDate}
+                onChange={(checked) => saveAutomationRules({ ...automationRules, autoStartDate: checked })}
+                className="mt-1 shrink-0"
+              />
+            </div>
+
+            {/* Rule 2: Auto parent done */}
+            <div className="flex items-start justify-between gap-4 pt-4">
+              <div className="flex-1">
+                <div className="text-xs font-bold text-gray-800">
+                  Tự động hoàn thành công việc cha khi tất cả công việc con hoàn thành
+                </div>
+                <div className="text-[11px] text-gray-500 mt-1">
+                  Khi tất cả các công việc con (Subtasks) chuyển sang trạng thái "Hoàn thành" (DONE), công việc cha cũng tự động chuyển sang "Hoàn thành" (DONE).
+                </div>
+              </div>
+              <Switch
+                checked={automationRules.autoCompleteParent}
+                onChange={(checked) => saveAutomationRules({ ...automationRules, autoCompleteParent: checked })}
+                className="mt-1 shrink-0"
+              />
+            </div>
+
+            {/* Rule 3: Auto escalate priority */}
+            <div className="flex items-start justify-between gap-4 pt-4">
+              <div className="flex-1">
+                <div className="text-xs font-bold text-gray-800 opacity-60">
+                  Tự động nâng mức độ ưu tiên sang Khẩn cấp (CRITICAL) khi quá hạn
+                </div>
+                <div className="text-[11px] text-gray-500 mt-1">
+                  Tự động nâng mức ưu tiên của công việc khi thời gian hiện tại vượt quá hạn hoàn thành (Due Date).
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] bg-slate-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full border border-gray-200">Sắp ra mắt</span>
+                <Switch disabled checked={false} className="shrink-0" />
+              </div>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

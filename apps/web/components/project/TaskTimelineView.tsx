@@ -20,15 +20,17 @@ import {
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import 'dayjs/locale/vi';
 import { useParams, useRouter } from 'next/navigation';
 import type { TaskItem } from '../kanban/KanbanBoard';
 
 dayjs.extend(isBetween);
+dayjs.locale('vi');
 
 interface TaskTimelineViewProps {
   tasks: TaskItem[];
   loading: boolean;
-  membersList?: { userId: string; name: string }[];
+  membersList?: { userId: string; name: string; avatarUrl?: string | null }[];
   onOpenCreateModal?: () => void;
   onTaskSave?: (taskData: any) => Promise<void>;
 }
@@ -417,7 +419,7 @@ export function TaskTimelineView({
         <div className="flex flex-wrap items-center gap-3">
           {/* Search Timeline Input */}
           <Input
-            placeholder="Search timeline..."
+            placeholder="Tìm kiếm timeline..."
             prefix={<SearchOutlined className="text-gray-400" />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -441,17 +443,19 @@ export function TaskTimelineView({
             </Tooltip>
             {membersList.slice(0, 5).map((m) => {
               const isSelected = selectedAssignee === m.userId;
+              const hasAvatar = Boolean(m.avatarUrl);
               return (
                 <Tooltip key={m.userId} title={m.name}>
                   <Avatar
                     size={22}
-                    style={{ backgroundColor: getUserAvatarColor(m.userId) }}
+                    src={m.avatarUrl || undefined}
+                    style={{ backgroundColor: !hasAvatar ? getUserAvatarColor(m.userId) : undefined }}
                     onClick={() => setSelectedAssignee(isSelected ? null : m.userId)}
                     className={`cursor-pointer transition-all text-xs! ${
                       isSelected ? 'ring-2 ring-indigo-500 scale-105' : 'hover:opacity-80'
                     }`}
                   >
-                    {m.name.charAt(0).toUpperCase()}
+                    {!hasAvatar && m.name.charAt(0).toUpperCase()}
                   </Avatar>
                 </Tooltip>
               );
@@ -460,7 +464,7 @@ export function TaskTimelineView({
 
           {/* Status Category Dropdown */}
           <Select
-            placeholder="Status category"
+            placeholder="Trạng thái"
             value={statusFilter}
             onChange={setStatusFilter}
             allowClear
@@ -482,11 +486,7 @@ export function TaskTimelineView({
       </div>
 
       {/* Main Split Timeline View */}
-      {loading ? (
-        <div className="flex justify-center py-24 bg-white rounded-2xl border border-gray-200">
-          <Spin size="large" tip="Đang tải dữ liệu Timeline..." />
-        </div>
-      ) : (
+      <Spin spinning={loading} size="large" tip="Đang tải dữ liệu Timeline...">
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col relative min-h-[500px]">
           {/* Split Table Layout with Horizontal Scroll */}
           <div className="flex flex-1 overflow-x-auto relative scroll-smooth" ref={containerRef}>
@@ -494,13 +494,13 @@ export function TaskTimelineView({
             <div className="w-[300px] md:w-[340px] border-r border-gray-200/80 bg-white flex flex-col shrink-0 sticky left-0 z-30 shadow-xs select-none">
               {/* Header */}
               <div className="h-12 px-4 border-b border-gray-200/80 bg-slate-50/70 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tasks</span>
+                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Công việc</span>
                 {onOpenCreateModal && (
                   <button
                     onClick={onOpenCreateModal}
                     className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
                   >
-                    <PlusOutlined /> Create Task
+                    <PlusOutlined /> Tạo công việc
                   </button>
                 )}
               </div>
@@ -559,10 +559,11 @@ export function TaskTimelineView({
                         {t.assignee && (
                           <Avatar
                             size={18}
-                            style={{ backgroundColor: getUserAvatarColor(t.assignee.id) }}
+                            src={t.assignee.avatarUrl || undefined}
+                            style={{ backgroundColor: !t.assignee.avatarUrl ? getUserAvatarColor(t.assignee.id) : undefined }}
                             className="text-white text-[8px] font-bold shrink-0"
                           >
-                            {(t.assignee.fullName || t.assignee.username || 'U').charAt(0).toUpperCase()}
+                            {!t.assignee.avatarUrl && (t.assignee.fullName || t.assignee.username || 'U').charAt(0).toUpperCase()}
                           </Avatar>
                         )}
                         <Button size="small" type="text" icon={<PlusOutlined />} className="text-gray-400 hover:text-gray-700 h-6 w-6 p-0" />
@@ -721,8 +722,8 @@ export function TaskTimelineView({
                           </Tooltip>
                         ) : (
                           <span className="truncate flex items-center gap-1.5 pointer-events-none z-10 text-[11px]">
-                            {t.status === 'DONE' && <CheckCircleFilled className="text-white text-[10px]" />}
-                            [{code}] {t.title}
+                            
+                            
                           </span>
                         )}
 
@@ -766,7 +767,7 @@ export function TaskTimelineView({
               onClick={handleTodayClick}
               className="text-xs font-semibold text-gray-700 hover:text-indigo-600 px-3"
             >
-              Today
+              Hôm nay
             </Button>
 
             <div className="h-4 w-px bg-gray-200 mx-0.5" />
@@ -810,7 +811,7 @@ export function TaskTimelineView({
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    {mode}
+                    {mode === 'Weeks' ? 'Tuần' : mode === 'Months' ? 'Tháng' : 'Quý'}
                   </button>
                 );
               })}
@@ -834,7 +835,7 @@ export function TaskTimelineView({
             />
           </div>
         </div>
-      )}
+      </Spin>
     </div>
   );
 }
