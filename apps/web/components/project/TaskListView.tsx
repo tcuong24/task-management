@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   Table,
   Tag,
@@ -11,7 +11,7 @@ import {
   Popconfirm,
   App,
   Spin,
-} from 'antd';
+} from "antd";
 import {
   SearchOutlined,
   FilterOutlined,
@@ -22,51 +22,51 @@ import {
   RightOutlined,
   CloseOutlined,
   UserOutlined,
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { useParams, useRouter } from 'next/navigation';
-import type { TaskItem } from '../kanban/KanbanBoard';
-import * as taskService from '../../services/task';
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import { useParams, useRouter } from "next/navigation";
+import type { TaskItem } from "../kanban/KanbanBoard";
+import * as taskService from "../../services/task";
 
 interface TaskListViewProps {
   tasks: TaskItem[];
   loading: boolean;
   membersList?: { userId: string; name: string }[];
-  onStatusChange: (task: TaskItem, newStatus: TaskItem['status']) => void;
+  onStatusChange: (task: TaskItem, newStatus: TaskItem["status"]) => void;
   onTaskSave: (data: any) => Promise<void>;
   onTaskDelete?: (task: TaskItem) => Promise<void>;
   onRefresh?: () => void;
 }
 
-const PRIORITY_BADGES: Record<TaskItem['priority'], string> = {
-  LOW: '!bg-[#F1F5F9] !text-[#64748B]',
-  MEDIUM: '!bg-blue-50 !text-blue-700',
-  HIGH: '!bg-[#FFEDD5] !text-[#C2410C]',
-  CRITICAL: '!bg-red-100 !text-red-700 font-bold',
+const PRIORITY_BADGES: Record<TaskItem["priority"], string> = {
+  LOW: "!bg-slate-100 !text-slate-500",
+  MEDIUM: "!bg-blue-50 !text-blue-700",
+  HIGH: "!bg-orange-100 !text-orange-700",
+  CRITICAL: "!bg-red-100 !text-red-700 font-bold",
 };
 
-const PRIORITY_LABELS: Record<TaskItem['priority'], string> = {
-  LOW: 'Thấp',
-  MEDIUM: 'Trung bình',
-  HIGH: 'Cao',
-  CRITICAL: 'Khẩn cấp',
+const PRIORITY_LABELS: Record<TaskItem["priority"], string> = {
+  LOW: "Thấp",
+  MEDIUM: "Trung bình",
+  HIGH: "Cao",
+  CRITICAL: "Khẩn cấp",
 };
 
-const PRIORITY_ORDER: Record<TaskItem['priority'], number> = {
+const PRIORITY_ORDER: Record<TaskItem["priority"], number> = {
   CRITICAL: 4,
   HIGH: 3,
   MEDIUM: 2,
   LOW: 1,
 };
 
-const STATUS_LABELS: Record<TaskItem['status'], string> = {
-  TODO: 'Cần làm',
-  IN_PROGRESS: 'Đang làm',
-  IN_REVIEW: 'Đang kiểm tra',
-  DONE: 'Hoàn thành',
+const STATUS_LABELS: Record<TaskItem["status"], string> = {
+  TODO: "Cần làm",
+  IN_PROGRESS: "Đang làm",
+  IN_REVIEW: "Đang kiểm tra",
+  DONE: "Hoàn thành",
 };
 
-const STATUS_ORDER: Record<TaskItem['status'], number> = {
+const STATUS_ORDER: Record<TaskItem["status"], number> = {
   TODO: 1,
   IN_PROGRESS: 2,
   IN_REVIEW: 3,
@@ -74,17 +74,23 @@ const STATUS_ORDER: Record<TaskItem['status'], number> = {
 };
 
 const AVATAR_PALETTE = [
-  '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#F59E0B', '#EF4444', '#06B6D4',
+  "#10B981",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 function getUserAvatarColor(id?: string | null): string {
-  if (!id) return '#9CA3AF';
+  if (!id) return "#9CA3AF";
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || '#9CA3AF';
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || "#9CA3AF";
 }
 
 export function TaskListView({
@@ -100,18 +106,22 @@ export function TaskListView({
   const params = useParams();
   const router = useRouter();
 
-  const orgSlug = (params?.orgSlug as string) || '';
-  const projectKey = (params?.projectKey as string) || '';
+  const orgSlug = (params?.orgSlug as string) || "";
+  const projectKey = (params?.projectKey as string) || "";
 
   // Filter States
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>([]);
 
   // Group By State: 'status' | 'assignee' | 'priority' | 'none'
-  const [groupBy, setGroupBy] = useState<'status' | 'assignee' | 'priority' | 'none'>('status');
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [groupBy, setGroupBy] = useState<
+    "status" | "assignee" | "priority" | "none"
+  >("status");
+  const [collapsedGroups, setCollapsedGroups] = useState<
+    Record<string, boolean>
+  >({});
 
   // Selection & Bulk actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -127,7 +137,9 @@ export function TaskListView({
       // Search
       if (searchText.trim()) {
         const q = searchText.toLowerCase().trim();
-        const code = (t.displayCode || `${t.project?.key}-${t.taskNumber}`).toLowerCase();
+        const code = (
+          t.displayCode || `${t.project?.key}-${t.taskNumber}`
+        ).toLowerCase();
         const matchTitle = t.title.toLowerCase().includes(q);
         const matchCode = code.includes(q);
         if (!matchTitle && !matchCode) return false;
@@ -142,7 +154,7 @@ export function TaskListView({
       }
       // Assignee
       if (assigneeFilter.length > 0) {
-        const aId = t.assigneeId || 'unassigned';
+        const aId = t.assigneeId || "unassigned";
         if (!assigneeFilter.includes(aId)) return false;
       }
       return true;
@@ -151,12 +163,17 @@ export function TaskListView({
 
   // Group tasks
   const groupedTasks = useMemo(() => {
-    if (groupBy === 'none') {
-      return [{ key: 'all', title: 'Tất cả công việc', tasks: filteredTasks }];
+    if (groupBy === "none") {
+      return [{ key: "all", title: "Tất cả công việc", tasks: filteredTasks }];
     }
 
-    if (groupBy === 'status') {
-      const statuses: TaskItem['status'][] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
+    if (groupBy === "status") {
+      const statuses: TaskItem["status"][] = [
+        "TODO",
+        "IN_PROGRESS",
+        "IN_REVIEW",
+        "DONE",
+      ];
       return statuses.map((st) => ({
         key: st,
         title: STATUS_LABELS[st],
@@ -164,8 +181,13 @@ export function TaskListView({
       }));
     }
 
-    if (groupBy === 'priority') {
-      const priorities: TaskItem['priority'][] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    if (groupBy === "priority") {
+      const priorities: TaskItem["priority"][] = [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+      ];
       return priorities.map((pr) => ({
         key: pr,
         title: `Độ ưu tiên: ${PRIORITY_LABELS[pr]}`,
@@ -173,16 +195,16 @@ export function TaskListView({
       }));
     }
 
-    if (groupBy === 'assignee') {
+    if (groupBy === "assignee") {
       const map = new Map<string, { title: string; tasks: TaskItem[] }>();
-      map.set('unassigned', { title: 'Chưa phân công', tasks: [] });
+      map.set("unassigned", { title: "Chưa phân công", tasks: [] });
 
       membersList.forEach((m) => {
         map.set(m.userId, { title: m.name, tasks: [] });
       });
 
       filteredTasks.forEach((t) => {
-        const key = t.assigneeId || 'unassigned';
+        const key = t.assigneeId || "unassigned";
         if (!map.has(key)) {
           const name = t.assignee?.fullName || t.assignee?.username || key;
           map.set(key, { title: name, tasks: [] });
@@ -191,11 +213,15 @@ export function TaskListView({
       });
 
       return Array.from(map.entries())
-        .map(([key, value]) => ({ key, title: value.title, tasks: value.tasks }))
-        .filter((g) => g.tasks.length > 0 || g.key === 'unassigned');
+        .map(([key, value]) => ({
+          key,
+          title: value.title,
+          tasks: value.tasks,
+        }))
+        .filter((g) => g.tasks.length > 0 || g.key === "unassigned");
     }
 
-    return [{ key: 'all', title: 'Tất cả công việc', tasks: filteredTasks }];
+    return [{ key: "all", title: "Tất cả công việc", tasks: filteredTasks }];
   }, [filteredTasks, groupBy, membersList]);
 
   // Task click -> navigation to intercepting route
@@ -207,7 +233,7 @@ export function TaskListView({
   };
 
   // Bulk Actions
-  const handleBulkStatusChange = async (newStatus: TaskItem['status']) => {
+  const handleBulkStatusChange = async (newStatus: TaskItem["status"]) => {
     if (selectedRowKeys.length === 0) return;
     try {
       setBulkLoading(true);
@@ -217,13 +243,15 @@ export function TaskListView({
           const t = tasks.find((item) => item.id === id);
           if (t) return onStatusChange(t, newStatus);
           return Promise.resolve();
-        })
+        }),
       );
-      message.success(`Đã cập nhật trạng thái cho ${selectedIds.length} công việc.`);
+      message.success(
+        `Đã cập nhật trạng thái cho ${selectedIds.length} công việc.`,
+      );
       setSelectedRowKeys([]);
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      message.error(err.message || 'Không thể cập nhật hàng loạt.');
+      message.error(err.message || "Không thể cập nhật hàng loạt.");
     } finally {
       setBulkLoading(false);
     }
@@ -235,13 +263,17 @@ export function TaskListView({
       setBulkLoading(true);
       const selectedIds = selectedRowKeys as string[];
       await Promise.all(
-        selectedIds.map((id) => taskService.patchTask(id, { assigneeId: newAssigneeId }))
+        selectedIds.map((id) =>
+          taskService.patchTask(id, { assigneeId: newAssigneeId }),
+        ),
       );
-      message.success(`Đã cập nhật người thực hiện cho ${selectedIds.length} công việc.`);
+      message.success(
+        `Đã cập nhật người thực hiện cho ${selectedIds.length} công việc.`,
+      );
       setSelectedRowKeys([]);
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      message.error(err.message || 'Không thể thay đổi người thực hiện.');
+      message.error(err.message || "Không thể thay đổi người thực hiện.");
     } finally {
       setBulkLoading(false);
     }
@@ -257,13 +289,13 @@ export function TaskListView({
           const t = tasks.find((item) => item.id === id);
           if (t) return onTaskDelete(t);
           return Promise.resolve();
-        })
+        }),
       );
       message.success(`Đã xóa ${selectedIds.length} công việc.`);
       setSelectedRowKeys([]);
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      message.error(err.message || 'Không thể xóa các công việc đã chọn.');
+      message.error(err.message || "Không thể xóa các công việc đã chọn.");
     } finally {
       setBulkLoading(false);
     }
@@ -272,25 +304,31 @@ export function TaskListView({
   // Table columns definition
   const columns = [
     {
-      title: 'Mã & Tên công việc',
-      dataIndex: 'title',
-      key: 'title',
+      title: "Mã & Tên công việc",
+      dataIndex: "title",
+      key: "title",
       sorter: (a: TaskItem, b: TaskItem) => a.title.localeCompare(b.title),
       render: (_: any, record: TaskItem) => {
-        const isDone = record.status === 'DONE';
-        const code = record.displayCode || `${record.project?.key}-${record.taskNumber}`;
+        const isDone = record.status === "DONE";
+        const code =
+          record.displayCode || `${record.project?.key}-${record.taskNumber}`;
         return (
           <div
             onClick={() => handleTaskClick(record)}
             className="flex items-center gap-2.5 cursor-pointer group py-1 min-w-0"
           >
-            <span className="inline-flex items-center text-[11px] font-mono font-semibold text-indigo-600 bg-slate-50 px-1.5 py-0.5 rounded border border-gray-200/80 flex-shrink-0">
-              {isDone && <CheckCircleFilled className="text-emerald-500 text-[11px] mr-1" />}
+            <span className="inline-flex items-center text-[11px] font-mono font-semibold text-gray-700 bg-slate-50 px-1.5 py-0.5 rounded border border-gray-200/80 flex-shrink-0">
+              {isDone && (
+                <CheckCircleFilled className="text-emerald-500 text-[11px] mr-1" />
+              )}
               {code}
             </span>
             <span
-              className={`text-sm font-semibold truncate transition-colors ${isDone ? 'line-through text-gray-400 font-normal' : 'text-gray-800 group-hover:text-indigo-600'
-                }`}
+              className={`text-sm font-semibold truncate transition-colors ${
+                isDone
+                  ? "line-through text-gray-400 font-normal"
+                  : "text-gray-800 group-hover:text-gray-700"
+              }`}
               title={record.title}
             >
               {record.title}
@@ -300,12 +338,13 @@ export function TaskListView({
       },
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
       width: 140,
-      sorter: (a: TaskItem, b: TaskItem) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
-      render: (st: TaskItem['status'], record: TaskItem) => (
+      sorter: (a: TaskItem, b: TaskItem) =>
+        STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
+      render: (st: TaskItem["status"], record: TaskItem) => (
         <Select
           value={st}
           onChange={(val) => onStatusChange(record, val)}
@@ -322,32 +361,39 @@ export function TaskListView({
       ),
     },
     {
-      title: 'Độ ưu tiên',
-      dataIndex: 'priority',
-      key: 'priority',
+      title: "Độ ưu tiên",
+      dataIndex: "priority",
+      key: "priority",
       width: 120,
-      sorter: (a: TaskItem, b: TaskItem) => PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority],
-      render: (pr: TaskItem['priority']) => (
-        <Tag className={`m-0 text-[10px] border-none px-2 py-0.5 rounded-md font-semibold ${PRIORITY_BADGES[pr]}`}>
+      sorter: (a: TaskItem, b: TaskItem) =>
+        PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority],
+      render: (pr: TaskItem["priority"]) => (
+        <Tag
+          className={`m-0 text-[10px] border-none px-2 py-0.5 rounded-md font-semibold ${PRIORITY_BADGES[pr]}`}
+        >
           {PRIORITY_LABELS[pr]}
         </Tag>
       ),
     },
     {
-      title: 'Người thực hiện',
-      dataIndex: 'assignee',
-      key: 'assignee',
+      title: "Người thực hiện",
+      dataIndex: "assignee",
+      key: "assignee",
       width: 160,
-      render: (_: any, record: TaskItem) => (
+      render: (_: any, record: TaskItem) =>
         record.assignee ? (
           <div className="flex items-center gap-2 truncate">
             <Avatar
               size={22}
               src={record.assignee.avatarUrl || undefined}
-              style={{ backgroundColor: getUserAvatarColor(record.assignee.id) }}
+              style={{
+                backgroundColor: getUserAvatarColor(record.assignee.id),
+              }}
               className="text-white font-bold text-[10px] flex-shrink-0"
             >
-              {(record.assignee.fullName || record.assignee.username || 'U').charAt(0).toUpperCase()}
+              {(record.assignee.fullName || record.assignee.username || "U")
+                .charAt(0)
+                .toUpperCase()}
             </Avatar>
             <span className="text-xs text-gray-700 truncate">
               {record.assignee.fullName || record.assignee.username}
@@ -355,13 +401,12 @@ export function TaskListView({
           </div>
         ) : (
           <span className="text-xs text-gray-400 italic">Chưa phân công</span>
-        )
-      ),
+        ),
     },
     {
-      title: 'Hạn hoàn thành',
-      dataIndex: 'dueDate',
-      key: 'dueDate',
+      title: "Hạn hoàn thành",
+      dataIndex: "dueDate",
+      key: "dueDate",
       width: 140,
       sorter: (a: TaskItem, b: TaskItem) => {
         if (!a.dueDate) return 1;
@@ -370,14 +415,16 @@ export function TaskListView({
       },
       render: (date: string | null, record: TaskItem) => {
         if (!date) return <span className="text-xs text-gray-300">-</span>;
-        const isOverdue = dayjs(date).isBefore(dayjs(), 'day') && record.status !== 'DONE';
+        const isOverdue =
+          dayjs(date).isBefore(dayjs(), "day") && record.status !== "DONE";
         return (
           <span
-            className={`inline-flex items-center gap-1 text-xs font-medium ${isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'
-              }`}
+            className={`inline-flex items-center gap-1 text-xs font-medium ${
+              isOverdue ? "text-red-600 font-bold" : "text-gray-600"
+            }`}
           >
             <ClockCircleOutlined className="text-[11px]" />
-            {dayjs(date).format('DD/MM/YYYY')}
+            {dayjs(date).format("DD/MM/YYYY")}
           </span>
         );
       },
@@ -451,12 +498,15 @@ export function TaskListView({
             ))}
           </Select>
 
-          {(searchText || statusFilter.length > 0 || priorityFilter.length > 0 || assigneeFilter.length > 0) && (
+          {(searchText ||
+            statusFilter.length > 0 ||
+            priorityFilter.length > 0 ||
+            assigneeFilter.length > 0) && (
             <Button
               size="small"
               type="text"
               onClick={() => {
-                setSearchText('');
+                setSearchText("");
                 setStatusFilter([]);
                 setPriorityFilter([]);
                 setAssigneeFilter([]);
@@ -470,7 +520,9 @@ export function TaskListView({
 
         {/* Right Group By */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500">Nhóm theo:</span>
+          <span className="text-xs font-semibold text-gray-500">
+            Nhóm theo:
+          </span>
           <Select
             value={groupBy}
             onChange={setGroupBy}
@@ -487,13 +539,13 @@ export function TaskListView({
 
       {/* Floating Batch Action Toolbar */}
       {selectedRowKeys.length > 0 && (
-        <div className="sticky top-4 z-20 bg-indigo-900 text-white p-3 px-5 rounded-2xl shadow-xl border border-indigo-700 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+        <div className="sticky top-4 z-20 bg-blue-700 text-white p-3 px-5 rounded-2xl shadow-xl border border-blue-700 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold bg-indigo-700 px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-bold bg-blue-700 px-2.5 py-1 rounded-lg">
               Đã chọn {selectedRowKeys.length} công việc
             </span>
 
-            <div className="h-4 w-px bg-indigo-700" />
+            <div className="h-4 w-px bg-blue-700" />
 
             {/* Bulk Change Status */}
             <Select
@@ -547,7 +599,7 @@ export function TaskListView({
 
           <button
             onClick={() => setSelectedRowKeys([])}
-            className="text-xs text-indigo-200 hover:text-white flex items-center gap-1 cursor-pointer"
+            className="text-xs text-gray-300 hover:text-white flex items-center gap-1 cursor-pointer"
           >
             <CloseOutlined className="text-xs" /> Bỏ chọn
           </button>
@@ -566,7 +618,7 @@ export function TaskListView({
             return (
               <div
                 key={group.key}
-                className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden transition-all"
+                className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden transition-colors"
               >
                 {/* Group Header */}
                 <div
@@ -579,8 +631,10 @@ export function TaskListView({
                     ) : (
                       <DownOutlined className="text-xs text-gray-400" />
                     )}
-                    <h3 className="text-sm font-bold text-gray-800 m-0">{group.title}</h3>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <h3 className="text-sm font-bold text-gray-800 m-0">
+                      {group.title}
+                    </h3>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-50 text-gray-800 border border-gray-100">
                       {group.tasks.length}
                     </span>
                   </div>
@@ -604,8 +658,12 @@ export function TaskListView({
 
           {filteredTasks.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 text-center gap-2">
-              <span className="text-sm font-semibold text-gray-500">Không tìm thấy công việc nào</span>
-              <span className="text-xs text-gray-400">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</span>
+              <span className="text-sm font-semibold text-gray-500">
+                Không tìm thấy công việc nào
+              </span>
+              <span className="text-xs text-gray-400">
+                Thử thay đổi từ khóa hoặc bộ lọc của bạn.
+              </span>
             </div>
           )}
         </div>

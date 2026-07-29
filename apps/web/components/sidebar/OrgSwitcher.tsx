@@ -1,31 +1,34 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Dropdown, Avatar, Modal, Form, Input, Button, message } from 'antd';
-import CustomTooltip from '../common/CustomTooltip';
+import React, { useState } from "react";
+import { Dropdown, Avatar, Modal, Form, Input, Button, message } from "antd";
+import CustomTooltip from "../common/CustomTooltip";
 import {
-  UnorderedListOutlined,
   PlusOutlined,
   CheckOutlined,
   DownOutlined,
   BankOutlined,
-} from '@ant-design/icons';
-import { useOrg } from '../../contexts/OrgContext';
-import { OrgRole } from '@repo/permissions';
+} from "@ant-design/icons";
+import { useOrg } from "../../contexts/OrgContext";
+import { OrgRole } from "@repo/permissions";
 
 interface OrgSwitcherProps {
   collapsed: boolean;
 }
 
 const ROLE_BADGES: Record<OrgRole, { label: string; color: string }> = {
-  OWNER: { label: 'Owner', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  ADMIN: { label: 'Admin', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  MEMBER: { label: 'Member', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-  GUEST: { label: 'Guest', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  OWNER: { label: "Owner", color: "bg-gray-100 text-gray-800 border-gray-200" },
+  ADMIN: { label: "Admin", color: "bg-gray-100 text-gray-800 border-gray-200" },
+  MEMBER: {
+    label: "Member",
+    color: "bg-gray-100 text-gray-700 border-gray-200",
+  },
+  GUEST: { label: "Guest", color: "bg-gray-100 text-gray-700 border-gray-200" },
 };
 
 export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
-  const { organizations, currentOrg, selectOrg, createNewOrg, loading } = useOrg();
+  const { organizations, currentOrg, selectOrg, createNewOrg, loading } =
+    useOrg();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
@@ -34,11 +37,11 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
     try {
       setSubmitting(true);
       await createNewOrg(values.name, values.slug);
-      message.success('Tạo tổ chức thành công!');
+      message.success("Tạo tổ chức thành công!");
       setCreateModalOpen(false);
       form.resetFields();
     } catch (err: any) {
-      message.error(err.message || 'Tạo tổ chức thất bại.');
+      message.error(err.message || "Tạo tổ chức thất bại.");
     } finally {
       setSubmitting(false);
     }
@@ -59,35 +62,43 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
               <Avatar
                 src={org.avatarUrl}
                 icon={!org.avatarUrl ? <BankOutlined /> : undefined}
-                className="bg-indigo-100 text-indigo-600 font-bold border border-indigo-200 flex-shrink-0"
+                className="bg-gray-200 text-gray-800 font-bold border border-gray-300 flex-shrink-0"
                 size={28}
               >
                 {org.name.charAt(0).toUpperCase()}
               </Avatar>
               <div className="flex flex-col text-left overflow-hidden">
-                <span className="text-sm font-semibold text-gray-800 truncate">{org.name}</span>
-                <span className="text-[11px] text-gray-400 font-mono truncate">{org.slug}</span>
+                <span className="text-sm font-semibold text-gray-800 truncate">
+                  {org.name}
+                </span>
+                <span className="text-[11px] text-gray-400 font-mono truncate">
+                  {org.slug}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${roleBadge.color}`}>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${roleBadge.color}`}
+              >
                 {roleBadge.label}
               </span>
-              {isSelected && <CheckOutlined className="text-indigo-600 text-xs font-bold" />}
+              {isSelected && (
+                <CheckOutlined className="text-gray-900 text-xs font-bold" />
+              )}
             </div>
           </div>
         ),
       };
     }),
     {
-      type: 'divider' as const,
+      type: "divider" as const,
     },
     {
-      key: 'create_new_org',
+      key: "create_new_org",
       label: (
         <div
           onClick={() => setCreateModalOpen(true)}
-          className="flex items-center gap-2 text-indigo-600 font-semibold py-1.5 px-1 cursor-pointer hover:text-indigo-700"
+          className="flex items-center gap-2 text-blue-600 font-semibold py-1.5 px-1 cursor-pointer hover:text-blue-700"
         >
           <PlusOutlined className="text-xs" />
           <span>Tạo tổ chức mới</span>
@@ -96,15 +107,17 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
     },
   ];
 
-  const firstLetter = currentOrg?.name ? currentOrg.name.charAt(0).toUpperCase() : 'O';
+  const firstLetter = currentOrg?.name
+    ? currentOrg.name.charAt(0).toUpperCase()
+    : "O";
 
   const triggerContent = collapsed ? (
-    <CustomTooltip title={currentOrg?.name || 'Chọn tổ chức'} placement="right">
-      <div className="flex items-center justify-center p-1 cursor-pointer hover:bg-gray-100 rounded-xl transition-all">
+    <CustomTooltip title={currentOrg?.name || "Chọn tổ chức"} placement="right">
+      <div className="flex items-center justify-center p-1 cursor-pointer hover:bg-gray-100 rounded-xl transition-colors duration-150 ease-out focus-ring">
         <Avatar
           src={currentOrg?.avatarUrl}
           icon={!currentOrg?.avatarUrl ? <BankOutlined /> : undefined}
-          className="bg-indigo-600 text-white font-bold shadow-sm"
+          className="bg-gray-800 text-white font-bold shadow-sm"
           size={36}
         >
           {firstLetter}
@@ -112,19 +125,22 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
       </div>
     </CustomTooltip>
   ) : (
-    <div className="flex items-center justify-between p-2 rounded-xl border border-gray-200/80 bg-white hover:border-indigo-300 hover:shadow-sm transition-all cursor-pointer select-none">
+    <div className="flex min-h-11 items-center justify-between p-2 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition-[border-color,box-shadow] duration-150 ease-out cursor-pointer select-none focus-ring">
       <div className="flex items-center gap-2.5 overflow-hidden">
         <Avatar
           src={currentOrg?.avatarUrl}
           icon={!currentOrg?.avatarUrl ? <BankOutlined /> : undefined}
-          className="bg-indigo-600 text-white font-bold shadow-sm flex-shrink-0"
+          className="bg-gray-800 text-white font-bold shadow-sm flex-shrink-0"
           size={32}
         >
           {firstLetter}
         </Avatar>
         <div className="flex flex-col text-left overflow-hidden leading-tight">
-          <span className="text-sm font-bold text-gray-800 truncate" title={currentOrg?.name}>
-            {currentOrg?.name || (loading ? 'Đang tải...' : 'Chưa chọn org')}
+          <span
+            className="text-sm font-bold text-gray-800 truncate"
+            title={currentOrg?.name}
+          >
+            {currentOrg?.name || (loading ? "Đang tải..." : "Chưa chọn org")}
           </span>
           {currentOrg?.userRole && (
             <span className="text-[10px] text-gray-400 font-medium">
@@ -144,7 +160,8 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
           <CustomTooltip title="Tạo tổ chức mới" placement="right">
             <button
               onClick={() => setCreateModalOpen(true)}
-              className="w-9 h-9 rounded-xl !bg-indigo-50 !text-indigo-600 border border-indigo-200 flex items-center justify-center hover:!bg-indigo-600 hover:!text-white transition-all mx-auto"
+              className="w-11 h-11 rounded-xl bg-white text-blue-600 border border-gray-200 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors duration-150 ease-out focus-ring mx-auto"
+              aria-label="Tạo tổ chức mới"
             >
               <PlusOutlined />
             </button>
@@ -154,7 +171,7 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
             type="dashed"
             icon={<PlusOutlined />}
             onClick={() => setCreateModalOpen(true)}
-            className="w-full rounded-xl border-indigo-200 !text-indigo-600 font-semibold hover:!border-indigo-500 hover:!bg-indigo-50 h-[38px] flex items-center justify-center gap-1.5"
+            className="w-full min-h-11 rounded-xl border-gray-200 text-blue-600 font-semibold hover:border-blue-500 hover:bg-blue-50 flex items-center justify-center gap-1.5 focus-ring"
           >
             Tạo tổ chức mới
           </Button>
@@ -162,7 +179,11 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
 
         {/* Modal tạo tổ chức mới */}
         <Modal
-          title={<span className="font-bold text-gray-800 text-lg">Tạo tổ chức mới</span>}
+          title={
+            <span className="font-bold text-gray-800 text-lg">
+              Tạo tổ chức mới
+            </span>
+          }
           open={createModalOpen}
           onCancel={() => {
             setCreateModalOpen(false);
@@ -180,8 +201,12 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
           >
             <Form.Item
               name="name"
-              label={<span className="font-semibold text-gray-700">Tên tổ chức</span>}
-              rules={[{ required: true, message: 'Vui lòng nhập tên tổ chức.' }]}
+              label={
+                <span className="font-semibold text-gray-700">Tên tổ chức</span>
+              }
+              rules={[
+                { required: true, message: "Vui lòng nhập tên tổ chức." },
+              ]}
             >
               <Input
                 placeholder="VD: Acme Corporation"
@@ -190,8 +215,8 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
                   const generatedSlug = val
                     .toLowerCase()
                     .trim()
-                    .replace(/[^a-z0-9\s-]/g, '')
-                    .replace(/\s+/g, '-');
+                    .replace(/[^a-z0-9\s-]/g, "")
+                    .replace(/\s+/g, "-");
                   form.setFieldsValue({ slug: generatedSlug });
                 }}
               />
@@ -199,8 +224,12 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
 
             <Form.Item
               name="slug"
-              label={<span className="font-semibold text-gray-700">Slug (Đường dẫn định danh)</span>}
-              rules={[{ required: true, message: 'Vui lòng nhập slug.' }]}
+              label={
+                <span className="font-semibold text-gray-700">
+                  Slug (Đường dẫn định danh)
+                </span>
+              }
+              rules={[{ required: true, message: "Vui lòng nhập slug." }]}
             >
               <Input placeholder="acme-corp" />
             </Form.Item>
@@ -211,7 +240,7 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
                 type="primary"
                 htmlType="submit"
                 loading={submitting}
-                className="!bg-indigo-600 hover:!bg-indigo-700"
+                className="action-primary border-none focus-ring"
               >
                 Tạo mới
               </Button>
@@ -226,7 +255,7 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
     <>
       <Dropdown
         menu={{ items: menuItems }}
-        trigger={['click']}
+        trigger={["click"]}
         placement="bottomLeft"
         overlayClassName="rounded-xl shadow-xl border border-gray-100 min-w-[240px]"
       >
@@ -235,7 +264,11 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
 
       {/* Modal tạo tổ chức mới */}
       <Modal
-        title={<span className="font-bold text-gray-800 text-lg">Tạo tổ chức mới</span>}
+        title={
+          <span className="font-bold text-gray-800 text-lg">
+            Tạo tổ chức mới
+          </span>
+        }
         open={createModalOpen}
         onCancel={() => {
           setCreateModalOpen(false);
@@ -253,8 +286,10 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
         >
           <Form.Item
             name="name"
-            label={<span className="font-semibold text-gray-700">Tên tổ chức</span>}
-            rules={[{ required: true, message: 'Vui lòng nhập tên tổ chức.' }]}
+            label={
+              <span className="font-semibold text-gray-700">Tên tổ chức</span>
+            }
+            rules={[{ required: true, message: "Vui lòng nhập tên tổ chức." }]}
           >
             <Input
               placeholder="VD: Acme Corporation"
@@ -263,8 +298,8 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
                 const generatedSlug = val
                   .toLowerCase()
                   .trim()
-                  .replace(/[^a-z0-9\s-]/g, '')
-                  .replace(/\s+/g, '-');
+                  .replace(/[^a-z0-9\s-]/g, "")
+                  .replace(/\s+/g, "-");
                 form.setFieldsValue({ slug: generatedSlug });
               }}
             />
@@ -272,8 +307,12 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
 
           <Form.Item
             name="slug"
-            label={<span className="font-semibold text-gray-700">Slug (Đường dẫn định danh)</span>}
-            rules={[{ required: true, message: 'Vui lòng nhập slug.' }]}
+            label={
+              <span className="font-semibold text-gray-700">
+                Slug (Đường dẫn định danh)
+              </span>
+            }
+            rules={[{ required: true, message: "Vui lòng nhập slug." }]}
           >
             <Input placeholder="acme-corp" />
           </Form.Item>
@@ -284,7 +323,7 @@ export function OrgSwitcher({ collapsed }: OrgSwitcherProps) {
               type="primary"
               htmlType="submit"
               loading={submitting}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="action-primary border-none focus-ring"
             >
               Tạo mới
             </Button>

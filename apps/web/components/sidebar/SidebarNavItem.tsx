@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import CustomTooltip from '../common/CustomTooltip';
-import { motion } from 'framer-motion';
+import React from "react";
+import Link from "next/link";
+import CustomTooltip from "../common/CustomTooltip";
+import { motion } from "framer-motion";
 
 export interface SidebarNavItemProps {
   href: string;
@@ -25,11 +25,11 @@ export function SidebarNavItem({
   const content = (
     <Link
       href={href}
-      className={`group relative flex items-center gap-3 py-1 rounded-xl font-semibold text-sm transition-colors duration-150 active:scale-[0.98] ${
+      className={`group relative flex min-h-11 items-center gap-3 py-2 rounded-xl font-semibold text-sm transition-colors duration-150 ease-out focus-ring motion-reduce:transform-none ${
         active
-          ? 'text-gray-900! font-bold'
-          : 'text-gray-600! hover:text-gray-900! hover:bg-gray-100/60!'
-      } ${collapsed ? 'justify-center px-0 mx-1' : 'px-3.5 mx-0'}`}
+          ? "text-gray-900! font-bold"
+          : "text-gray-600! hover:text-gray-900! hover:bg-gray-100/60!"
+      } ${collapsed ? "justify-center px-0 mx-1" : "px-3.5 mx-0"}`}
     >
       {/* Sliding Active Pill Background */}
       {active && (
@@ -37,7 +37,7 @@ export function SidebarNavItem({
           layoutId="sidebar-active-bg"
           className="absolute inset-0 rounded-xl bg-gray-100 shadow-xs border border-gray-200/50"
           transition={{
-            type: 'spring',
+            type: "spring",
             stiffness: 500,
             damping: 35,
           }}
@@ -47,7 +47,7 @@ export function SidebarNavItem({
       {/* Icon */}
       <span
         className={`relative z-10 text-lg shrink-0 transition-colors ${
-          active ? 'text-gray-900!' : 'text-gray-500 group-hover:text-gray-900'
+          active ? "text-gray-900!" : "text-gray-500 group-hover:text-gray-900"
         }`}
       >
         {icon}
@@ -55,18 +55,14 @@ export function SidebarNavItem({
 
       {/* Label */}
       {!collapsed && (
-        <span className="relative z-10 truncate flex-1 text-left">
-          {label}
-        </span>
+        <span className="relative z-10 truncate flex-1 text-left">{label}</span>
       )}
 
       {/* Badge */}
       {!collapsed && badge !== undefined && (
         <span
           className={`relative z-10 text-[11px] font-bold px-2 py-0.5 rounded-full transition-colors ${
-            active
-              ? 'bg-indigo-100 text-gray-900!'
-              : 'bg-gray-100 text-gray-600'
+            active ? "bg-gray-200 text-gray-900!" : "bg-gray-100 text-gray-600"
           }`}
         >
           {badge}

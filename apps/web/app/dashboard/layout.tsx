@@ -1,26 +1,26 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAuth } from '../../hooks/useAuth';
-import { OrgProvider, useOrg } from '../../contexts/OrgContext';
-import { Sidebar } from '../../components/sidebar/Sidebar';
-import { Avatar, Skeleton, Input } from 'antd';
-import { SearchOutlined, UserOutlined } from '@ant-design/icons';
-import NotificationBell from '../../components/notification/NotificationBell';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "../../hooks/useAuth";
+import { OrgProvider, useOrg } from "../../contexts/OrgContext";
+import { Sidebar } from "../../components/sidebar/Sidebar";
+import { Avatar, Skeleton, Input } from "antd";
+import { SearchOutlined, UserOutlined } from "@ant-design/icons";
+import NotificationBell from "../../components/notification/NotificationBell";
 
 // Helper functions for Cookie
 const getCookie = (name: string): string | null => {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
   return null;
 };
 
 const setCookie = (name: string, value: string, days = 30) => {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
   document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 };
@@ -30,14 +30,14 @@ function HeaderLeftContent() {
   const pathname = usePathname();
 
   const formatSegment = (seg: string) => {
-    if (seg === 'dashboard') return 'Home';
+    if (seg === "dashboard") return "Home";
     if (currentOrg && (seg === currentOrg.slug || seg === currentOrg.id)) {
       return currentOrg.name;
     }
-    if (seg === 'projects') return 'Projects';
-    if (seg === 'my-tasks') return 'Task của tôi';
-    if (seg === 'members') return 'Thành viên';
-    if (seg === 'settings') return 'Cài đặt';
+    if (seg === "projects") return "Projects";
+    if (seg === "my-tasks") return "Task của tôi";
+    if (seg === "members") return "Thành viên";
+    if (seg === "settings") return "Cài đặt";
     return seg;
   };
 
@@ -46,7 +46,7 @@ function HeaderLeftContent() {
       {/* Breadcrumbs */}
       <div className="text-xs text-gray-400 font-medium flex items-center gap-1.5 truncate">
         {pathname
-          .split('/')
+          .split("/")
           .filter(Boolean)
           .map((seg, i, arr) => {
             const label = formatSegment(seg);
@@ -59,13 +59,13 @@ function HeaderLeftContent() {
                 <span
                   className={`inline-flex items-center gap-1.5 ${
                     i === arr.length - 1
-                      ? 'font-bold text-gray-700'
-                      : 'hover:text-indigo-600 cursor-pointer text-gray-500'
+                      ? "font-bold text-gray-700"
+                      : "hover:text-gray-900 cursor-pointer text-gray-500"
                   }`}
                 >
                   <span>{label}</span>
                   {isOrgSegment && userRole && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 uppercase">
                       {userRole}
                     </span>
                   )}
@@ -87,8 +87,8 @@ export default function DashboardLayout({
 
   // Load initial collapsed state from cookie
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
-    const saved = getCookie('mainSidebarCollapsed');
-    return saved === 'true';
+    const saved = getCookie("mainSidebarCollapsed");
+    return saved === "true";
   });
 
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -96,7 +96,7 @@ export default function DashboardLayout({
   // Sync state with cookie
   const setCollapsed = (val: boolean) => {
     setCollapsedState(val);
-    setCookie('mainSidebarCollapsed', val.toString());
+    setCookie("mainSidebarCollapsed", val.toString());
   };
 
   // Responsive listener for mobile view
@@ -110,8 +110,8 @@ export default function DashboardLayout({
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   if (loading) {
@@ -124,11 +124,13 @@ export default function DashboardLayout({
     );
   }
 
-  const firstLetter = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
+  const firstLetter = user?.fullName
+    ? user.fullName.charAt(0).toUpperCase()
+    : "U";
 
   return (
     <OrgProvider>
-      <div className="relative flex min-h-screen w-full bg-[#f9fafb]">
+      <div className="relative flex min-h-screen w-full bg-gray-50">
         {/* ─── Multi-tenant Sidebar ─────────────────── */}
         <Sidebar
           collapsed={collapsed}
@@ -139,7 +141,7 @@ export default function DashboardLayout({
         {/* ─── Right content area ──────────────────────────────── */}
         <div className="flex-1 flex flex-col z-10 overflow-x-hidden">
           {/* ─── Top Bar / Header ───────────────────────────── */}
-          <header className="h-14 flex items-center justify-between px-6 md:px-8 bg-white/70 backdrop-blur-md border-b border-gray-200/80 shadow-sm sticky top-0 z-10 gap-4">
+          <header className="h-14 flex items-center justify-between px-4 md:px-8 bg-white/90 backdrop-blur-sm border-b border-gray-100 shadow-sm sticky top-0 z-10 gap-4">
             {/* Left: Organization Name + Role Badge & Breadcrumbs */}
             <HeaderLeftContent />
 
@@ -148,7 +150,7 @@ export default function DashboardLayout({
               <Input
                 placeholder="Tìm kiếm công việc..."
                 prefix={<SearchOutlined className="text-gray-400" />}
-                className="w-36 sm:w-48 md:w-64 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white transition-all text-xs"
+                className="w-36 sm:w-48 md:w-64 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors duration-150 ease-out text-xs focus-ring"
               />
 
               {/* Notification Bell */}
@@ -159,7 +161,7 @@ export default function DashboardLayout({
                 <Avatar
                   src={user?.avatarUrl}
                   icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
-                  className="bg-indigo-600 text-white font-bold cursor-pointer hover:opacity-90"
+                  className="bg-gray-200 text-gray-800 font-bold cursor-pointer transition-opacity duration-150 hover:opacity-80 focus-ring"
                   size={32}
                 >
                   {firstLetter}
@@ -169,7 +171,7 @@ export default function DashboardLayout({
           </header>
 
           {/* ─── Main View Content ───────────────────────────── */}
-          <main className="flex-1 p-2 md:p-4 bg-white">{children}</main>
+          <main className="flex-1 bg-gray-50 p-4 md:p-6">{children}</main>
         </div>
       </div>
     </OrgProvider>

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState, useCallback } from 'react';
-import { Modal, Form, Select, Button, message, Avatar, Spin } from 'antd';
-import { UserAddOutlined } from '@ant-design/icons';
-import { OrgRole } from '@repo/permissions';
-import { inviteMember } from '../../services/organization';
-import { searchUsers, SearchedUser } from '../../services/auth';
+import React, { useState, useCallback } from "react";
+import { Modal, Form, Select, Button, message, Avatar, Spin } from "antd";
+import { UserAddOutlined } from "@ant-design/icons";
+import { OrgRole } from "@repo/permissions";
+import { inviteMember } from "../../services/organization";
+import { searchUsers, SearchedUser } from "../../services/auth";
 
 const { Option } = Select;
 
@@ -16,7 +16,12 @@ interface InviteMemberModalProps {
   onSuccess: () => void;
 }
 
-export default function InviteMemberModal({ organizationId, isOpen, onClose, onSuccess }: InviteMemberModalProps) {
+export default function InviteMemberModal({
+  organizationId,
+  isOpen,
+  onClose,
+  onSuccess,
+}: InviteMemberModalProps) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -34,7 +39,7 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
         setSearchedUsers(res.users || []);
       }
     } catch (err) {
-      console.error('Error searching users:', err);
+      console.error("Error searching users:", err);
     } finally {
       setSearching(false);
     }
@@ -53,9 +58,9 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
       }
     } catch (err: any) {
       if (err.status === 403) {
-        message.error('Bạn không có quyền thực hiện hành động này.');
+        message.error("Bạn không có quyền thực hiện hành động này.");
       } else {
-        message.error(err.message || 'Lỗi khi mời thành viên.');
+        message.error(err.message || "Lỗi khi mời thành viên.");
       }
     } finally {
       setSubmitting(false);
@@ -85,20 +90,32 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
         form={form}
         layout="vertical"
         onFinish={handleFinish}
-        initialValues={{ role: 'MEMBER' }}
+        initialValues={{ role: "MEMBER" }}
         requiredMark={false}
         className="mt-4"
       >
         <Form.Item
-          label={<span className="text-gray-700 text-sm font-semibold">Tên người dùng / Email</span>}
+          label={
+            <span className="text-gray-700 text-sm font-semibold">
+              Tên người dùng / Email
+            </span>
+          }
           name="email"
-          rules={[{ required: true, message: 'Vui lòng nhập Username hoặc Email.' }]}
+          rules={[
+            { required: true, message: "Vui lòng nhập Username hoặc Email." },
+          ]}
         >
           <Select
             showSearch
             size="large"
             placeholder="Gõ username (ví dụ: cuong) hoặc email..."
-            notFoundContent={searching ? <Spin size="small" /> : 'Nhập username/email để tìm kiếm hoặc thêm trực tiếp'}
+            notFoundContent={
+              searching ? (
+                <Spin size="small" />
+              ) : (
+                "Nhập username/email để tìm kiếm hoặc thêm trực tiếp"
+              )
+            }
             filterOption={false}
             onSearch={handleSearch}
             defaultActiveFirstOption={false}
@@ -110,7 +127,7 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
                   <Avatar
                     size={24}
                     src={u.avatarUrl || undefined}
-                    className="bg-indigo-100 text-indigo-700 font-bold text-xs shrink-0"
+                    className="bg-gray-100 text-gray-800 font-bold text-xs shrink-0"
                   >
                     {u.fullName.charAt(0).toUpperCase()}
                   </Avatar>
@@ -119,7 +136,7 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
                       {u.fullName}
                     </span>
                     <span className="text-[10px] text-gray-400 truncate">
-                      @{u.username} {u.email ? `• ${u.email}` : ''}
+                      @{u.username} {u.email ? `• ${u.email}` : ""}
                     </span>
                   </div>
                 </div>
@@ -129,9 +146,11 @@ export default function InviteMemberModal({ organizationId, isOpen, onClose, onS
         </Form.Item>
 
         <Form.Item
-          label={<span className="text-gray-700 text-sm font-semibold">Vai trò</span>}
+          label={
+            <span className="text-gray-700 text-sm font-semibold">Vai trò</span>
+          }
           name="role"
-          rules={[{ required: true, message: 'Vui lòng chọn vai trò.' }]}
+          rules={[{ required: true, message: "Vui lòng chọn vai trò." }]}
         >
           <Select size="large" className="rounded-xl overflow-hidden">
             <Option value="MEMBER">Regular Member</Option>

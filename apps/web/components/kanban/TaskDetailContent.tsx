@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Spin,
   Tag,
@@ -13,7 +13,7 @@ import {
   App,
   Popconfirm,
   Tooltip,
-} from 'antd';
+} from "antd";
 import {
   CloseOutlined,
   UserOutlined,
@@ -26,20 +26,20 @@ import {
   LinkOutlined,
   UploadOutlined,
   DeleteOutlined,
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/vi';
-import { useParams, useRouter } from 'next/navigation';
-import * as taskService from '../../services/task';
-import * as orgService from '../../services/organization';
-import { useAuth } from '../../hooks/useAuth';
-import { useOrg } from '../../contexts/OrgContext';
-import { usePresence } from '../../hooks/usePresence';
-import { useTaskRealtimeSync } from '../../hooks/useTaskRealtimeSync';
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/vi";
+import { useParams, useRouter } from "next/navigation";
+import * as taskService from "../../services/task";
+import * as orgService from "../../services/organization";
+import { useAuth } from "../../hooks/useAuth";
+import { useOrg } from "../../contexts/OrgContext";
+import { usePresence } from "../../hooks/usePresence";
+import { useTaskRealtimeSync } from "../../hooks/useTaskRealtimeSync";
 
 dayjs.extend(relativeTime);
-dayjs.locale('vi');
+dayjs.locale("vi");
 
 export interface TaskDetailContentProps {
   taskId: string;
@@ -49,32 +49,41 @@ export interface TaskDetailContentProps {
   onOpenTask?: (taskId: string) => void;
 }
 
-const PRIORITY_BADGES: Record<string, { bg: string; text: string; label: string }> = {
-  LOW: { bg: 'bg-[#F1F5F9]', text: 'text-[#64748B]', label: 'Thấp' },
-  MEDIUM: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Trung bình' },
-  HIGH: { bg: 'bg-[#FFEDD5]', text: 'text-[#C2410C]', label: 'Cao' },
-  CRITICAL: { bg: 'bg-red-100', text: 'text-red-700', label: 'Khẩn cấp' },
+const PRIORITY_BADGES: Record<
+  string,
+  { bg: string; text: string; label: string }
+> = {
+  LOW: { bg: "bg-slate-100", text: "text-slate-500", label: "Thấp" },
+  MEDIUM: { bg: "bg-blue-50", text: "text-blue-700", label: "Trung bình" },
+  HIGH: { bg: "bg-orange-100", text: "text-orange-700", label: "Cao" },
+  CRITICAL: { bg: "bg-red-100", text: "text-red-700", label: "Khẩn cấp" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  TODO: 'Cần làm',
-  IN_PROGRESS: 'Đang làm',
-  IN_REVIEW: 'Đang kiểm tra',
-  DONE: 'Hoàn thành',
+  TODO: "Cần làm",
+  IN_PROGRESS: "Đang làm",
+  IN_REVIEW: "Đang kiểm tra",
+  DONE: "Hoàn thành",
 };
 
 const AVATAR_PALETTE = [
-  '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#F59E0B', '#EF4444', '#06B6D4',
+  "#10B981",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 function getUserAvatarColor(id?: string | null): string {
-  if (!id) return '#9CA3AF';
+  if (!id) return "#9CA3AF";
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || '#9CA3AF';
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || "#9CA3AF";
 }
 
 export function TaskDetailContent({
@@ -90,27 +99,29 @@ export function TaskDetailContent({
   const params = useParams();
   const router = useRouter();
 
-  const orgSlug = (params?.orgSlug as string) || '';
-  const projectKey = (params?.projectKey as string) || '';
+  const orgSlug = (params?.orgSlug as string) || "";
+  const projectKey = (params?.projectKey as string) || "";
 
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState<taskService.TaskDetail | null>(null);
-  const [membersList, setMembersList] = useState<{ userId: string; name: string }[]>([]);
+  const [membersList, setMembersList] = useState<
+    { userId: string; name: string }[]
+  >([]);
 
   // Editable fields state
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleInput, setTitleInput] = useState('');
+  const [titleInput, setTitleInput] = useState("");
 
   const [editingDesc, setEditingDesc] = useState(false);
-  const [descInput, setDescInput] = useState('');
+  const [descInput, setDescInput] = useState("");
 
   // Subtask state
   const [addingSubtask, setAddingSubtask] = useState(false);
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [submittingSubtask, setSubmittingSubtask] = useState(false);
 
   // Comment input state
-  const [commentInput, setCommentInput] = useState('');
+  const [commentInput, setCommentInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
   // Attachment upload state
@@ -118,58 +129,70 @@ export function TaskDetailContent({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch Task Detail
-  const fetchTaskDetail = useCallback(async (id: string) => {
-    try {
-      setLoading(true);
-      const res = await taskService.getTaskDetail(id);
-      if (res.success && res.task) {
-        setTask(res.task);
-        setTitleInput(res.task.title);
-        setDescInput(res.task.description || '');
+  const fetchTaskDetail = useCallback(
+    async (id: string) => {
+      try {
+        setLoading(true);
+        const res = await taskService.getTaskDetail(id);
+        if (res.success && res.task) {
+          setTask(res.task);
+          setTitleInput(res.task.title);
+          setDescInput(res.task.description || "");
 
-        // Fetch org members for assignee selection if org ID is available
-        if (res.task.project?.organizationId) {
-          try {
-            const orgRes = await orgService.getMembers(res.task.project.organizationId);
-            if (orgRes.success && orgRes.members) {
-              setMembersList(
-                orgRes.members.map((m: any) => ({
-                  userId: m.userId,
-                  name: m.user?.fullName || m.user?.username || m.userId,
-                }))
+          // Fetch org members for assignee selection if org ID is available
+          if (res.task.project?.organizationId) {
+            try {
+              const orgRes = await orgService.getMembers(
+                res.task.project.organizationId,
               );
+              if (orgRes.success && orgRes.members) {
+                setMembersList(
+                  orgRes.members.map((m: any) => ({
+                    userId: m.userId,
+                    name: m.user?.fullName || m.user?.username || m.userId,
+                  })),
+                );
+              }
+            } catch (err) {
+              console.error("Error fetching org members:", err);
             }
-          } catch (err) {
-            console.error('Error fetching org members:', err);
           }
         }
+      } catch (err: any) {
+        console.error("Error fetching task detail:", err);
+        message.error(err.message || "Không thể tải thông tin công việc.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error('Error fetching task detail:', err);
-      message.error(err.message || 'Không thể tải thông tin công việc.');
-    } finally {
-      setLoading(false);
-    }
-  }, [message]);
+    },
+    [message],
+  );
 
-  const handleNavigateToTask = useCallback((id: string) => {
-    if (onClose) {
-      onClose(); // Triggers the drawer close animation
-      setTimeout(() => {
+  const handleNavigateToTask = useCallback(
+    (id: string) => {
+      if (onClose) {
+        onClose(); // Triggers the drawer close animation
+        setTimeout(() => {
+          if (onOpenTask) {
+            onOpenTask(id);
+          } else {
+            router.push(
+              `/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`,
+            );
+          }
+        }, 300); // 300ms matches standard Drawer transition duration
+      } else {
         if (onOpenTask) {
           onOpenTask(id);
         } else {
-          router.push(`/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`);
+          router.push(
+            `/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`,
+          );
         }
-      }, 300); // 300ms matches standard Drawer transition duration
-    } else {
-      if (onOpenTask) {
-        onOpenTask(id);
-      } else {
-        router.push(`/dashboard/${orgSlug}/projects/${projectKey}/tasks/${id}`);
       }
-    }
-  }, [onClose, onOpenTask, router, orgSlug, projectKey]);
+    },
+    [onClose, onOpenTask, router, orgSlug, projectKey],
+  );
 
   useEffect(() => {
     if (taskId) {
@@ -178,11 +201,15 @@ export function TaskDetailContent({
   }, [taskId, fetchTaskDetail]);
 
   // Patch task helper with optimistic UI
-  const handlePatchTask = async (patchData: Parameters<typeof taskService.patchTask>[1]) => {
+  const handlePatchTask = async (
+    patchData: Parameters<typeof taskService.patchTask>[1],
+  ) => {
     if (!task) return;
 
     const previousTask = { ...task };
-    setTask((prev) => (prev ? ({ ...prev, ...patchData } as taskService.TaskDetail) : null));
+    setTask((prev) =>
+      prev ? ({ ...prev, ...patchData } as taskService.TaskDetail) : null,
+    );
 
     try {
       const res = await taskService.patchTask(task.id, patchData);
@@ -190,22 +217,22 @@ export function TaskDetailContent({
         setTask((prev) =>
           prev
             ? ({
-              ...prev,
-              ...res.task,
-              taskActivities: prev.taskActivities || [],
-              comments: prev.comments || [],
-              subTasks: prev.subTasks || [],
-              attachments: prev.attachments || [],
-            } as taskService.TaskDetail)
-            : null
+                ...prev,
+                ...res.task,
+                taskActivities: prev.taskActivities || [],
+                comments: prev.comments || [],
+                subTasks: prev.subTasks || [],
+                attachments: prev.attachments || [],
+              } as taskService.TaskDetail)
+            : null,
         );
         setTitleInput(res.task.title);
-        setDescInput(res.task.description || '');
+        setDescInput(res.task.description || "");
         if (onTaskUpdated) onTaskUpdated();
       }
     } catch (err: any) {
       setTask(previousTask);
-      message.error(err.message || 'Không thể cập nhật công việc.');
+      message.error(err.message || "Không thể cập nhật công việc.");
     }
   };
 
@@ -215,7 +242,7 @@ export function TaskDetailContent({
     if (titleInput.trim() && titleInput !== task?.title) {
       handlePatchTask({ title: titleInput.trim() });
     } else {
-      setTitleInput(task?.title || '');
+      setTitleInput(task?.title || "");
     }
   };
 
@@ -228,14 +255,17 @@ export function TaskDetailContent({
   };
 
   // Subtask handlers
-  const handleToggleSubtask = async (subtaskId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'DONE' ? 'TODO' : 'DONE';
+  const handleToggleSubtask = async (
+    subtaskId: string,
+    currentStatus: string,
+  ) => {
+    const newStatus = currentStatus === "DONE" ? "TODO" : "DONE";
     try {
       await taskService.patchTask(subtaskId, { status: newStatus });
       fetchTaskDetail(taskId);
       if (onTaskUpdated) onTaskUpdated();
     } catch (err: any) {
-      message.error(err.message || 'Không thể cập nhật trạng thái subtask.');
+      message.error(err.message || "Không thể cập nhật trạng thái subtask.");
     }
   };
 
@@ -248,12 +278,12 @@ export function TaskDetailContent({
         title: newSubtaskTitle.trim(),
         parentTaskId: task.id,
       });
-      setNewSubtaskTitle('');
+      setNewSubtaskTitle("");
       setAddingSubtask(false);
       fetchTaskDetail(task.id);
       if (onTaskUpdated) onTaskUpdated();
     } catch (err: any) {
-      message.error(err.message || 'Không thể tạo subtask mới.');
+      message.error(err.message || "Không thể tạo subtask mới.");
     } finally {
       setSubmittingSubtask(false);
     }
@@ -266,14 +296,14 @@ export function TaskDetailContent({
     try {
       setUploadingAttachment(true);
       await taskService.uploadAttachment(task.id, file);
-      message.success('Tải file đính kèm thành công!');
+      message.success("Tải file đính kèm thành công!");
       fetchTaskDetail(task.id);
       if (onTaskUpdated) onTaskUpdated();
     } catch (err: any) {
-      message.error(err.message || 'Không thể tải file lên.');
+      message.error(err.message || "Không thể tải file lên.");
     } finally {
       setUploadingAttachment(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -281,11 +311,11 @@ export function TaskDetailContent({
     if (!task) return;
     try {
       await taskService.deleteAttachment(attId);
-      message.success('Đã xóa file đính kèm.');
+      message.success("Đã xóa file đính kèm.");
       fetchTaskDetail(task.id);
       if (onTaskUpdated) onTaskUpdated();
     } catch (err: any) {
-      message.error(err.message || 'Không thể xóa file.');
+      message.error(err.message || "Không thể xóa file.");
     }
   };
 
@@ -296,11 +326,11 @@ export function TaskDetailContent({
       setSubmittingComment(true);
       const res = await taskService.addComment(task.id, commentInput.trim());
       if (res.success) {
-        setCommentInput('');
+        setCommentInput("");
         fetchTaskDetail(task.id);
       }
     } catch (err: any) {
-      message.error(err.message || 'Không thể gửi bình luận.');
+      message.error(err.message || "Không thể gửi bình luận.");
     } finally {
       setSubmittingComment(false);
     }
@@ -310,7 +340,7 @@ export function TaskDetailContent({
   const timelineItems = useMemo(() => {
     if (!task) return [];
     const items: {
-      type: 'activity' | 'comment';
+      type: "activity" | "comment";
       id: string;
       createdAt: string;
       data: any;
@@ -318,7 +348,7 @@ export function TaskDetailContent({
 
     (task.taskActivities || []).forEach((act) => {
       items.push({
-        type: 'activity',
+        type: "activity",
         id: act.id,
         createdAt: act.createdAt,
         data: act,
@@ -327,7 +357,7 @@ export function TaskDetailContent({
 
     (task.comments || []).forEach((cmt) => {
       items.push({
-        type: 'comment',
+        type: "comment",
         id: cmt.id,
         createdAt: cmt.createdAt,
         data: cmt,
@@ -338,61 +368,107 @@ export function TaskDetailContent({
   }, [task]);
 
   const renderActivityText = (act: taskService.TaskActivity) => {
-    const actorName = act.actor?.fullName || act.actor?.username || 'Người dùng';
+    const actorName =
+      act.actor?.fullName || act.actor?.username || "Người dùng";
 
     switch (act.action) {
-      case 'created':
-        return <span><strong className="text-gray-900">{actorName}</strong> đã tạo công việc này</span>;
-      case 'status_changed':
+      case "created":
         return (
           <span>
-            <strong className="text-gray-900">{actorName}</strong> đã chuyển trạng thái từ{' '}
-            <Tag color="blue" className="m-0 font-medium">{STATUS_LABELS[act.oldValue || ''] || act.oldValue}</Tag> →{' '}
-            <Tag color="green" className="m-0 font-medium">{STATUS_LABELS[act.newValue || ''] || act.newValue}</Tag>
+            <strong className="text-gray-900">{actorName}</strong> đã tạo công
+            việc này
           </span>
         );
-      case 'priority_changed':
+      case "status_changed":
         return (
           <span>
-            <strong className="text-gray-900">{actorName}</strong> đã thay đổi độ ưu tiên từ{' '}
-            <span className="font-semibold text-gray-700">{PRIORITY_BADGES[act.oldValue || '']?.label || act.oldValue}</span> →{' '}
-            <span className="font-semibold text-indigo-600">{PRIORITY_BADGES[act.newValue || '']?.label || act.newValue}</span>
+            <strong className="text-gray-900">{actorName}</strong> đã chuyển
+            trạng thái từ{" "}
+            <Tag color="blue" className="m-0 font-medium">
+              {STATUS_LABELS[act.oldValue || ""] || act.oldValue}
+            </Tag>{" "}
+            →{" "}
+            <Tag color="green" className="m-0 font-medium">
+              {STATUS_LABELS[act.newValue || ""] || act.newValue}
+            </Tag>
           </span>
         );
-      case 'assignee_changed':
+      case "priority_changed":
         return (
           <span>
-            <strong className="text-gray-900">{actorName}</strong> đã thay đổi người thực hiện sang{' '}
-            <strong className="text-indigo-600">{act.newValue || 'Chưa giao'}</strong>
+            <strong className="text-gray-900">{actorName}</strong> đã thay đổi
+            độ ưu tiên từ{" "}
+            <span className="font-semibold text-gray-700">
+              {PRIORITY_BADGES[act.oldValue || ""]?.label || act.oldValue}
+            </span>{" "}
+            →{" "}
+            <span className="font-semibold text-gray-700">
+              {PRIORITY_BADGES[act.newValue || ""]?.label || act.newValue}
+            </span>
           </span>
         );
-      case 'due_date_changed':
+      case "assignee_changed":
         return (
           <span>
-            <strong className="text-gray-900">{actorName}</strong> đã đổi hạn thành{' '}
-            <span className="font-semibold text-gray-800">{act.newValue ? dayjs(act.newValue).format('DD/MM/YYYY') : 'Không có'}</span>
+            <strong className="text-gray-900">{actorName}</strong> đã thay đổi
+            người thực hiện sang{" "}
+            <strong className="text-gray-700">
+              {act.newValue || "Chưa giao"}
+            </strong>
           </span>
         );
-      case 'start_date_changed':
+      case "due_date_changed":
         return (
           <span>
-            <strong className="text-gray-900">{actorName}</strong> đã đổi ngày bắt đầu thành{' '}
-            <span className="font-semibold text-gray-800">{act.newValue ? dayjs(act.newValue).format('DD/MM/YYYY') : 'Không có'}</span>
+            <strong className="text-gray-900">{actorName}</strong> đã đổi hạn
+            thành{" "}
+            <span className="font-semibold text-gray-800">
+              {act.newValue
+                ? dayjs(act.newValue).format("DD/MM/YYYY")
+                : "Không có"}
+            </span>
           </span>
         );
-      case 'title_changed':
-        return <span><strong className="text-gray-900">{actorName}</strong> đã cập nhật tiêu đề công việc</span>;
-      case 'description_changed':
-        return <span><strong className="text-gray-900">{actorName}</strong> đã chỉnh sửa mô tả</span>;
+      case "start_date_changed":
+        return (
+          <span>
+            <strong className="text-gray-900">{actorName}</strong> đã đổi ngày
+            bắt đầu thành{" "}
+            <span className="font-semibold text-gray-800">
+              {act.newValue
+                ? dayjs(act.newValue).format("DD/MM/YYYY")
+                : "Không có"}
+            </span>
+          </span>
+        );
+      case "title_changed":
+        return (
+          <span>
+            <strong className="text-gray-900">{actorName}</strong> đã cập nhật
+            tiêu đề công việc
+          </span>
+        );
+      case "description_changed":
+        return (
+          <span>
+            <strong className="text-gray-900">{actorName}</strong> đã chỉnh sửa
+            mô tả
+          </span>
+        );
       default:
-        return <span><strong className="text-gray-900">{actorName}</strong> thực hiện cập nhật</span>;
+        return (
+          <span>
+            <strong className="text-gray-900">{actorName}</strong> thực hiện cập
+            nhật
+          </span>
+        );
     }
   };
 
   const isAssigneeDisabled = useMemo(() => {
     if (!task) return false;
-    if (userRole === 'OWNER' || userRole === 'ADMIN') return false;
-    return userRole === 'MEMBER' && task.reporterId !== user?.id;
+    if (userRole === "OWNER" || userRole === "ADMIN") return false;
+    return userRole === "MEMBER" && task.reporterId !== user?.id;
   }, [userRole, task, user?.id]);
 
   const { activeUsers } = usePresence(taskId ? `task:${taskId}` : undefined);
@@ -411,7 +487,9 @@ export function TaskDetailContent({
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-3 p-12">
         <Spin size="large" />
-        <span className="text-sm font-medium text-gray-400">Đang tải chi tiết công việc...</span>
+        <span className="text-sm font-medium text-gray-400">
+          Đang tải chi tiết công việc...
+        </span>
       </div>
     );
   }
@@ -424,16 +502,16 @@ export function TaskDetailContent({
           {task.parentTask && (
             <button
               onClick={() => handleNavigateToTask(task.parentTask!.id)}
-              className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-bold mb-1.5 cursor-pointer bg-transparent border-none p-0 w-fit"
+              className="flex items-center gap-1 text-[11px] text-gray-700 hover:text-gray-900 font-bold mb-1.5 cursor-pointer bg-transparent border-none p-0 w-fit"
             >
               ← Quay lại [{task.parentTask.displayCode}] {task.parentTask.title}
             </button>
           )}
           <div className="flex items-center gap-2 text-xs font-bold text-gray-500 overflow-hidden">
-            <ProjectOutlined className="text-indigo-600 text-sm" />
-            <span className="truncate">{task.project?.name || 'Project'}</span>
+            <ProjectOutlined className="text-gray-700 text-sm" />
+            <span className="truncate">{task.project?.name || "Project"}</span>
             <span className="text-gray-300">/</span>
-            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono font-semibold border border-indigo-100">
+            <span className="px-2 py-0.5 rounded bg-gray-50 text-gray-800 font-mono font-semibold border border-gray-100">
               {task.displayCode}
             </span>
           </div>
@@ -445,8 +523,8 @@ export function TaskDetailContent({
               </span>
               <span>
                 <strong className="font-semibold text-gray-700">
-                  {activeUsers.map((u) => u.fullName || u.username).join(', ')}
-                </strong>{' '}
+                  {activeUsers.map((u) => u.fullName || u.username).join(", ")}
+                </strong>{" "}
                 đang xem task này
               </span>
             </div>
@@ -462,7 +540,7 @@ export function TaskDetailContent({
                     src={u.avatarUrl || undefined}
                     style={{ backgroundColor: getUserAvatarColor(u.userId) }}
                   >
-                    {(u.fullName || u.username || 'U').charAt(0).toUpperCase()}
+                    {(u.fullName || u.username || "U").charAt(0).toUpperCase()}
                   </Avatar>
                 </Tooltip>
               ))}
@@ -493,7 +571,7 @@ export function TaskDetailContent({
                 onBlur={handleSaveTitle}
                 onPressEnter={handleSaveTitle}
                 autoFocus
-                className="text-lg font-bold text-gray-900 border-indigo-500 shadow-sm"
+                className="text-lg font-bold text-gray-900 border-blue-500 shadow-sm"
               />
             ) : (
               <h2
@@ -519,7 +597,7 @@ export function TaskDetailContent({
                 onBlur={handleSaveDesc}
                 autoFocus
                 placeholder="Thêm mô tả chi tiết cho công việc..."
-                className="text-sm text-gray-800 border-indigo-500 shadow-sm rounded-xl"
+                className="text-sm text-gray-800 border-blue-500 shadow-sm rounded-xl"
               />
             ) : (
               <div
@@ -527,7 +605,9 @@ export function TaskDetailContent({
                 className="text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-3 -ml-1 rounded-xl transition-colors border border-transparent hover:border-gray-200 min-h-[72px] whitespace-pre-wrap"
               >
                 {task.description || (
-                  <span className="text-gray-400 italic text-xs">Chưa có mô tả. Click vào đây để thêm...</span>
+                  <span className="text-gray-400 italic text-xs">
+                    Chưa có mô tả. Click vào đây để thêm...
+                  </span>
                 )}
               </div>
             )}
@@ -535,18 +615,21 @@ export function TaskDetailContent({
 
           {/* Subtasks */}
           {(() => {
-            const subTasks = (task.subTasks || []) as unknown as taskService.SubTaskSummary[];
+            const subTasks = (task.subTasks ||
+              []) as unknown as taskService.SubTaskSummary[];
             return (
               <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                    <CheckSquareOutlined className="text-indigo-600" />
-                    Subtasks ({subTasks.filter((s) => s.status === 'DONE').length}/{subTasks.length})
+                    <CheckSquareOutlined className="text-gray-700" />
+                    Subtasks (
+                    {subTasks.filter((s) => s.status === "DONE").length}/
+                    {subTasks.length})
                   </span>
 
                   <button
                     onClick={() => setAddingSubtask(true)}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-bold text-gray-700 hover:text-gray-900 flex items-center gap-1 cursor-pointer"
                   >
                     <PlusOutlined /> Thêm subtask
                   </button>
@@ -556,8 +639,11 @@ export function TaskDetailContent({
                   {subTasks.length > 0 && (
                     <div className="flex flex-col gap-0.5 rounded-xl bg-blue-50/20 border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                       {subTasks.map((st) => {
-                        const isDone = st.status === 'DONE';
-                        const assigneeName = st.assignee?.fullName || st.assignee?.username || 'Chưa gán';
+                        const isDone = st.status === "DONE";
+                        const assigneeName =
+                          st.assignee?.fullName ||
+                          st.assignee?.username ||
+                          "Chưa gán";
 
                         return (
                           <div
@@ -566,7 +652,9 @@ export function TaskDetailContent({
                           >
                             <Checkbox
                               checked={isDone}
-                              onChange={() => handleToggleSubtask(st.id, st.status)}
+                              onChange={() =>
+                                handleToggleSubtask(st.id, st.status)
+                              }
                               className="scale-105"
                             />
 
@@ -574,22 +662,34 @@ export function TaskDetailContent({
                               {/* Title with link */}
                               <span
                                 onClick={() => handleNavigateToTask(st.id)}
-                                className={`text-xs font-semibold cursor-pointer hover:text-indigo-600 hover:underline truncate ${isDone ? 'line-through text-gray-400 font-normal' : 'text-gray-800'
-                                  }`}
+                                className={`text-xs font-semibold cursor-pointer hover:text-gray-700 hover:underline truncate ${
+                                  isDone
+                                    ? "line-through text-gray-400 font-normal"
+                                    : "text-gray-800"
+                                }`}
                                 title={`Xem chi tiết: ${st.displayCode} - ${st.title}`}
                               >
-                                <span className="text-gray-400 font-mono text-[10px] mr-1">└─</span>
+                                <span className="text-gray-400 font-mono text-[10px] mr-1">
+                                  └─
+                                </span>
                                 {st.title}
                               </span>
 
                               {/* Metadata row */}
                               <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
-                                <span className={`px-1.5 py-0.5 rounded-md font-semibold text-[9px] ${st.priority === 'CRITICAL' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                    st.priority === 'HIGH' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                      st.priority === 'MEDIUM' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
-                                        'bg-gray-50 text-gray-500 border border-gray-200'
-                                  }`}>
-                                  {PRIORITY_BADGES[st.priority]?.label || st.priority}
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-md font-semibold text-[9px] ${
+                                    st.priority === "CRITICAL"
+                                      ? "bg-red-50 text-red-600 border border-red-100"
+                                      : st.priority === "HIGH"
+                                        ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                        : st.priority === "MEDIUM"
+                                          ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                          : "bg-gray-50 text-gray-500 border border-gray-200"
+                                  }`}
+                                >
+                                  {PRIORITY_BADGES[st.priority]?.label ||
+                                    st.priority}
                                 </span>
                                 <span>•</span>
                                 <span className="flex items-center gap-1">
@@ -597,14 +697,23 @@ export function TaskDetailContent({
                                   {assigneeName}
                                 </span>
                                 <span>•</span>
-                                <span className={st.dueDate && dayjs(st.dueDate).isBefore(dayjs(), 'day') ? 'text-red-500 font-bold' : ''}>
-                                  {st.dueDate ? dayjs(st.dueDate).format('DD/MM/YYYY') : 'Không có hạn'}
+                                <span
+                                  className={
+                                    st.dueDate &&
+                                    dayjs(st.dueDate).isBefore(dayjs(), "day")
+                                      ? "text-red-500 font-bold"
+                                      : ""
+                                  }
+                                >
+                                  {st.dueDate
+                                    ? dayjs(st.dueDate).format("DD/MM/YYYY")
+                                    : "Không có hạn"}
                                 </span>
                               </div>
                             </div>
 
                             {/* Display Code */}
-                            <span className="text-[10px] font-mono font-bold text-gray-400 select-none group-hover:text-indigo-500 transition-colors">
+                            <span className="text-[10px] font-mono font-bold text-gray-400 select-none group-hover:text-gray-600 transition-colors">
                               {st.displayCode}
                             </span>
                           </div>
@@ -623,10 +732,18 @@ export function TaskDetailContent({
                         onPressEnter={handleAddSubtask}
                         autoFocus
                       />
-                      <Button size="small" type="primary" loading={submittingSubtask} onClick={handleAddSubtask}>
+                      <Button
+                        size="small"
+                        type="primary"
+                        loading={submittingSubtask}
+                        onClick={handleAddSubtask}
+                      >
                         Tạo
                       </Button>
-                      <Button size="small" onClick={() => setAddingSubtask(false)}>
+                      <Button
+                        size="small"
+                        onClick={() => setAddingSubtask(false)}
+                      >
                         Hủy
                       </Button>
                     </div>
@@ -643,16 +760,21 @@ export function TaskDetailContent({
               <div className="flex flex-col gap-2.5 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                    <PaperClipOutlined className="text-indigo-600" />
+                    <PaperClipOutlined className="text-gray-700" />
                     Đính kèm ({attachments.length})
                   </span>
 
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingAttachment}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    className="text-xs font-bold text-gray-700 hover:text-gray-900 flex items-center gap-1 cursor-pointer disabled:opacity-50"
                   >
-                    {uploadingAttachment ? <Spin size="small" /> : <UploadOutlined />} Tải file lên
+                    {uploadingAttachment ? (
+                      <Spin size="small" />
+                    ) : (
+                      <UploadOutlined />
+                    )}{" "}
+                    Tải file lên
                   </button>
 
                   <input
@@ -668,7 +790,7 @@ export function TaskDetailContent({
                     {attachments.map((att) => (
                       <div
                         key={att.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200/80 hover:bg-indigo-50/40 hover:border-indigo-200 transition-all group"
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200/80 hover:bg-gray-50/40 hover:border-gray-200 transition-colors group"
                       >
                         <a
                           href={att.fileUrl}
@@ -676,8 +798,11 @@ export function TaskDetailContent({
                           rel="noreferrer"
                           className="flex items-center gap-2 flex-1 min-w-0"
                         >
-                          <PaperClipOutlined className="text-indigo-600 text-sm flex-shrink-0" />
-                          <span className="text-xs font-medium text-gray-800 truncate" title={att.originalName}>
+                          <PaperClipOutlined className="text-gray-700 text-sm flex-shrink-0" />
+                          <span
+                            className="text-xs font-medium text-gray-800 truncate"
+                            title={att.originalName}
+                          >
                             {att.originalName}
                           </span>
                         </a>
@@ -698,7 +823,7 @@ export function TaskDetailContent({
                 ) : (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center p-4 border border-dashed border-gray-200 rounded-xl bg-slate-50/50 hover:bg-indigo-50/30 hover:border-indigo-300 transition-all cursor-pointer text-gray-400 text-xs gap-1"
+                    className="flex flex-col items-center justify-center p-4 border border-dashed border-gray-200 rounded-xl bg-slate-50/50 hover:bg-gray-50/30 hover:border-gray-300 transition-colors cursor-pointer text-gray-400 text-xs gap-1"
                   >
                     <UploadOutlined className="text-base text-gray-400" />
                     <span>Chưa có file đính kèm. Click để tải lên...</span>
@@ -711,22 +836,32 @@ export function TaskDetailContent({
           {/* Activity & Comment Timeline */}
           <div className="flex flex-col gap-4 pt-4 border-t border-gray-100 flex-1">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <HistoryOutlined className="text-indigo-600" />
+              <HistoryOutlined className="text-gray-700" />
               Hoạt động & Bình luận
             </span>
 
             <div className="flex flex-col gap-3.5 pl-1">
               {timelineItems.map((item) => (
                 <div key={item.id} className="flex gap-3 text-xs">
-                  {item.type === 'activity' ? (
+                  {item.type === "activity" ? (
                     <div className="flex gap-3 items-start w-full">
                       <Avatar
                         size="small"
                         src={item.data.actor?.avatarUrl || undefined}
-                        style={{ backgroundColor: getUserAvatarColor(item.data.actor?.id) }}
+                        style={{
+                          backgroundColor: getUserAvatarColor(
+                            item.data.actor?.id,
+                          ),
+                        }}
                         className="text-white flex-shrink-0 mt-0.5 font-bold text-[10px]"
                       >
-                        {(item.data.actor?.fullName || item.data.actor?.username || 'U').charAt(0).toUpperCase()}
+                        {(
+                          item.data.actor?.fullName ||
+                          item.data.actor?.username ||
+                          "U"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
                       </Avatar>
                       <div className="flex flex-col gap-0.5 text-gray-600">
                         <div>{renderActivityText(item.data)}</div>
@@ -740,21 +875,34 @@ export function TaskDetailContent({
                       <Avatar
                         size="small"
                         src={item.data.author?.avatarUrl || undefined}
-                        style={{ backgroundColor: getUserAvatarColor(item.data.author?.id) }}
+                        style={{
+                          backgroundColor: getUserAvatarColor(
+                            item.data.author?.id,
+                          ),
+                        }}
                         className="text-white flex-shrink-0 mt-0.5 font-bold text-[10px]"
                       >
-                        {(item.data.author?.fullName || item.data.author?.username || 'U').charAt(0).toUpperCase()}
+                        {(
+                          item.data.author?.fullName ||
+                          item.data.author?.username ||
+                          "U"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
                       </Avatar>
                       <div className="flex flex-col gap-1 bg-slate-50 p-3 rounded-2xl border border-gray-100 flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-gray-900">
-                            {item.data.author?.fullName || item.data.author?.username}
+                            {item.data.author?.fullName ||
+                              item.data.author?.username}
                           </span>
                           <span className="text-[10px] text-gray-400">
                             {dayjs(item.createdAt).fromNow()}
                           </span>
                         </div>
-                        <p className="text-gray-800 m-0 whitespace-pre-wrap">{item.data.content}</p>
+                        <p className="text-gray-800 m-0 whitespace-pre-wrap">
+                          {item.data.content}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -762,7 +910,9 @@ export function TaskDetailContent({
               ))}
 
               {timelineItems.length === 0 && (
-                <div className="text-center text-xs text-gray-400 py-4">Chưa có hoạt động nào.</div>
+                <div className="text-center text-xs text-gray-400 py-4">
+                  Chưa có hoạt động nào.
+                </div>
               )}
             </div>
 
@@ -780,7 +930,7 @@ export function TaskDetailContent({
                 icon={<SendOutlined />}
                 loading={submittingComment}
                 onClick={handleAddComment}
-                className="rounded-xl flex-shrink-0 !bg-indigo-600"
+                className="rounded-xl flex-shrink-0 !bg-blue-600"
               >
                 Gửi
               </Button>
@@ -814,16 +964,24 @@ export function TaskDetailContent({
               className="w-full"
             >
               <Select.Option value="LOW">
-                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F1F5F9] text-[#64748B]">Thấp</span>
+                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-500">
+                  Thấp
+                </span>
               </Select.Option>
               <Select.Option value="MEDIUM">
-                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700">Trung bình</span>
+                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700">
+                  Trung bình
+                </span>
               </Select.Option>
               <Select.Option value="HIGH">
-                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FFEDD5] text-[#C2410C]">Cao</span>
+                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-orange-100 text-orange-700">
+                  Cao
+                </span>
               </Select.Option>
               <Select.Option value="CRITICAL">
-                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-700 font-bold">Khẩn cấp</span>
+                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-700 font-bold">
+                  Khẩn cấp
+                </span>
               </Select.Option>
             </Select>
           </div>
@@ -854,10 +1012,14 @@ export function TaskDetailContent({
               <Avatar
                 size="small"
                 src={task.reporter?.avatarUrl || undefined}
-                style={{ backgroundColor: getUserAvatarColor(task.reporter?.id) }}
+                style={{
+                  backgroundColor: getUserAvatarColor(task.reporter?.id),
+                }}
                 className="text-white font-bold text-[10px]"
               >
-                {(task.reporter?.fullName || task.reporter?.username || 'R').charAt(0).toUpperCase()}
+                {(task.reporter?.fullName || task.reporter?.username || "R")
+                  .charAt(0)
+                  .toUpperCase()}
               </Avatar>
               <span className="font-medium text-gray-800 truncate">
                 {task.reporter?.fullName || task.reporter?.username}
@@ -872,19 +1034,21 @@ export function TaskDetailContent({
               <DatePicker
                 value={task.startDate ? dayjs(task.startDate) : null}
                 onChange={(date) =>
-                  handlePatchTask({ startDate: date ? date.toISOString() : null })
+                  handlePatchTask({
+                    startDate: date ? date.toISOString() : null,
+                  })
                 }
                 format="DD/MM/YYYY"
                 placeholder="Chọn ngày..."
                 className="w-full!"
               />
             </div>
-
-
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-gray-500">Hạn hoàn thành</span>
+              <span className="font-semibold text-gray-500">
+                Hạn hoàn thành
+              </span>
               <DatePicker
                 value={task.dueDate ? dayjs(task.dueDate) : null}
                 onChange={(date) =>
@@ -903,18 +1067,24 @@ export function TaskDetailContent({
               <span className="font-semibold text-gray-500">Task cha</span>
               <button
                 onClick={() => handleNavigateToTask(task.parentTask!.id)}
-                className="flex items-center gap-1.5 p-2 rounded-xl bg-indigo-50/60 text-indigo-700 font-medium hover:bg-indigo-100 transition-colors text-left truncate cursor-pointer"
+                className="flex items-center gap-1.5 p-2 rounded-xl bg-gray-50/60 text-gray-800 font-medium hover:bg-gray-100 transition-colors text-left truncate cursor-pointer"
               >
                 <LinkOutlined />
-                <span className="truncate">{task.parentTask.displayCode} · {task.parentTask.title}</span>
+                <span className="truncate">
+                  {task.parentTask.displayCode} · {task.parentTask.title}
+                </span>
               </button>
             </div>
           )}
 
           {/* Creation Info */}
           <div className="flex flex-col gap-1 pt-3 border-t border-gray-200/60 text-[11px] text-gray-400 font-medium">
-            <span>Tạo bởi: {task.reporter?.fullName || task.reporter?.username}</span>
-            <span>Ngày tạo: {dayjs(task.createdAt).format('DD/MM/YYYY HH:mm')}</span>
+            <span>
+              Tạo bởi: {task.reporter?.fullName || task.reporter?.username}
+            </span>
+            <span>
+              Ngày tạo: {dayjs(task.createdAt).format("DD/MM/YYYY HH:mm")}
+            </span>
           </div>
         </div>
       </div>

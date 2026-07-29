@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   FolderOutlined,
   ProjectOutlined,
   DownOutlined,
   RightOutlined,
   UnorderedListOutlined,
-} from '@ant-design/icons';
-import CustomTooltip from '../common/CustomTooltip';
-import { useOrg } from '../../contexts/OrgContext';
-import { getProjects, ProjectInfo } from '../../services/project';
+} from "@ant-design/icons";
+import CustomTooltip from "../common/CustomTooltip";
+import { useOrg } from "../../contexts/OrgContext";
+import { getProjects, ProjectInfo } from "../../services/project";
 
 interface RecentProjectsProps {
   collapsed: boolean;
@@ -64,8 +64,10 @@ export function RecentProjects({ collapsed }: RecentProjectsProps) {
       <CustomTooltip title="Projects" placement="right">
         <Link
           href={orgProjectsUrl}
-          className={`flex items-center justify-center p-2.5 rounded-xl !text-gray-500 hover:!text-indigo-600 hover:!bg-gray-100 transition-all mx-1 ${
-            pathname.startsWith(orgProjectsUrl) ? '!bg-indigo-50 !text-indigo-600 font-bold' : ''
+          className={`flex min-h-11 items-center justify-center p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-150 ease-out focus-ring mx-1 ${
+            pathname.startsWith(orgProjectsUrl)
+              ? "bg-gray-100 text-gray-900 font-bold"
+              : ""
           }`}
         >
           <ProjectOutlined className="text-lg" />
@@ -77,16 +79,22 @@ export function RecentProjects({ collapsed }: RecentProjectsProps) {
   return (
     <div className="flex flex-col gap-1 text-left">
       {/* Header */}
-      <div
+      <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider !text-gray-400 hover:!text-gray-600 cursor-pointer select-none"
+        className="flex min-h-11 w-full items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-700 hover:bg-gray-100 cursor-pointer select-none transition-colors duration-150 focus-ring"
+        aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
           <ProjectOutlined className="text-sm" />
           <span>Projects</span>
         </div>
-        {expanded ? <DownOutlined className="text-[10px]" /> : <RightOutlined className="text-[10px]" />}
-      </div>
+        {expanded ? (
+          <DownOutlined className="text-[10px]" />
+        ) : (
+          <RightOutlined className="text-[10px]" />
+        )}
+      </button>
 
       {/* Expandable Project List */}
       {expanded && (
@@ -99,14 +107,16 @@ export function RecentProjects({ collapsed }: RecentProjectsProps) {
               <Link
                 key={p.id}
                 href={projectBoardUrl}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`flex min-h-11 items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 ease-out focus-ring ${
                   isActive
-                    ? '!bg-indigo-50 !text-indigo-700 font-bold'
-                    : '!text-gray-600 hover:!text-indigo-600 hover:!bg-gray-50'
+                    ? "bg-gray-100 text-gray-900 font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0" />
-                <span className="truncate flex-1">[{p.key}] {p.name}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                <span className="truncate flex-1">
+                  [{p.key}] {p.name}
+                </span>
               </Link>
             );
           })}
@@ -114,7 +124,7 @@ export function RecentProjects({ collapsed }: RecentProjectsProps) {
           {/* View All Projects link */}
           <Link
             href={orgProjectsUrl}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50/50 mt-0.5 transition-all"
+            className="flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 mt-0.5 transition-colors duration-150 ease-out focus-ring"
           >
             <UnorderedListOutlined className="text-[11px]" />
             <span>Xem tất cả</span>

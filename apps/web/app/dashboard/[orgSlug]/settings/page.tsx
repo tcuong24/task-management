@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useOrg } from '../../../../contexts/OrgContext';
-import * as orgService from '../../../../services/organization';
-import OrgGeneralSettings from '../../../../components/organization/OrgGeneralSettings';
-import MembersTable from '../../../../components/organization/MembersTable';
-import InviteMemberModal from '../../../../components/organization/InviteMemberModal';
-import { Card, Button, Skeleton, Alert } from 'antd';
-import { PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useOrg } from "../../../../contexts/OrgContext";
+import * as orgService from "../../../../services/organization";
+import OrgGeneralSettings from "../../../../components/organization/OrgGeneralSettings";
+import MembersTable from "../../../../components/organization/MembersTable";
+import InviteMemberModal from "../../../../components/organization/InviteMemberModal";
+import { Card, Button, Skeleton, Alert } from "antd";
+import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
 
 export default function OrgSettingsPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function OrgSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
-  const isAdminOrOwner = userRole === 'ADMIN' || userRole === 'OWNER';
+  const isAdminOrOwner = userRole === "ADMIN" || userRole === "OWNER";
 
   const fetchData = async () => {
     if (!orgId) return;
@@ -45,13 +45,13 @@ export default function OrgSettingsPage() {
         // Forbidden skipped
       }
     } catch (err: any) {
-      console.error('Error fetching organization details:', err);
+      console.error("Error fetching organization details:", err);
       if (err.status === 403) {
-        setError('Bạn không có quyền xem thông tin cài đặt của tổ chức này.');
+        setError("Bạn không có quyền xem thông tin cài đặt của tổ chức này.");
       } else if (err.status === 404) {
-        setError('Không tìm thấy tổ chức yêu cầu.');
+        setError("Không tìm thấy tổ chức yêu cầu.");
       } else {
-        setError(err.message || 'Lỗi kết nối máy chủ.');
+        setError(err.message || "Lỗi kết nối máy chủ.");
       }
     } finally {
       setLoading(false);
@@ -77,7 +77,7 @@ export default function OrgSettingsPage() {
       <div className="p-8 max-w-3xl mx-auto text-left">
         <Alert
           message="Truy cập bị từ chối"
-          description={error || 'Không tìm thấy thông tin tổ chức.'}
+          description={error || "Không tìm thấy thông tin tổ chức."}
           type="error"
           showIcon
           className="rounded-2xl shadow-sm border border-red-100 mb-4"
@@ -95,7 +95,7 @@ export default function OrgSettingsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 tracking-tight flex items-center gap-2.5">
-            <SettingOutlined className="text-indigo-600" />
+            <SettingOutlined className="text-gray-700" />
             <span>Cài đặt Tổ chức: {org.name}</span>
           </h1>
           <p className="text-sm text-gray-500 font-medium mt-0.5">
@@ -108,7 +108,7 @@ export default function OrgSettingsPage() {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setInviteModalOpen(true)}
-            className="bg-indigo-600 border-none font-semibold text-white shadow-sm hover:bg-indigo-700 rounded-xl h-[42px] px-5"
+            className="bg-blue-600 border-none font-semibold text-white shadow-sm hover:bg-blue-700 rounded-xl h-[42px] px-5"
           >
             Mời thành viên
           </Button>
@@ -135,7 +135,9 @@ export default function OrgSettingsPage() {
         {isAdminOrOwner && (
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">Thành viên tổ chức</h2>
+              <h2 className="text-lg font-bold text-gray-800">
+                Thành viên tổ chức
+              </h2>
             </div>
             <MembersTable
               organizationId={org.id}

@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Input, Select, Avatar, Spin, Button, Checkbox, App } from 'antd';
-import { CustomTooltip as Tooltip } from '../common/CustomTooltip';
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+import { Input, Select, Avatar, Spin, Button, Checkbox, App } from "antd";
+import { CustomTooltip as Tooltip } from "../common/CustomTooltip";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -17,15 +23,15 @@ import {
   ThunderboltFilled,
   CaretDownFilled,
   CaretRightFilled,
-} from '@ant-design/icons';
-import dayjs, { Dayjs } from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
-import 'dayjs/locale/vi';
-import { useParams, useRouter } from 'next/navigation';
-import type { TaskItem } from '../kanban/KanbanBoard';
+} from "@ant-design/icons";
+import dayjs, { Dayjs } from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+import "dayjs/locale/vi";
+import { useParams, useRouter } from "next/navigation";
+import type { TaskItem } from "../kanban/KanbanBoard";
 
 dayjs.extend(isBetween);
-dayjs.locale('vi');
+dayjs.locale("vi");
 
 interface TaskTimelineViewProps {
   tasks: TaskItem[];
@@ -35,33 +41,77 @@ interface TaskTimelineViewProps {
   onTaskSave?: (taskData: any) => Promise<void>;
 }
 
-type ViewMode = 'Weeks' | 'Months' | 'Quarters';
+type ViewMode = "Weeks" | "Months" | "Quarters";
 
 // Exact Jira Soft Purple Palette (level 0 full, level 1 lighter opacity)
-const STATUS_COLORS: Record<TaskItem['status'], { bg: string; bgSub: string; border: string; ring: string; text: string; label: string }> = {
-  TODO: { bg: 'bg-[#b589fa]', bgSub: 'bg-[#b589fa]/70', border: 'border-[#a855f7]', ring: 'ring-[#9333ea]', text: 'text-white', label: 'Cần làm' },
-  IN_PROGRESS: { bg: 'bg-[#9065f6]', bgSub: 'bg-[#9065f6]/70', border: 'border-[#7c3aed]', ring: 'ring-[#7c3aed]', text: 'text-white', label: 'Đang làm' },
-  IN_REVIEW: { bg: 'bg-[#f59e0b]', bgSub: 'bg-[#f59e0b]/70', border: 'border-[#d97706]', ring: 'ring-[#d97706]', text: 'text-white', label: 'Đang kiểm tra' },
-  DONE: { bg: 'bg-[#10b981]', bgSub: 'bg-[#10b981]/70', border: 'border-[#059669]', ring: 'ring-[#059669]', text: 'text-white', label: 'Hoàn thành' },
+const STATUS_COLORS: Record<
+  TaskItem["status"],
+  {
+    bg: string;
+    bgSub: string;
+    border: string;
+    ring: string;
+    text: string;
+    label: string;
+  }
+> = {
+  TODO: {
+    bg: "bg-blue-500",
+    bgSub: "bg-blue-400",
+    border: "border-blue-600",
+    ring: "ring-blue-600",
+    text: "text-white",
+    label: "Cần làm",
+  },
+  IN_PROGRESS: {
+    bg: "bg-sky-500",
+    bgSub: "bg-sky-400",
+    border: "border-sky-600",
+    ring: "ring-sky-600",
+    text: "text-white",
+    label: "Đang làm",
+  },
+  IN_REVIEW: {
+    bg: "bg-amber-500",
+    bgSub: "bg-amber-400",
+    border: "border-amber-600",
+    ring: "ring-amber-600",
+    text: "text-white",
+    label: "Đang kiểm tra",
+  },
+  DONE: {
+    bg: "bg-emerald-500",
+    bgSub: "bg-emerald-400",
+    border: "border-emerald-600",
+    ring: "ring-emerald-600",
+    text: "text-white",
+    label: "Hoàn thành",
+  },
 };
 
 const AVATAR_PALETTE = [
-  '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#F59E0B', '#EF4444', '#06B6D4',
+  "#10B981",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 function getUserAvatarColor(id?: string | null): string {
-  if (!id) return '#9CA3AF';
+  if (!id) return "#9CA3AF";
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || '#9CA3AF';
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || "#9CA3AF";
 }
 
 interface DragState {
   taskId: string;
-  type: 'move' | 'resize-left' | 'resize-right';
+  type: "move" | "resize-left" | "resize-right";
   initialMouseX: number;
   initialTaskStart: Dayjs;
   initialTaskEnd: Dayjs;
@@ -86,16 +136,16 @@ export function TaskTimelineView({
   const params = useParams();
   const router = useRouter();
 
-  const orgSlug = (params?.orgSlug as string) || '';
-  const projectKey = (params?.projectKey as string) || '';
+  const orgSlug = (params?.orgSlug as string) || "";
+  const projectKey = (params?.projectKey as string) || "";
 
   // Filter States
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
 
   // View Mode: Weeks | Months | Quarters
-  const [viewMode, setViewMode] = useState<ViewMode>('Months');
+  const [viewMode, setViewMode] = useState<ViewMode>("Months");
 
   // Zoom Level multiplier (default 1.5x for spacious timeline)
   const [zoomLevel, setZoomLevel] = useState<number>(1.5);
@@ -137,7 +187,11 @@ export function TaskTimelineView({
 
   // Drag state & live task date overrides during dragging
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [dragDates, setDragDates] = useState<{ taskId: string; start: Dayjs; end: Dayjs } | null>(null);
+  const [dragDates, setDragDates] = useState<{
+    taskId: string;
+    start: Dayjs;
+    end: Dayjs;
+  } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -151,28 +205,43 @@ export function TaskTimelineView({
       const isExpanded = expandedIds.has(rootTask.id);
 
       // Check root task filter match
-      const rootMatchesSearch = !searchText.trim() || (
-        rootTask.title.toLowerCase().includes(searchText.toLowerCase().trim()) ||
-        (rootTask.displayCode || `${rootTask.project?.key}-${rootTask.taskNumber}`).toLowerCase().includes(searchText.toLowerCase().trim())
-      );
-      const rootMatchesStatus = !statusFilter || rootTask.status === statusFilter;
-      const rootMatchesAssignee = !selectedAssignee || rootTask.assigneeId === selectedAssignee;
+      const rootMatchesSearch =
+        !searchText.trim() ||
+        rootTask.title
+          .toLowerCase()
+          .includes(searchText.toLowerCase().trim()) ||
+        (
+          rootTask.displayCode ||
+          `${rootTask.project?.key}-${rootTask.taskNumber}`
+        )
+          .toLowerCase()
+          .includes(searchText.toLowerCase().trim());
+      const rootMatchesStatus =
+        !statusFilter || rootTask.status === statusFilter;
+      const rootMatchesAssignee =
+        !selectedAssignee || rootTask.assigneeId === selectedAssignee;
 
       // Filter subtasks
       const matchingSubtasks = subTasks.filter((st) => {
         if (searchText.trim()) {
           const q = searchText.toLowerCase().trim();
-          const code = (st.displayCode || `${st.project?.key || rootTask.project?.key}-${st.taskNumber}`).toLowerCase();
+          const code = (
+            st.displayCode ||
+            `${st.project?.key || rootTask.project?.key}-${st.taskNumber}`
+          ).toLowerCase();
           const matchTitle = st.title.toLowerCase().includes(q);
           const matchCode = code.includes(q);
           if (!matchTitle && !matchCode) return false;
         }
         if (statusFilter && st.status !== statusFilter) return false;
-        if (selectedAssignee && st.assigneeId !== selectedAssignee) return false;
+        if (selectedAssignee && st.assigneeId !== selectedAssignee)
+          return false;
         return true;
       });
 
-      const shouldShowRoot = (rootMatchesSearch && rootMatchesStatus && rootMatchesAssignee) || matchingSubtasks.length > 0;
+      const shouldShowRoot =
+        (rootMatchesSearch && rootMatchesStatus && rootMatchesAssignee) ||
+        matchingSubtasks.length > 0;
 
       if (shouldShowRoot) {
         // Add Root Task Row (Level 0)
@@ -185,7 +254,10 @@ export function TaskTimelineView({
 
         // Add Subtask Rows (Level 1) if root task is expanded
         if (isExpanded) {
-          const subtasksToRender = (rootMatchesSearch && rootMatchesStatus && rootMatchesAssignee) ? subTasks : matchingSubtasks;
+          const subtasksToRender =
+            rootMatchesSearch && rootMatchesStatus && rootMatchesAssignee
+              ? subTasks
+              : matchingSubtasks;
           subtasksToRender.forEach((st) => {
             rows.push({
               task: st,
@@ -204,58 +276,64 @@ export function TaskTimelineView({
 
   // Determine timeline start and end dates based on viewMode & baseDate
   const { startDate, endDate, timeColumns } = useMemo(() => {
-    let start = baseDate.startOf('year');
-    let end = baseDate.endOf('year');
-    const cols: { key: string; label: string; start: Dayjs; end: Dayjs; isCurrent?: boolean }[] = [];
+    let start = baseDate.startOf("year");
+    let end = baseDate.endOf("year");
+    const cols: {
+      key: string;
+      label: string;
+      start: Dayjs;
+      end: Dayjs;
+      isCurrent?: boolean;
+    }[] = [];
 
-    if (viewMode === 'Weeks') {
-      start = baseDate.subtract(6, 'week').startOf('week');
-      end = baseDate.add(6, 'week').endOf('week');
+    if (viewMode === "Weeks") {
+      start = baseDate.subtract(6, "week").startOf("week");
+      end = baseDate.add(6, "week").endOf("week");
       let curr = start;
       while (curr.isBefore(end)) {
-        const wEnd = curr.endOf('week');
-        const isCurrent = dayjs().isBetween(curr, wEnd, 'day', '[]');
+        const wEnd = curr.endOf("week");
+        const isCurrent = dayjs().isBetween(curr, wEnd, "day", "[]");
         cols.push({
-          key: curr.format('YYYY-[W]WW'),
-          label: `Tuần ${curr.format('WW')} (${curr.format('DD/MM')})`,
+          key: curr.format("YYYY-[W]WW"),
+          label: `Tuần ${curr.format("WW")} (${curr.format("DD/MM")})`,
           start: curr,
           end: wEnd,
           isCurrent,
         });
-        curr = curr.add(1, 'week');
+        curr = curr.add(1, "week");
       }
-    } else if (viewMode === 'Months') {
-      start = baseDate.subtract(4, 'month').startOf('month');
-      end = baseDate.add(8, 'month').endOf('month');
+    } else if (viewMode === "Months") {
+      start = baseDate.subtract(4, "month").startOf("month");
+      end = baseDate.add(8, "month").endOf("month");
       let curr = start;
       while (curr.isBefore(end)) {
-        const mEnd = curr.endOf('month');
-        const isCurrent = dayjs().isBetween(curr, mEnd, 'day', '[]');
+        const mEnd = curr.endOf("month");
+        const isCurrent = dayjs().isBetween(curr, mEnd, "day", "[]");
         cols.push({
-          key: curr.format('YYYY-MM'),
-          label: curr.format('MMM YYYY'),
+          key: curr.format("YYYY-MM"),
+          label: curr.format("MMM YYYY"),
           start: curr,
           end: mEnd,
           isCurrent,
         });
-        curr = curr.add(1, 'month');
+        curr = curr.add(1, "month");
       }
     } else {
       // Quarters
-      start = baseDate.startOf('year');
-      end = baseDate.endOf('year');
+      start = baseDate.startOf("year");
+      end = baseDate.endOf("year");
       let curr = start;
       for (let q = 1; q <= 4; q++) {
-        const qEnd = curr.add(2, 'month').endOf('month');
-        const isCurrent = dayjs().isBetween(curr, qEnd, 'day', '[]');
+        const qEnd = curr.add(2, "month").endOf("month");
+        const isCurrent = dayjs().isBetween(curr, qEnd, "day", "[]");
         cols.push({
           key: `Q${q}-${curr.year()}`,
-          label: `Quý ${q} (${curr.format('MMM')} - ${qEnd.format('MMM')})`,
+          label: `Quý ${q} (${curr.format("MMM")} - ${qEnd.format("MMM")})`,
           start: curr,
           end: qEnd,
           isCurrent,
         });
-        curr = curr.add(3, 'month');
+        curr = curr.add(3, "month");
       }
     }
 
@@ -265,9 +343,9 @@ export function TaskTimelineView({
   // Column width calculated with zoom level for large, spacious timeline viewing
   const columnWidth = useMemo(() => {
     let base = 360;
-    if (viewMode === 'Weeks') base = 280;
-    if (viewMode === 'Months') base = 360;
-    if (viewMode === 'Quarters') base = 520;
+    if (viewMode === "Weeks") base = 280;
+    if (viewMode === "Months") base = 360;
+    if (viewMode === "Quarters") base = 520;
     return Math.round(base * zoomLevel);
   }, [viewMode, zoomLevel]);
 
@@ -276,7 +354,7 @@ export function TaskTimelineView({
   }, [timeColumns.length, columnWidth]);
 
   const totalDays = useMemo(() => {
-    return Math.max(1, endDate.diff(startDate, 'day'));
+    return Math.max(1, endDate.diff(startDate, "day"));
   }, [startDate, endDate]);
 
   const pxPerDay = useMemo(() => {
@@ -288,7 +366,7 @@ export function TaskTimelineView({
     const now = dayjs();
     if (now.isBefore(startDate)) return 0;
     if (now.isAfter(endDate)) return 100;
-    const diff = now.diff(startDate, 'day');
+    const diff = now.diff(startDate, "day");
     return (diff / totalDays) * 100;
   }, [startDate, endDate, totalDays]);
 
@@ -297,7 +375,7 @@ export function TaskTimelineView({
       const todayPx = (todayPercent / 100) * matrixWidth;
       containerRef.current.scrollTo({
         left: Math.max(0, todayPx - 300),
-        behavior: 'smooth',
+        behavior: "smooth",
       });
     }
   }, [todayPercent, matrixWidth]);
@@ -311,9 +389,9 @@ export function TaskTimelineView({
   const handleMouseDown = (
     e: React.MouseEvent,
     task: TaskItem,
-    type: 'move' | 'resize-left' | 'resize-right',
+    type: "move" | "resize-left" | "resize-right",
     taskStart: Dayjs,
-    taskEnd: Dayjs
+    taskEnd: Dayjs,
   ) => {
     e.stopPropagation();
     e.preventDefault();
@@ -343,19 +421,19 @@ export function TaskTimelineView({
       let newStart = dragState.initialTaskStart;
       let newEnd = dragState.initialTaskEnd;
 
-      if (dragState.type === 'resize-right') {
-        newEnd = dragState.initialTaskEnd.add(daysDelta, 'day');
-        if (newEnd.isBefore(newStart.add(1, 'day'))) {
-          newEnd = newStart.add(1, 'day');
+      if (dragState.type === "resize-right") {
+        newEnd = dragState.initialTaskEnd.add(daysDelta, "day");
+        if (newEnd.isBefore(newStart.add(1, "day"))) {
+          newEnd = newStart.add(1, "day");
         }
-      } else if (dragState.type === 'resize-left') {
-        newStart = dragState.initialTaskStart.add(daysDelta, 'day');
-        if (newStart.isAfter(newEnd.subtract(1, 'day'))) {
-          newStart = newEnd.subtract(1, 'day');
+      } else if (dragState.type === "resize-left") {
+        newStart = dragState.initialTaskStart.add(daysDelta, "day");
+        if (newStart.isAfter(newEnd.subtract(1, "day"))) {
+          newStart = newEnd.subtract(1, "day");
         }
-      } else if (dragState.type === 'move') {
-        newStart = dragState.initialTaskStart.add(daysDelta, 'day');
-        newEnd = dragState.initialTaskEnd.add(daysDelta, 'day');
+      } else if (dragState.type === "move") {
+        newStart = dragState.initialTaskStart.add(daysDelta, "day");
+        newEnd = dragState.initialTaskEnd.add(daysDelta, "day");
       }
 
       setDragDates({
@@ -373,21 +451,21 @@ export function TaskTimelineView({
             startDate: dragDates.start.toISOString(),
             dueDate: dragDates.end.toISOString(),
           });
-          message.success('Cập nhật mốc thời gian thành công!');
+          message.success("Cập nhật mốc thời gian thành công!");
         } catch (err: any) {
-          message.error(err.message || 'Cập nhật mốc thời gian thất bại');
+          message.error(err.message || "Cập nhật mốc thời gian thất bại");
         }
       }
       setDragState(null);
       setDragDates(null);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragState, dragDates, pxPerDay, onTaskSave, message]);
 
@@ -432,10 +510,10 @@ export function TaskTimelineView({
             <Tooltip title="Tất cả người thực hiện">
               <button
                 onClick={() => setSelectedAssignee(null)}
-                className={`px-3 py-1 rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full flex items-center justify-center text-xs font-bold transition-colors cursor-pointer ${
                   !selectedAssignee
-                    ? 'bg-gray-100 text-black shadow-sm ring-2 ring-indigo-500'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? "bg-gray-100 text-black shadow-sm ring-2 ring-blue-500"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 Tất cả
@@ -449,10 +527,18 @@ export function TaskTimelineView({
                   <Avatar
                     size={22}
                     src={m.avatarUrl || undefined}
-                    style={{ backgroundColor: !hasAvatar ? getUserAvatarColor(m.userId) : undefined }}
-                    onClick={() => setSelectedAssignee(isSelected ? null : m.userId)}
-                    className={`cursor-pointer transition-all text-xs! ${
-                      isSelected ? 'ring-2 ring-indigo-500 scale-105' : 'hover:opacity-80'
+                    style={{
+                      backgroundColor: !hasAvatar
+                        ? getUserAvatarColor(m.userId)
+                        : undefined,
+                    }}
+                    onClick={() =>
+                      setSelectedAssignee(isSelected ? null : m.userId)
+                    }
+                    className={`cursor-pointer transition-colors text-xs! ${
+                      isSelected
+                        ? "ring-2 ring-blue-500 scale-105"
+                        : "hover:opacity-80"
                     }`}
                   >
                     {!hasAvatar && m.name.charAt(0).toUpperCase()}
@@ -480,8 +566,18 @@ export function TaskTimelineView({
 
         {/* Right Settings Icons */}
         <div className="flex items-center gap-2">
-          <Button icon={<ControlOutlined />} size="small" type="text" className="text-gray-500" />
-          <Button icon={<EllipsisOutlined />} size="small" type="text" className="text-gray-500" />
+          <Button
+            icon={<ControlOutlined />}
+            size="small"
+            type="text"
+            className="text-gray-500"
+          />
+          <Button
+            icon={<EllipsisOutlined />}
+            size="small"
+            type="text"
+            className="text-gray-500"
+          />
         </div>
       </div>
 
@@ -489,16 +585,21 @@ export function TaskTimelineView({
       <Spin spinning={loading} size="large" tip="Đang tải dữ liệu Timeline...">
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col relative min-h-[500px]">
           {/* Split Table Layout with Horizontal Scroll */}
-          <div className="flex flex-1 overflow-x-auto relative scroll-smooth" ref={containerRef}>
+          <div
+            className="flex flex-1 overflow-x-auto relative scroll-smooth"
+            ref={containerRef}
+          >
             {/* Left Column - Tasks Tree List (Pinned Sticky Left Jira Style) */}
             <div className="w-[300px] md:w-[340px] border-r border-gray-200/80 bg-white flex flex-col shrink-0 sticky left-0 z-30 shadow-xs select-none">
               {/* Header */}
               <div className="h-12 px-4 border-b border-gray-200/80 bg-slate-50/70 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Công việc</span>
+                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Công việc
+                </span>
                 {onOpenCreateModal && (
                   <button
                     onClick={onOpenCreateModal}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-bold text-gray-700 hover:text-gray-900 flex items-center gap-1 cursor-pointer"
                   >
                     <PlusOutlined /> Tạo công việc
                   </button>
@@ -507,71 +608,98 @@ export function TaskTimelineView({
 
               {/* Hierarchical Task/Subtask Rows List */}
               <div className="flex flex-col divide-y divide-gray-100">
-                {visibleRows.map(({ task: t, level, hasSubtasks, isExpanded }) => {
-                  const isDone = t.status === 'DONE';
-                  const code = t.displayCode || `${t.project?.key}-${t.taskNumber}`;
-                  const isHovered = hoveredTaskId === t.id;
+                {visibleRows.map(
+                  ({ task: t, level, hasSubtasks, isExpanded }) => {
+                    const isDone = t.status === "DONE";
+                    const code =
+                      t.displayCode || `${t.project?.key}-${t.taskNumber}`;
+                    const isHovered = hoveredTaskId === t.id;
 
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => handleTaskClick(t)}
-                      onMouseEnter={() => setHoveredTaskId(t.id)}
-                      onMouseLeave={() => setHoveredTaskId(null)}
-                      style={{ paddingLeft: level === 1 ? '32px' : '12px' }}
-                      className={`h-12 pr-3 flex items-center justify-between transition-colors cursor-pointer group ${
-                        isHovered ? 'bg-slate-100/90' : 'hover:bg-slate-50/80'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {/* Level 0 Expand/Collapse Icon */}
-                        {level === 0 ? (
-                          hasSubtasks ? (
-                            <button
-                              onClick={(e) => toggleExpand(t.id, e)}
-                              className="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-transform cursor-pointer"
-                            >
-                              {isExpanded ? <CaretDownFilled className="text-[10px]" /> : <CaretRightFilled className="text-[10px]" />}
-                            </button>
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => handleTaskClick(t)}
+                        onMouseEnter={() => setHoveredTaskId(t.id)}
+                        onMouseLeave={() => setHoveredTaskId(null)}
+                        style={{ paddingLeft: level === 1 ? "32px" : "12px" }}
+                        className={`h-12 pr-3 flex items-center justify-between transition-colors cursor-pointer group ${
+                          isHovered ? "bg-slate-100/90" : "hover:bg-slate-50/80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {/* Level 0 Expand/Collapse Icon */}
+                          {level === 0 ? (
+                            hasSubtasks ? (
+                              <button
+                                onClick={(e) => toggleExpand(t.id, e)}
+                                className="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-transform cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <CaretDownFilled className="text-[10px]" />
+                                ) : (
+                                  <CaretRightFilled className="text-[10px]" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="w-4 h-4 inline-block shrink-0" />
+                            )
                           ) : (
-                            <span className="w-4 h-4 inline-block shrink-0" />
-                          )
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0 ml-1 mr-0.5" />
-                        )}
+                            <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0 ml-1 mr-0.5" />
+                          )}
 
-                        <Checkbox className="scale-90" />
-                        
+                          <Checkbox className="scale-90" />
 
-                        <span
-                          className={`truncate ${
-                            level === 0
-                              ? 'text-xs font-bold text-gray-900 group-hover:text-indigo-600'
-                              : 'text-[11px] font-medium text-gray-600 group-hover:text-indigo-600'
-                          } ${isDone ? 'line-through text-gray-400' : ''}`}
-                          title={`${code} ${t.title}`}
-                        >
-                          [{code}] {t.title}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {t.assignee && (
-                          <Avatar
-                            size={18}
-                            src={t.assignee.avatarUrl || undefined}
-                            style={{ backgroundColor: !t.assignee.avatarUrl ? getUserAvatarColor(t.assignee.id) : undefined }}
-                            className="text-white text-[8px] font-bold shrink-0"
+                          <span
+                            className={`truncate ${
+                              level === 0
+                                ? "text-xs font-bold text-gray-900 group-hover:text-gray-700"
+                                : "text-[11px] font-medium text-gray-600 group-hover:text-gray-700"
+                            } ${isDone ? "line-through text-gray-400" : ""}`}
+                            title={`${code} ${t.title}`}
                           >
-                            {!t.assignee.avatarUrl && (t.assignee.fullName || t.assignee.username || 'U').charAt(0).toUpperCase()}
-                          </Avatar>
-                        )}
-                        <Button size="small" type="text" icon={<PlusOutlined />} className="text-gray-400 hover:text-gray-700 h-6 w-6 p-0" />
-                        <Button size="small" type="text" icon={<EllipsisOutlined />} className="text-gray-400 hover:text-gray-700 h-6 w-6 p-0" />
+                            [{code}] {t.title}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {t.assignee && (
+                            <Avatar
+                              size={18}
+                              src={t.assignee.avatarUrl || undefined}
+                              style={{
+                                backgroundColor: !t.assignee.avatarUrl
+                                  ? getUserAvatarColor(t.assignee.id)
+                                  : undefined,
+                              }}
+                              className="text-white text-[8px] font-bold shrink-0"
+                            >
+                              {!t.assignee.avatarUrl &&
+                                (
+                                  t.assignee.fullName ||
+                                  t.assignee.username ||
+                                  "U"
+                                )
+                                  .charAt(0)
+                                  .toUpperCase()}
+                            </Avatar>
+                          )}
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<PlusOutlined />}
+                            className="text-gray-400 hover:text-gray-700 h-6 w-6 p-0"
+                          />
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<EllipsisOutlined />}
+                            className="text-gray-400 hover:text-gray-700 h-6 w-6 p-0"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  },
+                )}
 
                 {visibleRows.length === 0 && (
                   <div className="h-40 flex items-center justify-center text-xs text-gray-400 italic">
@@ -593,7 +721,9 @@ export function TaskTimelineView({
                     key={col.key}
                     style={{ width: `${columnWidth}px` }}
                     className={`shrink-0 border-r border-gray-200/60 px-3 py-3 flex items-center justify-center text-center text-sm ${
-                      col.isCurrent ? 'bg-indigo-50/60 text-gray-700 font-semibold' : 'font-medium'
+                      col.isCurrent
+                        ? "bg-gray-50/60 text-gray-700 font-semibold"
+                        : "font-medium"
                     }`}
                   >
                     {col.label}
@@ -610,7 +740,7 @@ export function TaskTimelineView({
                   <div
                     className="absolute top-0 -ml-1.25 w-3 h-3 bg-blue-500 shadow-sm"
                     style={{
-                      clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
+                      clipPath: "polygon(50% 100%, 0 0, 100% 0)",
                     }}
                   />
                 </div>
@@ -625,7 +755,7 @@ export function TaskTimelineView({
                       key={col.key}
                       style={{ width: `${columnWidth}px` }}
                       className={`shrink-0 border-r border-gray-100 ${
-                        col.isCurrent ? 'bg-indigo-50/20' : ''
+                        col.isCurrent ? "bg-gray-50/20" : ""
                       }`}
                     />
                   ))}
@@ -634,7 +764,7 @@ export function TaskTimelineView({
                 {/* Hierarchical Gantt Task Bars */}
                 {visibleRows.map(({ task: t, level }) => {
                   const isBeingDragged = dragDates && dragDates.taskId === t.id;
-                  
+
                   // Date range logic:
                   // 1. Both startDate & dueDate present -> full bar from startDate to dueDate
                   // 2. Only dueDate present -> marker point at dueDate
@@ -644,19 +774,31 @@ export function TaskTimelineView({
                   const hasDue = Boolean(t.dueDate);
                   const isMarkerOnly = !hasStart && hasDue;
 
-                  const rawStart = isBeingDragged ? dragDates.start : (t.startDate ? dayjs(t.startDate) : (t.createdAt ? dayjs(t.createdAt) : dayjs()));
-                  const rawEnd = isBeingDragged ? dragDates.end : (t.dueDate ? dayjs(t.dueDate) : rawStart.add(5, 'day'));
+                  const rawStart = isBeingDragged
+                    ? dragDates.start
+                    : t.startDate
+                      ? dayjs(t.startDate)
+                      : t.createdAt
+                        ? dayjs(t.createdAt)
+                        : dayjs();
+                  const rawEnd = isBeingDragged
+                    ? dragDates.end
+                    : t.dueDate
+                      ? dayjs(t.dueDate)
+                      : rawStart.add(5, "day");
 
-                  let startDiff = rawStart.diff(startDate, 'day');
-                  let duration = rawEnd.diff(rawStart, 'day');
+                  let startDiff = rawStart.diff(startDate, "day");
+                  let duration = rawEnd.diff(rawStart, "day");
                   if (duration < 1) duration = 1;
 
                   let leftPx = (startDiff / totalDays) * matrixWidth;
-                  let widthPx = isMarkerOnly ? 36 : (duration / totalDays) * matrixWidth;
+                  let widthPx = isMarkerOnly
+                    ? 36
+                    : (duration / totalDays) * matrixWidth;
 
                   // If marker only, position at exact dueDate
                   if (isMarkerOnly && t.dueDate) {
-                    const dueDiff = dayjs(t.dueDate).diff(startDate, 'day');
+                    const dueDiff = dayjs(t.dueDate).diff(startDate, "day");
                     leftPx = (dueDiff / totalDays) * matrixWidth;
                   }
 
@@ -671,12 +813,13 @@ export function TaskTimelineView({
                   if (!isMarkerOnly && widthPx < 45) widthPx = 45;
 
                   const stColor = STATUS_COLORS[t.status];
-                  const code = t.displayCode || `${t.project?.key}-${t.taskNumber}`;
+                  const code =
+                    t.displayCode || `${t.project?.key}-${t.taskNumber}`;
                   const isHovered = hoveredTaskId === t.id || isBeingDragged;
 
                   // Level 0 vs Level 1 Bar styles
                   const barBg = level === 0 ? stColor.bg : stColor.bgSub;
-                  const barHeight = level === 0 ? 'h-7' : 'h-5';
+                  const barHeight = level === 0 ? "h-7" : "h-5";
 
                   return (
                     <div
@@ -684,7 +827,7 @@ export function TaskTimelineView({
                       onMouseEnter={() => setHoveredTaskId(t.id)}
                       onMouseLeave={() => setHoveredTaskId(null)}
                       className={`h-12 relative flex items-center px-2 z-10 transition-colors ${
-                        isHovered ? 'bg-slate-50/60' : ''
+                        isHovered ? "bg-slate-50/60" : ""
                       }`}
                     >
                       {/* Task/Subtask Bar Container */}
@@ -693,23 +836,35 @@ export function TaskTimelineView({
                           left: `${leftPx}px`,
                           width: `${widthPx}px`,
                         }}
-                        onMouseDown={(e) => handleMouseDown(e, t, 'move', rawStart, rawEnd)}
-                        className={`absolute ${barHeight} rounded-md ${barBg} ${stColor.text} px-2.5 flex items-center justify-between text-xs font-bold shadow-sm cursor-grab active:cursor-grabbing transition-all border border-white/20 select-none ${
-                          isHovered ? `ring-2 ${stColor.ring} shadow-md scale-[1.01]` : ''
-                        } ${isMarkerOnly ? 'justify-center !rounded-full opacity-90' : ''}`}
+                        onMouseDown={(e) =>
+                          handleMouseDown(e, t, "move", rawStart, rawEnd)
+                        }
+                        className={`absolute ${barHeight} rounded-md ${barBg} ${stColor.text} px-2.5 flex items-center justify-between text-xs font-bold shadow-sm cursor-grab active:cursor-grabbing transition-colors border border-white/20 select-none ${
+                          isHovered
+                            ? `ring-2 ${stColor.ring} shadow-md scale-[1.01]`
+                            : ""
+                        } ${isMarkerOnly ? "justify-center !rounded-full opacity-90" : ""}`}
                       >
                         {/* Top & Bottom Jira Connector Dots (on hover) */}
                         {isHovered && !isMarkerOnly && (
                           <>
-                            <div className="w-2 h-2 rounded-full bg-[#c084fc] border border-white absolute left-1/2 -top-1 -ml-1 z-20" />
-                            <div className="w-2 h-2 rounded-full bg-[#c084fc] border border-white absolute left-1/2 -bottom-1 -ml-1 z-20" />
+                            <div className="w-2 h-2 rounded-full bg-blue-400 border border-white absolute left-1/2 -top-1 -ml-1 z-20" />
+                            <div className="w-2 h-2 rounded-full bg-blue-400 border border-white absolute left-1/2 -bottom-1 -ml-1 z-20" />
                           </>
                         )}
 
                         {/* Left Drag Handle (Resizer) */}
                         {isHovered && !isMarkerOnly && (
                           <div
-                            onMouseDown={(e) => handleMouseDown(e, t, 'resize-left', rawStart, rawEnd)}
+                            onMouseDown={(e) =>
+                              handleMouseDown(
+                                e,
+                                t,
+                                "resize-left",
+                                rawStart,
+                                rawEnd,
+                              )
+                            }
                             className="w-1.5 h-4 bg-white/90 rounded-full border border-gray-400/40 cursor-ew-resize absolute left-1 top-1.5 z-30 hover:scale-125 transition-transform"
                             title="Kéo để chỉnh ngày bắt đầu"
                           />
@@ -717,20 +872,27 @@ export function TaskTimelineView({
 
                         {/* Content inside bar */}
                         {isMarkerOnly ? (
-                          <Tooltip title={`[${code}] Hạn hoàn thành: ${dayjs(t.dueDate).format('DD/MM/YYYY')}`}>
+                          <Tooltip
+                            title={`[${code}] Hạn hoàn thành: ${dayjs(t.dueDate).format("DD/MM/YYYY")}`}
+                          >
                             <CalendarOutlined className="text-white text-xs" />
                           </Tooltip>
                         ) : (
-                          <span className="truncate flex items-center gap-1.5 pointer-events-none z-10 text-[11px]">
-                            
-                            
-                          </span>
+                          <span className="truncate flex items-center gap-1.5 pointer-events-none z-10 text-[11px]"></span>
                         )}
 
                         {/* Right Drag Handle (Resizer) */}
                         {isHovered && !isMarkerOnly && (
                           <div
-                            onMouseDown={(e) => handleMouseDown(e, t, 'resize-right', rawStart, rawEnd)}
+                            onMouseDown={(e) =>
+                              handleMouseDown(
+                                e,
+                                t,
+                                "resize-right",
+                                rawStart,
+                                rawEnd,
+                              )
+                            }
                             className="w-1.5 h-4 bg-white/90 rounded-full border border-gray-400/40 cursor-ew-resize absolute right-1 top-1.5 z-30 hover:scale-125 transition-transform"
                             title="Kéo để chỉnh hạn hoàn thành"
                           />
@@ -740,7 +902,11 @@ export function TaskTimelineView({
                         {isHovered && (
                           <div className="absolute -left-32 top-0 h-7 px-2.5 bg-gray-900 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 shadow-md z-40 pointer-events-none animate-fade-in whitespace-nowrap">
                             <CalendarOutlined className="text-purple-300 text-[10px]" />
-                            {hasStart ? rawStart.format('MMM DD, YYYY') : (t.dueDate ? `Marker (${dayjs(t.dueDate).format('DD/MM')})` : 'Tự động')}
+                            {hasStart
+                              ? rawStart.format("MMM DD, YYYY")
+                              : t.dueDate
+                                ? `Marker (${dayjs(t.dueDate).format("DD/MM")})`
+                                : "Tự động"}
                           </div>
                         )}
 
@@ -748,7 +914,7 @@ export function TaskTimelineView({
                         {isHovered && (
                           <div className="absolute -right-44 top-0 h-7 px-2.5 bg-gray-900 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 shadow-md z-40 pointer-events-none animate-fade-in whitespace-nowrap">
                             <CalendarOutlined className="text-purple-300 text-[10px]" />
-                            {rawEnd.format('MMM DD, YYYY')} ({duration} ngày)
+                            {rawEnd.format("MMM DD, YYYY")} ({duration} ngày)
                           </div>
                         )}
                       </div>
@@ -765,7 +931,7 @@ export function TaskTimelineView({
               size="small"
               type="text"
               onClick={handleTodayClick}
-              className="text-xs font-semibold text-gray-700 hover:text-indigo-600 px-3"
+              className="text-xs font-semibold text-gray-700 hover:text-gray-700 px-3"
             >
               Hôm nay
             </Button>
@@ -799,19 +965,23 @@ export function TaskTimelineView({
 
             {/* View Modes */}
             <div className="flex items-center bg-gray-100/80 p-0.5 rounded-xl">
-              {(['Weeks', 'Months', 'Quarters'] as ViewMode[]).map((mode) => {
+              {(["Weeks", "Months", "Quarters"] as ViewMode[]).map((mode) => {
                 const isActive = viewMode === mode;
                 return (
                   <button
                     key={mode}
                     onClick={() => setViewMode(mode)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-white text-indigo-600 shadow-xs border border-gray-200/60'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? "bg-white text-gray-700 shadow-xs border border-gray-200/60"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    {mode === 'Weeks' ? 'Tuần' : mode === 'Months' ? 'Tháng' : 'Quý'}
+                    {mode === "Weeks"
+                      ? "Tuần"
+                      : mode === "Months"
+                        ? "Tháng"
+                        : "Quý"}
                   </button>
                 );
               })}
@@ -823,14 +993,14 @@ export function TaskTimelineView({
               size="small"
               icon={<LeftOutlined />}
               type="text"
-              onClick={() => setBaseDate((prev) => prev.subtract(1, 'month'))}
+              onClick={() => setBaseDate((prev) => prev.subtract(1, "month"))}
               className="text-gray-400 hover:text-gray-700"
             />
             <Button
               size="small"
               icon={<RightOutlined />}
               type="text"
-              onClick={() => setBaseDate((prev) => prev.add(1, 'month'))}
+              onClick={() => setBaseDate((prev) => prev.add(1, "month"))}
               className="text-gray-400 hover:text-gray-700"
             />
           </div>

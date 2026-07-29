@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { Table, Avatar, Tag, Input, Skeleton, Alert, Card } from 'antd';
-import { UserOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
-import { OrgRole } from '@repo/permissions';
-import { useAuth } from '../../../hooks/useAuth';
-import * as userService from '../../../services/user';
+import React, { useEffect, useState } from "react";
+import { Table, Avatar, Tag, Input, Skeleton, Alert, Card } from "antd";
+import { UserOutlined, SearchOutlined, TeamOutlined } from "@ant-design/icons";
+import { OrgRole } from "@repo/permissions";
+import { useAuth } from "../../../hooks/useAuth";
+import * as userService from "../../../services/user";
 
 export default function PlatformUsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<userService.PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
 
   const fetchUsers = async () => {
     try {
@@ -23,11 +23,13 @@ export default function PlatformUsersPage() {
         setUsers(res.users);
       }
     } catch (err: any) {
-      console.error('Error fetching platform users:', err);
+      console.error("Error fetching platform users:", err);
       if (err.status === 403) {
-        setError('Bạn không có quyền truy cập trang này. Chỉ Platform Admin mới có quyền.');
+        setError(
+          "Bạn không có quyền truy cập trang này. Chỉ Platform Admin mới có quyền.",
+        );
       } else {
-        setError(err.message || 'Lỗi khi tải danh sách người dùng.');
+        setError(err.message || "Lỗi khi tải danh sách người dùng.");
       }
     } finally {
       setLoading(false);
@@ -40,14 +42,14 @@ export default function PlatformUsersPage() {
 
   const getRoleTag = (role: OrgRole) => {
     switch (role) {
-      case 'OWNER':
-        return 'text-indigo-700 font-bold bg-indigo-50 border-indigo-200';
-      case 'ADMIN':
-        return 'text-sky-700 font-bold bg-sky-50 border-sky-200';
-      case 'MEMBER':
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+      case "OWNER":
+        return "text-gray-800 font-bold bg-gray-50 border-gray-200";
+      case "ADMIN":
+        return "text-sky-700 font-bold bg-sky-50 border-sky-200";
+      case "MEMBER":
+        return "text-gray-600 bg-gray-50 border-gray-200";
       default:
-        return 'text-gray-400 bg-gray-50 border-gray-100';
+        return "text-gray-400 bg-gray-50 border-gray-100";
     }
   };
 
@@ -59,21 +61,21 @@ export default function PlatformUsersPage() {
     const text = searchText.toLowerCase();
     return (
       u.fullName.toLowerCase().includes(text) ||
-      (u.email || '').toLowerCase().includes(text) ||
+      (u.email || "").toLowerCase().includes(text) ||
       u.username.toLowerCase().includes(text)
     );
   });
 
   const columns = [
     {
-      title: 'Người dùng',
-      key: 'user',
+      title: "Người dùng",
+      key: "user",
       render: (_: any, record: userService.PlatformUser) => (
         <div className="flex items-center gap-3 text-left">
           <Avatar
             icon={!record.avatarUrl ? <UserOutlined /> : undefined}
             src={record.avatarUrl}
-            className="bg-indigo-50 text-indigo-600 border border-indigo-100/50"
+            className="bg-gray-50 text-gray-700 border border-gray-100/50"
             size={36}
           />
           <div className="flex flex-col leading-tight">
@@ -84,14 +86,18 @@ export default function PlatformUsersPage() {
       ),
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      render: (text: string) => <span className="text-sm text-gray-500 font-medium">{text || 'N/A'}</span>,
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      render: (text: string) => (
+        <span className="text-sm text-gray-500 font-medium">
+          {text || "N/A"}
+        </span>
+      ),
     },
     {
-      title: 'Tổ chức tham gia (Vai trò)',
-      key: 'memberships',
+      title: "Tổ chức tham gia (Vai trò)",
+      key: "memberships",
       render: (_: any, record: userService.PlatformUser) => (
         <div className="flex flex-wrap gap-2 text-left">
           {record.memberships.map((m: userService.PlatformUserMembership) => (
@@ -103,7 +109,9 @@ export default function PlatformUsersPage() {
             </Tag>
           ))}
           {record.memberships.length === 0 && (
-            <span className="text-xs text-gray-400 font-medium italic">Chưa tham gia tổ chức nào</span>
+            <span className="text-xs text-gray-400 font-medium italic">
+              Chưa tham gia tổ chức nào
+            </span>
           )}
         </div>
       ),
@@ -112,7 +120,6 @@ export default function PlatformUsersPage() {
 
   return (
     <div className="flex flex-col gap-6 text-left">
-
       {error && (
         <Alert
           message="Không thể truy cập"
@@ -153,7 +160,7 @@ export default function PlatformUsersPage() {
                 pagination={{ pageSize: 10 }}
                 className="custom-table"
                 rowClassName={(record, idx) =>
-                  `${idx % 2 === 0 ? 'bg-slate-50/20' : 'bg-white'} hover:bg-blue-50/70 transition-colors`
+                  `${idx % 2 === 0 ? "bg-slate-50/20" : "bg-white"} hover:bg-blue-50/70 transition-colors`
                 }
               />
             )}

@@ -2,9 +2,51 @@
 
 :root {
   --background: #f9fafb;
+  --surface: #ffffff;
+  --surface-muted: rgba(249, 250, 251, 0.5);
   --foreground: #1f2937;
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-nunito: 'Nunito', 'Inter', sans-serif;
+  --foreground-muted: #6b7280;
+  --border-subtle: #f3f4f6;
+  --border-default: #e5e7eb;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --focus-ring: #3b82f6;
+  --warning: #b45309;
+  --destructive: #dc2626;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-3:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-4: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --font-inter:
+    "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-nunito: "Nunito Variable", "Nunito", "Inter Variable", sans-serif;
+}
+
+@theme inline {
+  --color-app: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--foreground-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-focus-ring: var(--focus-ring);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+}
+
+* {
+  border-color: var(--border-default);
 }
 
 body {
@@ -16,10 +58,70 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 /* Logo/Brand text — use Nunito */
 .font-brand {
   font-family: var(--font-nunito);
+}
+
+@layer components {
+  .surface-card {
+    @apply rounded-2xl bg-white shadow-md;
+  }
+
+  .action-primary {
+    @apply rounded-xl bg-blue-600 text-white shadow-md transition-colors duration-150 ease-out hover:bg-blue-700;
+  }
+
+  .action-secondary {
+    @apply rounded-xl border border-gray-200 bg-white text-gray-700 transition-colors duration-150 ease-out hover:bg-gray-50;
+  }
+
+  .action-caution {
+    @apply rounded-xl border border-amber-300 bg-white text-amber-700 transition-colors duration-150 ease-out hover:bg-amber-50;
+  }
+
+  .action-destructive {
+    @apply rounded-xl bg-red-600 text-white shadow-md transition-colors duration-150 ease-out hover:bg-red-700;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+}
+
+button,
+a,
+input,
+textarea,
+select,
+[role="button"],
+[tabindex]:not([tabindex="-1"]) {
+  outline-color: var(--focus-ring);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ant-table-tbody > tr:nth-child(even) > td {
+  background-color: var(--surface-muted);
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: var(--border-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

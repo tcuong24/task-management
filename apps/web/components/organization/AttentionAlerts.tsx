@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Card, Tag, Avatar, Badge } from 'antd';
+import React, { useState } from "react";
+import { Card, Tag, Avatar, Badge } from "antd";
 import {
   WarningOutlined,
   ExclamationCircleOutlined,
@@ -10,9 +10,9 @@ import {
   ThunderboltFilled,
   CheckCircleOutlined,
   RightOutlined,
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import Link from 'next/link';
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import Link from "next/link";
 
 interface TaskAlertItem {
   id: string;
@@ -35,14 +35,24 @@ interface AttentionAlertsProps {
   };
 }
 
-export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProps) {
+export function AttentionAlerts({
+  orgSlug,
+  attentionItems,
+}: AttentionAlertsProps) {
   const overdueTasks = attentionItems?.overdueTasks || [];
   const unassignedTasks = attentionItems?.unassignedTasks || [];
   const criticalTasks = attentionItems?.criticalTasks || [];
 
-  const totalAlerts = overdueTasks.length + unassignedTasks.length + criticalTasks.length;
-  const [activeTab, setActiveTab] = useState<'overdue' | 'unassigned' | 'critical'>(
-    overdueTasks.length > 0 ? 'overdue' : unassignedTasks.length > 0 ? 'unassigned' : 'critical'
+  const totalAlerts =
+    overdueTasks.length + unassignedTasks.length + criticalTasks.length;
+  const [activeTab, setActiveTab] = useState<
+    "overdue" | "unassigned" | "critical"
+  >(
+    overdueTasks.length > 0
+      ? "overdue"
+      : unassignedTasks.length > 0
+        ? "unassigned"
+        : "critical",
   );
 
   return (
@@ -83,11 +93,11 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
           {/* Alert Filter Tabs */}
           <div className="flex items-center gap-2 border-b border-gray-100 pb-2 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('overdue')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                activeTab === 'overdue'
-                  ? 'bg-red-50 text-red-700 border border-red-200 shadow-xs'
-                  : 'text-gray-500 hover:bg-gray-100'
+              onClick={() => setActiveTab("overdue")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                activeTab === "overdue"
+                  ? "bg-red-50 text-red-700 border border-red-200 shadow-xs"
+                  : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               <ClockCircleOutlined />
@@ -95,11 +105,11 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
             </button>
 
             <button
-              onClick={() => setActiveTab('unassigned')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                activeTab === 'unassigned'
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-xs'
-                  : 'text-gray-500 hover:bg-gray-100'
+              onClick={() => setActiveTab("unassigned")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                activeTab === "unassigned"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200 shadow-xs"
+                  : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               <UserAddOutlined />
@@ -107,11 +117,11 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
             </button>
 
             <button
-              onClick={() => setActiveTab('critical')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                activeTab === 'critical'
-                  ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-xs'
-                  : 'text-gray-500 hover:bg-gray-100'
+              onClick={() => setActiveTab("critical")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                activeTab === "critical"
+                  ? "bg-purple-50 text-purple-700 border border-purple-200 shadow-xs"
+                  : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               <ThunderboltFilled />
@@ -121,15 +131,18 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
 
           {/* List items depending on active tab */}
           <div className="flex flex-col gap-2 min-h-[160px]">
-            {activeTab === 'overdue' &&
+            {activeTab === "overdue" &&
               (overdueTasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-gray-400 font-medium">
                   Không có task nào quá hạn!
                 </div>
               ) : (
                 overdueTasks.map((t) => (
-                  <Link key={t.id} href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}>
-                    <div className="p-2.5 rounded-xl bg-red-50/50 border border-red-100 hover:border-red-300 transition-all flex items-center justify-between gap-3 group cursor-pointer">
+                  <Link
+                    key={t.id}
+                    href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}
+                  >
+                    <div className="p-2.5 rounded-xl bg-red-50/50 border border-red-100 hover:border-red-300 transition-colors flex items-center justify-between gap-3 group cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-100 text-red-700 shrink-0">
                           [{t.displayCode}]
@@ -141,7 +154,7 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
                       <div className="flex items-center gap-2 shrink-0">
                         {t.dueDate && (
                           <span className="text-[11px] font-semibold text-red-600">
-                            {dayjs(t.dueDate).format('DD/MM')}
+                            {dayjs(t.dueDate).format("DD/MM")}
                           </span>
                         )}
                         <RightOutlined className="text-[10px] text-gray-400 group-hover:text-red-600" />
@@ -151,15 +164,18 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
                 ))
               ))}
 
-            {activeTab === 'unassigned' &&
+            {activeTab === "unassigned" &&
               (unassignedTasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-gray-400 font-medium">
                   Tất cả task đều đã có người phụ trách!
                 </div>
               ) : (
                 unassignedTasks.map((t) => (
-                  <Link key={t.id} href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}>
-                    <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100 hover:border-amber-300 transition-all flex items-center justify-between gap-3 group cursor-pointer">
+                  <Link
+                    key={t.id}
+                    href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}
+                  >
+                    <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100 hover:border-amber-300 transition-colors flex items-center justify-between gap-3 group cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 shrink-0">
                           [{t.displayCode}]
@@ -176,15 +192,18 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
                 ))
               ))}
 
-            {activeTab === 'critical' &&
+            {activeTab === "critical" &&
               (criticalTasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-gray-400 font-medium">
                   Không có task nào mức Khẩn cấp!
                 </div>
               ) : (
                 criticalTasks.map((t) => (
-                  <Link key={t.id} href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}>
-                    <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 hover:border-purple-300 transition-all flex items-center justify-between gap-3 group cursor-pointer">
+                  <Link
+                    key={t.id}
+                    href={`/dashboard/${orgSlug}/projects/${t.projectKey}/tasks/${t.id}`}
+                  >
+                    <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 hover:border-purple-300 transition-colors flex items-center justify-between gap-3 group cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 shrink-0">
                           [{t.displayCode}]
@@ -193,7 +212,10 @@ export function AttentionAlerts({ orgSlug, attentionItems }: AttentionAlertsProp
                           {t.title}
                         </span>
                       </div>
-                      <Tag color="red" className="m-0 text-[10px] font-bold border-none shrink-0">
+                      <Tag
+                        color="red"
+                        className="m-0 text-[10px] font-bold border-none shrink-0"
+                      >
                         CRITICAL
                       </Tag>
                     </div>

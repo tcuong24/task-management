@@ -1,109 +1,183 @@
 ---
 name: taskflow-design-tokens
-description: Design token rules, styling specifications, and UI enforcer for TaskFlow. Defines flat colors, elevation shadows, spacing scales, and accessibility guardrails.
+description: Enforce TaskFlow design tokens and UI rules when creating, editing, or reviewing TaskFlow screens and components. Use for colors, surfaces, branding, actions, elevation, radii, spacing, motion, tables, forms, charts, responsive behavior, and accessibility.
 ---
 
-# TaskFlow — Design Tokens Skill
+# TaskFlow Design Tokens
 
-This skill ensures that all code modifications in the TaskFlow application strictly adhere to the designated Design System tokens. No custom background colors, borders, heights, padding, or text styles should be introduced outside of these guidelines.
+Apply these rules to every TaskFlow UI change. Reuse existing shared components and semantic tokens before adding styles. Do not introduce arbitrary colors, spacing, radii, shadows, typography, sizing, or motion values.
 
----
+## Workflow
 
-## 1. Màu nền (Background)
-* **Rule**: Toàn bộ app dùng một kiểu nền phẳng (solid background) duy nhất cho giao diện dashboard — không sử dụng màu nền gradient động.
+1. Inspect the affected components, shared primitives, and theme configuration.
+2. Reuse a semantic token from this skill or an existing equivalent in the codebase.
+3. Preserve established behavior unless the task explicitly changes it.
+4. Check responsive, keyboard, focus, disabled, loading, empty, and error states.
+5. Run the pre-flight checklist before finishing.
 
-| Token | Giá trị (Tailwind) | Dùng cho |
+If the codebase does not define the semantic names below as actual classes or CSS variables, use their canonical Tailwind mappings. Do not use names such as `bg-app` as classes unless they are configured.
+
+## Color policy
+
+Use neutral gray for surfaces, branding, navigation, and decorative elements. Use colors with hue only for:
+
+- The primary action.
+- Semantic states such as success, warning, error, and destructive actions.
+- Data visualization where color communicates data.
+
+Do not use gradients or decorative color tints. Never rely on color alone to communicate meaning.
+
+### Backgrounds and surfaces
+
+| Token | Canonical Tailwind mapping | Use |
 |---|---|---|
-| `bg-app` | `bg-[#f9fafb]` hoặc `bg-gray-50` | Nền toàn bộ trang (mọi route, kể cả Settings, Members, v.v.) |
-| `bg-surface` | `bg-white` | Nền Card, Modal, bảng dữ liệu — luôn nổi trên `bg-app` bằng shadow, không dùng viền |
-| `bg-surface-muted` | `bg-slate-50/50` hoặc `bg-gray-50/50` | Nền hàng zebra-stripe trong bảng, nền field bị khóa (locked field) |
+| `bg-app` | `bg-gray-50` | Page background on every dashboard route |
+| `bg-surface` | `bg-white` | Cards, modals, and data containers |
+| `bg-surface-muted` | `bg-gray-50/50` | Zebra rows and locked or read-only fields |
+| `border-subtle` | `border-gray-100` | Low-emphasis separators |
+| `border-default` | `border-gray-200` | Inputs and secondary controls |
 
----
+Use shadow to separate a raised surface from `bg-app`. Use borders for structure, input affordance, or elevation level 0—not as decorative outlines around every card.
 
-## 2. Menu Điều hướng Sidebar & Branding (Unified Indigo Theme)
-* **Rule**: Không chia màu nền hoặc màu active của sidebar theo vai trò người dùng (MEMBER/ADMIN/OWNER). Tất cả đều dùng chung một hệ màu Indigo thanh lịch:
+### Sidebar and branding
 
-| Thành phần | Token | Giá trị (Tailwind) |
+Do not vary navigation colors by role.
+
+| Token | Canonical Tailwind mapping |
+|---|---|
+| `sidebar-bg` | `bg-gray-50/80 backdrop-blur-sm` |
+| `nav-active` | `bg-gray-100 text-gray-900 font-medium` |
+| `nav-default` | `text-gray-600 hover:bg-gray-100 hover:text-gray-900` |
+| `brand-color` | `text-gray-900` |
+
+Remove legacy Indigo branding from sidebar, logo, neutral badges, and decorative icons. Keep semantic action and status colors intact.
+
+## Actions
+
+Use one visually dominant primary action per decision region. A long page may contain multiple primary actions only when they belong to clearly independent regions.
+
+| Token | Canonical Tailwind mapping | Examples |
 |---|---|---|
-| **Nền Sidebar** | `sidebar-bg` | `bg-slate-50/80` hoặc `bg-gray-50/80` (backdrop-blur-sm) |
-| **Active Item** | `active-item` | `bg-indigo-50 text-indigo-700 border border-indigo-100/30` |
-| **Logo & Brand text** | `brand-color` | `text-indigo-600` (font-brand) |
+| `action-primary` | `bg-blue-600 text-white shadow-md hover:bg-blue-700 active:scale-[0.98]` | Sign in, create task, invite member |
+| `action-secondary` | `bg-white border border-gray-200 text-gray-700 hover:bg-gray-50` | Cancel, close, view details |
+| `action-caution` | `bg-white border border-amber-300 text-amber-700 hover:bg-amber-50` | Transfer ownership, archive |
+| `action-destructive` | `bg-red-600 text-white shadow-md hover:bg-red-700 active:scale-[0.98]` | Delete organization, remove member |
+| `action-ghost` | `text-gray-500 hover:text-gray-700` | Log out, resend invite |
 
----
+Add the motion classes defined below rather than `transition-all`.
 
-## 3. Màu nút và mức độ hành động (Action Severity)
-* **Rule**: Chỉ định rõ mức độ ưu tiên của hành động. Không dùng các màu gradient.
+## Elevation
 
-| Mức độ | Token | Style (Tailwind) | Ví dụ hành động |
-|---|---|---|---|
-| **Primary** | `action-primary` | `bg-blue-600 text-white shadow-md hover:bg-blue-700 transition-all active:scale-[0.98]` | Đăng nhập, Tạo Task, Tạo Project, Mời Thành viên |
-| **Secondary** | `action-secondary` | `bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all` | Cancel, Đóng modal, Xem chi tiết |
-| **Neutral-caution** | `action-caution` | `bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 transition-all` | Transfer Ownership, Archive Project |
-| **Destructive** | `action-destructive` | `bg-red-600 text-white hover:bg-red-700 shadow-md transition-all active:scale-[0.98]` | Delete Organization, Delete Project, Xóa thành viên |
-| **Ghost/Text** | `action-ghost` | `text-gray-500 hover:text-gray-700 transition-colors` | Logout (trong header), Resend invite |
+Elevation represents overlay hierarchy and spatial prominence, not action severity. A destructive dialog uses destructive content and controls but follows the same modal elevation as other blocking dialogs.
 
----
+| Token | Canonical Tailwind mapping | Use |
+|---|---|---|
+| `elevation-0` | `shadow-none border border-gray-100` | Rows and list items |
+| `elevation-1` | `shadow-sm` | Sticky headers and navigation |
+| `elevation-2` | `shadow-md` | Task and project cards |
+| `elevation-3` | `shadow-xl` | Dropdowns and popovers |
+| `elevation-4` | `shadow-2xl` | Blocking modals and dialogs |
 
-## 4. Shadow theo lớp (Elevation Shadows)
-* **Rule**: Mức độ nguy hiểm của hành động tỷ lệ thuận với elevation của modal hoặc card chứa nó.
+## Radius
 
-| Lớp | Token | Giá trị (Tailwind) | Dùng cho |
-|---|---|---|---|
-| **Lớp 0** | `elevation-0` | Không shadow, chỉ dùng `border border-gray-100` | Row trong bảng, item trong list |
-| **Lớp 1** | `elevation-1` | `shadow-sm` | Header, thanh điều hướng |
-| **Lớp 2** | `elevation-2` | `shadow-md` | Card thường (task card, project card) |
-| **Lớp 3** | `elevation-3` | `shadow-xl` | Card nổi bật (Login card), Dropdown menu |
-| **Lớp 4** | `elevation-4` | `shadow-2xl` | Modal xác nhận hành động nguy hiểm (Delete confirm) |
+| Token | Canonical Tailwind mapping | Use |
+|---|---|---|
+| `radius-sm` | `rounded-md` | Inputs, tags, badges |
+| `radius-md` | `rounded-xl` | Buttons and compact cards |
+| `radius-lg` | `rounded-2xl` | Large cards and modals |
 
----
+## Spacing
 
-## 5. Bo góc (Border Radius)
+Use Tailwind's 4px base scale. Prefer the following compositions and choose responsive variants when `p-8` would crowd a small viewport.
 
-| Phân loại | Token | Giá trị (Tailwind) | Dùng cho |
-|---|---|---|---|
-| **Nhỏ** | `radius-sm` | `rounded-md` | Input, Tag, Badge |
-| **Vừa** | `radius-md` | `rounded-xl` | Button, Card nhỏ |
-| **Lớn** | `radius-lg` | `rounded-2xl` | Card lớn (Login card, Modal) |
+| Token | Canonical Tailwind mapping | Use |
+|---|---|---|
+| `space-tight` | `p-4 gap-3` | Compact cards and board items |
+| `space-normal` | `p-6 gap-4` | Forms and standard cards |
+| `space-loose` | `p-6 md:p-8 gap-6` | Page content, settings, large cards |
+| `section-gap` | `gap-6` | Related page sections |
+| `major-gap` | `gap-16` | Major landing or empty-state regions |
 
----
+Use values from Tailwind's spacing scale. Do not add arbitrary values such as `p-[19px]` unless required to align with an external embedded surface and documented in code.
 
-## 6. Khoảng cách (Spacing & Paddings)
-* **Rule**: Container ngoài cùng luôn dùng `space-loose`.
+## Motion
 
-| Phân loại | Token | Giá trị (Tailwind) | Dùng cho |
-|---|---|---|---|
-| **Chặt** | `space-tight` | `p-4 gap-3` | Bên trong Card nhỏ (như task card trên board) |
-| **Thường** | `space-normal` | `p-6 gap-4` | Bên trong Card thường, Form |
-| **Rộng** | `space-loose` | `p-8 gap-6` | Login card, trang Settings, khu vực content chính |
+Animate only properties that need to change. Do not use `transition-all`.
 
----
+| Token | Duration | Use |
+|---|---:|---|
+| `duration-fast` | `duration-150` | Hover, color, and pressed feedback |
+| `duration-base` | `duration-200` | Dropdowns, tabs, and small reveals |
+| `duration-slow` | `duration-300` | Modals and larger transitions |
+| `easing-standard` | `ease-out` | Entering and direct manipulation |
 
-## 7. Bảng dữ liệu (Tables)
-* Hàng chẵn dùng `bg-surface-muted` (zebra striping). Hàng lẻ dùng `bg-surface`.
-* Hiệu ứng hover hàng: `hover:bg-blue-50/70 transition-colors`.
-* Header bảng: `bg-gray-50 text-gray-500 text-xs uppercase tracking-wide` (không viết đậm màu đen).
-* Chỉ phân tách hàng bằng `border-b border-gray-100`. Không dùng viền kẻ dọc phân chia cột.
+Examples:
 
----
+```text
+transition-colors duration-150 ease-out
+transition-transform duration-150 ease-out
+transition-opacity duration-200 ease-out
+```
 
-## 8. Trường dữ liệu bị khóa (Locked Fields)
-* **Style**: `bg-gray-50 border border-gray-200 text-gray-400`, hiển thị thêm một icon ổ khóa màu xám bên phải.
-* **Quyền yêu cầu**: Nếu có thể yêu cầu truy cập, hiển thị dòng text link nhỏ bên dưới: `text-blue-600 hover:underline` "Yêu cầu quyền truy cập".
+Respect `prefers-reduced-motion`. Disable nonessential transforms and animations with `motion-reduce:transition-none motion-reduce:transform-none`.
 
----
+## Tables
 
-## 9. Biểu đồ (Charts)
-* **Color**: Đường vẽ hoặc cột biểu đồ chính dùng màu `blue-500` (đồng nhất với primary color). Tránh dùng các màu đối lập như hồng hoặc tím.
-* **Gridlines**: Luôn hiển thị đường lưới ngang `stroke-gray-100`. Không để trống.
-* **Nền**: Nền của biểu đồ phải để trong suốt (`transparent`), không đặt màu nền khác với `bg-surface`.
+- Use `bg-surface-muted` for even rows and `bg-surface` for odd rows.
+- Use `hover:bg-gray-100 transition-colors duration-150`.
+- Use `bg-gray-50 text-gray-500 text-xs uppercase tracking-wide` for headers.
+- Separate rows with `border-b border-gray-100`.
+- Do not use vertical column dividers unless required for a dense comparison table.
+- Preserve a visible focus state for interactive rows and controls.
 
----
+## Forms and locked fields
 
-## Pre-Flight Check List (Bắt buộc chạy trước khi hoàn thành bất kỳ tính năng UI nào)
+Use `bg-gray-50 border border-gray-200 text-gray-500` for locked or read-only fields. Show a gray lock icon and expose the state in accessible text, not only through the icon.
 
-- [ ] Nền trang có sử dụng đúng `bg-app` màu phẳng (solid background) và thống nhất trong mọi màn hình chưa?
-- [ ] Có tối đa duy nhất 1 nút `action-primary` phẳng nổi bật trên màn hình chưa?
-- [ ] Sự khác biệt giữa Archive (`action-caution`) và Delete (`action-destructive`) có được phân định đúng màu sắc chưa?
-- [ ] Modal xác nhận hành động nguy hiểm không thể đảo ngược đã dùng `elevation-4` + `action-destructive` chưa?
-- [ ] Bảng dữ liệu đã áp dụng đúng quy tắc Zebra Stripe, hover row, và border chỉ kẻ ngang chưa?
-- [ ] Giao diện sidebar có đồng nhất màu Indigo phẳng cho mọi tài khoản mà không phân chia theo role chưa?
+When access can be requested, show a `text-blue-600 hover:underline` link below the field.
+
+Do not use placeholder text as the only label. Show validation text near the field and connect it programmatically with the input.
+
+## Charts
+
+- Use `blue-500` for the primary series.
+- Use semantic or distinguishable colors only when multiple series require them.
+- Use `stroke-gray-100` for horizontal gridlines.
+- Keep the chart background transparent.
+- Provide labels, legends, patterns, or direct values so color is not the only differentiator.
+- Ensure tooltip and legend content is keyboard-accessible when the chart library supports it.
+
+## Accessibility
+
+- Meet WCAG AA contrast for text and interactive controls.
+- Give every interactive element a visible `focus-visible` style, normally `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2`.
+- Preserve keyboard navigation and logical focus order.
+- Use native semantic elements before adding ARIA.
+- Use text or icons alongside semantic colors.
+- Make touch targets at least 44×44px where practical.
+- Expose disabled, loading, expanded, selected, invalid, and locked states programmatically.
+- Do not hide focus indicators.
+- Respect reduced-motion preferences.
+
+## Legacy Indigo migration
+
+When updating an affected area:
+
+1. Search sidebar, logo, branding, neutral badges, and decorative icons for `indigo-`.
+2. Replace legacy active navigation styles with `nav-active`.
+3. Replace brand color with `brand-color`.
+4. Do not replace valid semantic status colors or `action-primary`.
+5. Avoid unrelated repository-wide restyling unless the user requests a full migration.
+
+## Pre-flight checklist
+
+- [ ] Page and raised surfaces use the canonical background tokens.
+- [ ] Primary actions are visually unambiguous within each decision region.
+- [ ] Archive/caution and delete/destructive actions remain semantically distinct.
+- [ ] Elevation follows overlay hierarchy rather than action severity.
+- [ ] Spacing, radius, shadow, and motion use approved values without arbitrary utilities.
+- [ ] Transitions target specific properties and respect reduced motion.
+- [ ] Tables use the approved row, header, separator, hover, and focus styles.
+- [ ] Sidebar and branding remain neutral and do not vary by role.
+- [ ] Focus, keyboard, contrast, labeling, and state exposure requirements are satisfied.
+- [ ] Responsive layouts remain usable on narrow viewports.

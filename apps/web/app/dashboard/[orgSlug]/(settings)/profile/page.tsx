@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Card,
+  Avatar,
   Button,
   Input,
   Modal,
@@ -15,7 +16,7 @@ import {
   Tooltip,
   Dropdown,
   MenuProps,
-} from 'antd';
+} from "antd";
 import {
   UserOutlined,
   CheckCircleFilled,
@@ -32,40 +33,46 @@ import {
   RightOutlined,
   InfoCircleOutlined,
   UploadOutlined,
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/vi';
-import * as userService from '../../../../../services/user';
-import * as orgService from '../../../../../services/organization';
-import { RoleBadge } from '../../../../../components/common/RoleBadge';
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/vi";
+import * as userService from "../../../../../services/user";
+import * as orgService from "../../../../../services/organization";
+import { RoleBadge } from "../../../../../components/common/RoleBadge";
 
 dayjs.extend(relativeTime);
-dayjs.locale('vi');
+dayjs.locale("vi");
 
 const AVATAR_PALETTE = [
-  '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#F59E0B', '#EF4444', '#06B6D4',
+  "#10B981",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 function getUserAvatarColor(id?: string | null): string {
-  if (!id) return '#10B981';
+  if (!id) return "#10B981";
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || '#10B981';
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || "#10B981";
 }
 
 function formatLastLogin(lastLoginAt?: string | null): string {
-  if (!lastLoginAt) return 'Chưa đăng nhập';
+  if (!lastLoginAt) return "Chưa đăng nhập";
   const loginDate = dayjs(lastLoginAt);
   const now = dayjs();
 
-  if (loginDate.isSame(now, 'day')) {
-    return `Hôm nay, ${loginDate.format('HH:mm')}`;
+  if (loginDate.isSame(now, "day")) {
+    return `Hôm nay, ${loginDate.format("HH:mm")}`;
   }
-  return loginDate.format('DD/MM/YYYY HH:mm');
+  return loginDate.format("DD/MM/YYYY HH:mm");
 }
 
 export default function OrgSettingsProfilePage() {
@@ -80,14 +87,14 @@ export default function OrgSettingsProfilePage() {
 
   // Editable fields state
   const [editingFullName, setEditingFullName] = useState(false);
-  const [fullNameInput, setFullNameInput] = useState('');
+  const [fullNameInput, setFullNameInput] = useState("");
 
   const [editingEmail, setEditingEmail] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
+  const [emailInput, setEmailInput] = useState("");
 
   // Modals state
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
-  const [avatarUrlInput, setAvatarUrlInput] = useState('');
+  const [avatarUrlInput, setAvatarUrlInput] = useState("");
   const [updatingAvatar, setUpdatingAvatar] = useState(false);
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -100,8 +107,8 @@ export default function OrgSettingsProfilePage() {
       const res = await userService.getMeDetail();
       if (res.success && res.user) {
         setUser(res.user);
-        setFullNameInput(res.user.fullName || '');
-        setEmailInput(res.user.email || '');
+        setFullNameInput(res.user.fullName || "");
+        setEmailInput(res.user.email || "");
 
         if (res.user.memberships && res.user.memberships.length > 0) {
           const firstOrg = res.user.memberships[0]?.organization;
@@ -112,14 +119,14 @@ export default function OrgSettingsProfilePage() {
                 setRecentTasks(tasksRes.tasks.slice(0, 5));
               }
             } catch (err) {
-              console.error('Error fetching recent tasks:', err);
+              console.error("Error fetching recent tasks:", err);
             }
           }
         }
       }
     } catch (err: any) {
-      console.error('Error fetching user profile:', err);
-      message.error(err.message || 'Không thể tải thông tin hồ sơ.');
+      console.error("Error fetching user profile:", err);
+      message.error(err.message || "Không thể tải thông tin hồ sơ.");
     } finally {
       setLoading(false);
     }
@@ -130,23 +137,36 @@ export default function OrgSettingsProfilePage() {
   }, []);
 
   // Cloudinary File Upload for Avatar
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       setUpdatingAvatar(true);
-      message.loading({ content: 'Đang tải ảnh lên Cloudinary...', key: 'uploadAvatar' });
+      message.loading({
+        content: "Đang tải ảnh lên Cloudinary...",
+        key: "uploadAvatar",
+      });
       const res = await userService.uploadAvatar(file);
       if (res.success && res.user) {
-        setUser((prev) => (prev ? { ...prev, avatarUrl: res.user.avatarUrl } : null));
-        message.success({ content: 'Đã tải ảnh đại diện lên Cloudinary thành công!', key: 'uploadAvatar' });
+        setUser((prev) =>
+          prev ? { ...prev, avatarUrl: res.user.avatarUrl } : null,
+        );
+        message.success({
+          content: "Đã tải ảnh đại diện lên Cloudinary thành công!",
+          key: "uploadAvatar",
+        });
       }
     } catch (err: any) {
-      message.error({ content: err.message || 'Tải ảnh lên thất bại.', key: 'uploadAvatar' });
+      message.error({
+        content: err.message || "Tải ảnh lên thất bại.",
+        key: "uploadAvatar",
+      });
     } finally {
       setUpdatingAvatar(false);
-      if (e.target) e.target.value = '';
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -154,29 +174,29 @@ export default function OrgSettingsProfilePage() {
   const handleResetAvatarToInitials = async () => {
     try {
       setUpdatingAvatar(true);
-      const res = await userService.updateMe({ avatarUrl: '' });
+      const res = await userService.updateMe({ avatarUrl: "" });
       if (res.success) {
         setUser((prev) => (prev ? { ...prev, avatarUrl: null } : null));
-        message.success('Đã tạo hình đại diện có tên viết tắt.');
+        message.success("Đã tạo hình đại diện có tên viết tắt.");
       }
     } catch (err: any) {
-      message.error(err.message || 'Không thể tạo hình đại diện.');
+      message.error(err.message || "Không thể tạo hình đại diện.");
     } finally {
       setUpdatingAvatar(false);
     }
   };
 
-  const avatarMenuItems: MenuProps['items'] = [
+  const avatarMenuItems: MenuProps["items"] = [
     {
-      key: 'upload-file',
+      key: "upload-file",
       icon: <UploadOutlined />,
-      label: 'Tải ảnh hồ sơ lên',
+      label: "Tải ảnh hồ sơ lên",
       onClick: () => avatarFileInputRef.current?.click(),
     },
     {
-      key: 'reset-initials',
+      key: "reset-initials",
       icon: <UserOutlined />,
-      label: 'Tạo hình đại diện có tên viết tắt',
+      label: "Tạo hình đại diện có tên viết tắt",
       onClick: handleResetAvatarToInitials,
     },
   ];
@@ -185,19 +205,23 @@ export default function OrgSettingsProfilePage() {
   const handleSaveFullName = async () => {
     setEditingFullName(false);
     if (!fullNameInput.trim() || fullNameInput === user?.fullName) {
-      setFullNameInput(user?.fullName || '');
+      setFullNameInput(user?.fullName || "");
       return;
     }
 
     try {
-      const res = await userService.updateMe({ fullName: fullNameInput.trim() });
+      const res = await userService.updateMe({
+        fullName: fullNameInput.trim(),
+      });
       if (res.success) {
-        setUser((prev) => (prev ? { ...prev, fullName: res.user.fullName } : null));
-        message.success('Đã cập nhật họ và tên.');
+        setUser((prev) =>
+          prev ? { ...prev, fullName: res.user.fullName } : null,
+        );
+        message.success("Đã cập nhật họ và tên.");
       }
     } catch (err: any) {
-      setFullNameInput(user?.fullName || '');
-      message.error(err.message || 'Không thể cập nhật tên.');
+      setFullNameInput(user?.fullName || "");
+      message.error(err.message || "Không thể cập nhật tên.");
     }
   };
 
@@ -205,7 +229,7 @@ export default function OrgSettingsProfilePage() {
   const handleSaveEmail = async () => {
     setEditingEmail(false);
     if (!emailInput.trim() || emailInput === user?.email) {
-      setEmailInput(user?.email || '');
+      setEmailInput(user?.email || "");
       return;
     }
 
@@ -213,11 +237,11 @@ export default function OrgSettingsProfilePage() {
       const res = await userService.updateMe({ email: emailInput.trim() });
       if (res.success) {
         setUser((prev) => (prev ? { ...prev, email: res.user.email } : null));
-        message.success('Đã cập nhật email.');
+        message.success("Đã cập nhật email.");
       }
     } catch (err: any) {
-      setEmailInput(user?.email || '');
-      message.error(err.message || 'Không thể cập nhật email.');
+      setEmailInput(user?.email || "");
+      message.error(err.message || "Không thể cập nhật email.");
     }
   };
 
@@ -225,14 +249,18 @@ export default function OrgSettingsProfilePage() {
   const handleSaveAvatar = async () => {
     try {
       setUpdatingAvatar(true);
-      const res = await userService.updateMe({ avatarUrl: avatarUrlInput.trim() });
+      const res = await userService.updateMe({
+        avatarUrl: avatarUrlInput.trim(),
+      });
       if (res.success) {
-        setUser((prev) => (prev ? { ...prev, avatarUrl: res.user.avatarUrl } : null));
-        message.success('Đã cập nhật ảnh đại diện.');
+        setUser((prev) =>
+          prev ? { ...prev, avatarUrl: res.user.avatarUrl } : null,
+        );
+        message.success("Đã cập nhật ảnh đại diện.");
         setAvatarModalOpen(false);
       }
     } catch (err: any) {
-      message.error(err.message || 'Không thể cập nhật ảnh đại diện.');
+      message.error(err.message || "Không thể cập nhật ảnh đại diện.");
     } finally {
       setUpdatingAvatar(false);
     }
@@ -241,20 +269,23 @@ export default function OrgSettingsProfilePage() {
   // Change Password Submit
   const handlePasswordSubmit = async (values: any) => {
     if (values.newPassword !== values.confirmPassword) {
-      message.error('Xác nhận mật khẩu mới không khớp.');
+      message.error("Xác nhận mật khẩu mới không khớp.");
       return;
     }
 
     try {
       setPasswordSubmitting(true);
-      const res = await userService.changePassword(values.oldPassword, values.newPassword);
+      const res = await userService.changePassword(
+        values.oldPassword,
+        values.newPassword,
+      );
       if (res.success) {
-        message.success('Đổi mật khẩu thành công!');
+        message.success("Đổi mật khẩu thành công!");
         setPasswordModalOpen(false);
         passwordForm.resetFields();
       }
     } catch (err: any) {
-      message.error(err.message || 'Không thể đổi mật khẩu.');
+      message.error(err.message || "Không thể đổi mật khẩu.");
     } finally {
       setPasswordSubmitting(false);
     }
@@ -268,7 +299,9 @@ export default function OrgSettingsProfilePage() {
     );
   }
 
-  const firstLetter = (user.fullName || user.username || 'U').charAt(0).toUpperCase();
+  const firstLetter = (user.fullName || user.username || "U")
+    .charAt(0)
+    .toUpperCase();
   const avatarBgColor = getUserAvatarColor(user.id);
 
   return (
@@ -283,7 +316,7 @@ export default function OrgSettingsProfilePage() {
       />
 
       {/* Top Banner Cover */}
-      <div className="h-44 md:h-52 bg-gradient-to-br from-indigo-500 via-blue-500 to-indigo-400 relative overflow-hidden flex items-start justify-end p-4 rounded-t-2xl">
+      <div className="h-44 md:h-52 bg-gray-100 relative overflow-hidden flex items-start justify-end p-4 rounded-t-2xl">
         <Button
           icon={<PictureOutlined />}
           onClick={() => avatarFileInputRef.current?.click()}
@@ -297,14 +330,24 @@ export default function OrgSettingsProfilePage() {
       <div className="px-6 md:px-10 pb-6 border-b border-gray-200/80 relative">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex items-end gap-5">
-            <Dropdown menu={{ items: avatarMenuItems }} trigger={['click']} placement="bottomLeft">
+            <Dropdown
+              menu={{ items: avatarMenuItems }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
               <div
                 className="relative -mt-16 w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white text-3xl md:text-4xl font-bold cursor-pointer group shrink-0"
-                style={{ backgroundColor: !user.avatarUrl ? avatarBgColor : undefined }}
+                style={{
+                  backgroundColor: !user.avatarUrl ? avatarBgColor : undefined,
+                }}
                 title="Đổi ảnh hồ sơ"
               >
                 {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.fullName || user.username} className="w-full h-full object-cover" />
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.fullName || user.username}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   firstLetter
                 )}
@@ -327,7 +370,7 @@ export default function OrgSettingsProfilePage() {
                   />
                 ) : (
                   <h1
-                    className="text-2xl md:text-3xl font-bold text-gray-900 m-0 cursor-pointer hover:text-indigo-600 transition-colors flex items-center gap-2 group"
+                    className="text-2xl md:text-3xl font-bold text-gray-900 m-0 cursor-pointer hover:text-gray-700 transition-colors flex items-center gap-2 group"
                     onClick={() => setEditingFullName(true)}
                   >
                     <span>{user.fullName || user.username}</span>
@@ -340,7 +383,7 @@ export default function OrgSettingsProfilePage() {
                 <span className="font-mono">@{user.username}</span>
                 <span>·</span>
                 <span
-                  className="cursor-pointer text-indigo-600 hover:underline flex items-center gap-1 font-medium"
+                  className="cursor-pointer text-gray-700 hover:underline flex items-center gap-1 font-medium"
                   onClick={() => setEditingFullName(true)}
                 >
                   + Thêm chức danh công việc
@@ -362,7 +405,7 @@ export default function OrgSettingsProfilePage() {
         </div>
 
         <div className="flex items-center gap-8 mt-6 border-t border-gray-100 pt-4">
-          <span className="text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 pb-2 cursor-pointer">
+          <span className="text-sm font-semibold text-gray-700 border-b-2 border-blue-600 pb-2 cursor-pointer">
             Tổng quan
           </span>
         </div>
@@ -372,14 +415,20 @@ export default function OrgSettingsProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 md:p-10 bg-slate-50/50">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <h3 className="text-base font-bold text-gray-900 m-0">Làm việc với tôi</h3>
-            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-sm text-sm text-gray-600 leading-relaxed italic hover:border-gray-300 transition-all cursor-pointer">
+            <h3 className="text-base font-bold text-gray-900 m-0">
+              Làm việc với tôi
+            </h3>
+            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-sm text-sm text-gray-600 leading-relaxed italic hover:border-gray-300 transition-colors cursor-pointer">
               {user.fullName ? (
                 <span className="not-italic text-gray-800 font-medium">
-                  Tôi là {user.fullName} (@{user.username}). Tôi ưu tiên cập nhật tiến độ công việc trên ứng dụng TaskFlow.
+                  Tôi là {user.fullName} (@{user.username}). Tôi ưu tiên cập
+                  nhật tiến độ công việc trên ứng dụng TaskFlow.
                 </span>
               ) : (
-                <span>e.g. I prefer async updates in TaskFlow. For urgent questions, ping me between 9am-5pm.</span>
+                <span>
+                  e.g. I prefer async updates in TaskFlow. For urgent questions,
+                  ping me between 9am-5pm.
+                </span>
               )}
             </div>
           </div>
@@ -388,7 +437,7 @@ export default function OrgSettingsProfilePage() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-gray-900 m-0 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                <div className="w-7 h-7 rounded-lg bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
                   <CheckSquareOutlined className="text-sm" />
                 </div>
                 <span>Công việc gần đây</span>
@@ -404,9 +453,11 @@ export default function OrgSettingsProfilePage() {
                     onClick={() => {
                       const slug = user.memberships?.[0]?.organization?.slug;
                       if (slug && task.projectKey) {
-                        router.push(`/dashboard/${slug}/projects/${task.projectKey}`);
+                        router.push(
+                          `/dashboard/${slug}/projects/${task.projectKey}`,
+                        );
                       } else {
-                        router.push('/dashboard');
+                        router.push("/dashboard");
                       }
                     }}
                   >
@@ -415,11 +466,12 @@ export default function OrgSettingsProfilePage() {
                     </div>
                     <div className="flex flex-col flex-grow overflow-hidden">
                       <div className="text-sm text-gray-700 leading-snug">
-                        <span className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                        <span className="font-bold text-gray-900 group-hover:text-gray-700 transition-colors">
                           {task.title}
                         </span>
                         <span className="text-xs text-gray-400 font-mono ml-2">
-                          [{task.displayCode || `#${task.taskNumber || 'TASK'}`}]
+                          [{task.displayCode || `#${task.taskNumber || "TASK"}`}
+                          ]
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
@@ -427,7 +479,9 @@ export default function OrgSettingsProfilePage() {
                           {task.status}
                         </span>
                         <span>·</span>
-                        <span>{dayjs(task.updatedAt || task.createdAt).fromNow()}</span>
+                        <span>
+                          {dayjs(task.updatedAt || task.createdAt).fromNow()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -451,7 +505,9 @@ export default function OrgSettingsProfilePage() {
 
             <div className="flex flex-col gap-3.5 text-sm">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-gray-400">Email</span>
+                <span className="text-xs font-semibold text-gray-400">
+                  Email
+                </span>
                 {editingEmail ? (
                   <Input
                     value={emailInput}
@@ -463,22 +519,28 @@ export default function OrgSettingsProfilePage() {
                   />
                 ) : (
                   <span
-                    className="font-medium text-gray-800 break-all cursor-pointer hover:text-indigo-600 transition-colors flex items-center justify-between group"
+                    className="font-medium text-gray-800 break-all cursor-pointer hover:text-gray-700 transition-colors flex items-center justify-between group"
                     onClick={() => setEditingEmail(true)}
                   >
-                    <span>{user.email || 'Chưa cập nhật'}</span>
+                    <span>{user.email || "Chưa cập nhật"}</span>
                     <EditOutlined className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </span>
                 )}
               </div>
 
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-gray-400">Tên đăng nhập</span>
-                <span className="font-mono font-medium text-gray-700">@{user.username}</span>
+                <span className="text-xs font-semibold text-gray-400">
+                  Tên đăng nhập
+                </span>
+                <span className="font-mono font-medium text-gray-700">
+                  @{user.username}
+                </span>
               </div>
 
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-gray-400">Đăng nhập gần nhất</span>
+                <span className="text-xs font-semibold text-gray-400">
+                  Đăng nhập gần nhất
+                </span>
                 <span className="font-medium text-gray-700 flex items-center gap-1.5">
                   <ClockCircleOutlined className="text-gray-400 text-xs" />
                   {formatLastLogin(user.lastLoginAt)}
@@ -486,7 +548,9 @@ export default function OrgSettingsProfilePage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-gray-400">Trạng thái xác thực</span>
+                <span className="text-xs font-semibold text-gray-400">
+                  Trạng thái xác thực
+                </span>
                 {user.isVerified ? (
                   <span className="font-semibold text-emerald-600 flex items-center gap-1">
                     <CheckCircleFilled className="text-xs" />
@@ -516,17 +580,24 @@ export default function OrgSettingsProfilePage() {
                 <div
                   key={m.organization.id}
                   className="flex items-center justify-between p-3 rounded-xl hover:bg-blue-50/50 transition-colors cursor-pointer border border-gray-100 group"
-                  onClick={() => router.push(`/dashboard/${m.organization.slug}`)}
+                  onClick={() =>
+                    router.push(`/dashboard/${m.organization.slug}`)
+                  }
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar shape="square" className="rounded-xl bg-indigo-100 text-indigo-600 font-bold text-sm shrink-0">
+                    <Avatar
+                      shape="square"
+                      className="rounded-xl bg-gray-100 text-gray-700 font-bold text-sm shrink-0"
+                    >
                       {m.organization.name.charAt(0).toUpperCase()}
                     </Avatar>
                     <div className="flex flex-col text-left">
-                      <span className="font-semibold text-sm text-gray-900 group-hover:text-indigo-600 transition-colors">
+                      <span className="font-semibold text-sm text-gray-900 group-hover:text-gray-700 transition-colors">
                         {m.organization.name}
                       </span>
-                      <span className="text-xs text-gray-400 font-mono">/{m.organization.slug}</span>
+                      <span className="text-xs text-gray-400 font-mono">
+                        /{m.organization.slug}
+                      </span>
                     </div>
                   </div>
 
@@ -557,7 +628,7 @@ export default function OrgSettingsProfilePage() {
               setAvatarModalOpen(false);
               avatarFileInputRef.current?.click();
             }}
-            className="!bg-indigo-600 font-semibold"
+            className="!bg-blue-600 font-semibold"
           >
             Tải ảnh từ máy tính lên Cloudinary
           </Button>
@@ -586,11 +657,18 @@ export default function OrgSettingsProfilePage() {
         centered
         width={440}
       >
-        <Form form={passwordForm} layout="vertical" onFinish={handlePasswordSubmit} className="mt-4 text-left">
+        <Form
+          form={passwordForm}
+          layout="vertical"
+          onFinish={handlePasswordSubmit}
+          className="mt-4 text-left"
+        >
           <Form.Item
             name="oldPassword"
             label="Mật khẩu hiện tại"
-            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại' }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu hiện tại" },
+            ]}
           >
             <Input.Password placeholder="Nhập mật khẩu hiện tại..." />
           </Form.Item>
@@ -599,8 +677,8 @@ export default function OrgSettingsProfilePage() {
             name="newPassword"
             label="Mật khẩu mới"
             rules={[
-              { required: true, message: 'Vui lòng nhập mật khẩu mới' },
-              { min: 6, message: 'Mật khẩu phải từ 6 ký tự trở lên' },
+              { required: true, message: "Vui lòng nhập mật khẩu mới" },
+              { min: 6, message: "Mật khẩu phải từ 6 ký tự trở lên" },
             ]}
           >
             <Input.Password placeholder="Nhập mật khẩu mới..." />
@@ -609,15 +687,17 @@ export default function OrgSettingsProfilePage() {
           <Form.Item
             name="confirmPassword"
             label="Xác nhận mật khẩu mới"
-            dependencies={['newPassword']}
+            dependencies={["newPassword"]}
             rules={[
-              { required: true, message: 'Vui lòng xác nhận mật khẩu mới' },
+              { required: true, message: "Vui lòng xác nhận mật khẩu mới" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
+                  if (!value || getFieldValue("newPassword") === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                  return Promise.reject(
+                    new Error("Mật khẩu xác nhận không khớp!"),
+                  );
                 },
               }),
             ]}
@@ -627,7 +707,12 @@ export default function OrgSettingsProfilePage() {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
             <Button onClick={() => setPasswordModalOpen(false)}>Hủy</Button>
-            <Button type="primary" htmlType="submit" loading={passwordSubmitting} className="!bg-indigo-600">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={passwordSubmitting}
+              className="!bg-blue-600"
+            >
               Lưu mật khẩu
             </Button>
           </div>

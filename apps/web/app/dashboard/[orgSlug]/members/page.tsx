@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '../../../../hooks/useAuth';
-import { useOrg } from '../../../../contexts/OrgContext';
-import { OrgRole, hasPermission } from '@repo/permissions';
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "../../../../hooks/useAuth";
+import { useOrg } from "../../../../contexts/OrgContext";
+import { OrgRole, hasPermission } from "@repo/permissions";
 import {
   Card,
   Table,
@@ -20,9 +20,9 @@ import {
   Input,
   AutoComplete,
   Spin,
-  Alert
-} from 'antd';
-import CustomTooltip from '../../../../components/common/CustomTooltip';
+  Alert,
+} from "antd";
+import CustomTooltip from "../../../../components/common/CustomTooltip";
 import {
   UserOutlined,
   PlusOutlined,
@@ -30,22 +30,22 @@ import {
   SwapOutlined,
   LockOutlined,
   UnlockOutlined,
-} from '@ant-design/icons';
-import * as orgService from '../../../../services/organization';
-import * as userService from '../../../../services/user';
+} from "@ant-design/icons";
+import * as orgService from "../../../../services/organization";
+import * as userService from "../../../../services/user";
 
 const ROLE_COLORS: Record<string, string> = {
-  OWNER: 'gold',
-  ADMIN: 'blue',
-  MEMBER: 'green',
-  GUEST: 'default',
+  OWNER: "gold",
+  ADMIN: "blue",
+  MEMBER: "green",
+  GUEST: "default",
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  OWNER: 'Chủ sở hữu',
-  ADMIN: 'Quản trị viên',
-  MEMBER: 'Thành viên',
-  GUEST: 'Khách',
+  OWNER: "Chủ sở hữu",
+  ADMIN: "Quản trị viên",
+  MEMBER: "Thành viên",
+  GUEST: "Khách",
 };
 
 export default function OrgMembersPage() {
@@ -63,12 +63,15 @@ export default function OrgMembersPage() {
   const [inviteForm] = Form.useForm();
 
   // User search auto-complete state
-  const [searchResults, setSearchResults] = useState<userService.SearchUser[]>([]);
+  const [searchResults, setSearchResults] = useState<userService.SearchUser[]>(
+    [],
+  );
 
   // Role Change Modal State
   const [roleModalOpen, setRoleModalOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<orgService.OrgMember | null>(null);
-  const [newRole, setNewRole] = useState<OrgRole>('MEMBER');
+  const [selectedMember, setSelectedMember] =
+    useState<orgService.OrgMember | null>(null);
+  const [newRole, setNewRole] = useState<OrgRole>("MEMBER");
   const [updatingRole, setUpdatingRole] = useState(false);
 
   // Load Members
@@ -81,7 +84,7 @@ export default function OrgMembersPage() {
         setMembers(res.members);
       }
     } catch (err: any) {
-      console.error('Error fetching members:', err);
+      console.error("Error fetching members:", err);
     } finally {
       setLoadingMembers(false);
     }
@@ -103,11 +106,14 @@ export default function OrgMembersPage() {
         setSearchResults(res.users);
       }
     } catch (err) {
-      console.error('Error searching users:', err);
+      console.error("Error searching users:", err);
     }
   };
 
-  const handleInviteFinish = async (values: { email: string; role: OrgRole }) => {
+  const handleInviteFinish = async (values: {
+    email: string;
+    role: OrgRole;
+  }) => {
     if (!orgId) return;
     try {
       setInviting(true);
@@ -118,21 +124,28 @@ export default function OrgMembersPage() {
       setSearchResults([]);
       fetchMembers();
     } catch (err: any) {
-      message.error(err.message || 'Gửi lời mời thất bại.');
+      message.error(err.message || "Gửi lời mời thất bại.");
     } finally {
       setInviting(false);
     }
   };
 
-  const handleUpdateStatus = async (memberId: string, currentStatus: string) => {
+  const handleUpdateStatus = async (
+    memberId: string,
+    currentStatus: string,
+  ) => {
     if (!orgId) return;
-    const targetStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    const targetStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     try {
       await orgService.updateMemberStatus(orgId, memberId, targetStatus);
-      message.success(targetStatus === 'SUSPENDED' ? 'Đã tạm khóa thành viên' : 'Đã kích hoạt lại thành viên');
+      message.success(
+        targetStatus === "SUSPENDED"
+          ? "Đã tạm khóa thành viên"
+          : "Đã kích hoạt lại thành viên",
+      );
       fetchMembers();
     } catch (err: any) {
-      message.error(err.message || 'Thao tác thất bại.');
+      message.error(err.message || "Thao tác thất bại.");
     }
   };
 
@@ -141,11 +154,11 @@ export default function OrgMembersPage() {
     try {
       setUpdatingRole(true);
       await orgService.updateMemberRole(orgId, selectedMember.id, newRole);
-      message.success('Cập nhật vai trò thành công!');
+      message.success("Cập nhật vai trò thành công!");
       setRoleModalOpen(false);
       fetchMembers();
     } catch (err: any) {
-      message.error(err.message || 'Thay đổi vai trò thất bại.');
+      message.error(err.message || "Thay đổi vai trò thất bại.");
     } finally {
       setUpdatingRole(false);
     }
@@ -155,19 +168,20 @@ export default function OrgMembersPage() {
     if (!orgId) return;
     try {
       await orgService.removeMember(orgId, memberId);
-      message.success('Đã xóa thành viên khỏi tổ chức.');
+      message.success("Đã xóa thành viên khỏi tổ chức.");
       fetchMembers();
     } catch (err: any) {
-      message.error(err.message || 'Xóa thành viên thất bại.');
+      message.error(err.message || "Xóa thành viên thất bại.");
     }
   };
 
-  const canInvite = currentUserRole && hasPermission(currentUserRole, 'member:invite');
+  const canInvite =
+    currentUserRole && hasPermission(currentUserRole, "member:invite");
 
   const columns = [
     {
-      title: 'Thành viên',
-      key: 'user',
+      title: "Thành viên",
+      key: "user",
       render: (_: any, record: orgService.OrgMember) => {
         const isMe = record.userId === currentUser?.id;
         return (
@@ -175,61 +189,73 @@ export default function OrgMembersPage() {
             <Avatar
               src={record.user.avatarUrl}
               icon={!record.user.avatarUrl ? <UserOutlined /> : undefined}
-              className="bg-indigo-100 text-indigo-600 border border-indigo-200"
+              className="bg-gray-100 text-gray-700 border border-gray-200"
               size={40}
             >
-              {record.user.fullName?.charAt(0) || record.user.username?.charAt(0)}
+              {record.user.fullName?.charAt(0) ||
+                record.user.username?.charAt(0)}
             </Avatar>
             <div className="flex flex-col text-left">
               <span className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
                 {record.user.fullName || record.user.username}
                 {isMe && (
-                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 font-normal">
+                  <span className="text-[10px] bg-gray-50 text-gray-700 px-1.5 py-0.5 rounded border border-gray-100 font-normal">
                     Tôi
                   </span>
                 )}
               </span>
-              <span className="text-xs text-gray-400">@{record.user.username}</span>
+              <span className="text-xs text-gray-400">
+                @{record.user.username}
+              </span>
             </div>
           </div>
         );
       },
     },
     {
-      title: 'Email',
-      dataIndex: ['user', 'email'],
-      key: 'email',
-      render: (email: string) => <span className="text-sm text-gray-600">{email || '—'}</span>,
+      title: "Email",
+      dataIndex: ["user", "email"],
+      key: "email",
+      render: (email: string) => (
+        <span className="text-sm text-gray-600">{email || "—"}</span>
+      ),
     },
     {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
+      title: "Vai trò",
+      dataIndex: "role",
+      key: "role",
       render: (role: string) => (
-        <Tag color={ROLE_COLORS[role]} className="font-bold px-2.5 py-0.5 rounded-full text-xs">
+        <Tag
+          color={ROLE_COLORS[role]}
+          className="font-bold px-2.5 py-0.5 rounded-full text-xs"
+        >
           {ROLE_LABELS[role] || role}
         </Tag>
       ),
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
       render: (status: string) => {
-        if (status === 'ACTIVE') return <Tag color="success">Đang hoạt động</Tag>;
-        if (status === 'INVITED') return <Tag color="processing">Đã mời</Tag>;
+        if (status === "ACTIVE")
+          return <Tag color="success">Đang hoạt động</Tag>;
+        if (status === "INVITED") return <Tag color="processing">Đã mời</Tag>;
         return <Tag color="error">Đã khóa</Tag>;
       },
     },
     {
-      title: 'Thao tác',
-      key: 'actions',
+      title: "Thao tác",
+      key: "actions",
       render: (_: any, record: orgService.OrgMember) => {
         const isMe = record.userId === currentUser?.id;
-        const isOwner = record.role === 'OWNER';
-        const canManage = currentUserRole === 'OWNER' || (currentUserRole === 'ADMIN' && record.role !== 'OWNER');
+        const isOwner = record.role === "OWNER";
+        const canManage =
+          currentUserRole === "OWNER" ||
+          (currentUserRole === "ADMIN" && record.role !== "OWNER");
 
-        if (!canManage || isMe) return <span className="text-xs text-gray-300">—</span>;
+        if (!canManage || isMe)
+          return <span className="text-xs text-gray-300">—</span>;
 
         return (
           <Space size="middle">
@@ -242,16 +268,28 @@ export default function OrgMembersPage() {
                   setNewRole(record.role);
                   setRoleModalOpen(true);
                 }}
-                className="text-indigo-600 hover:bg-indigo-50"
+                className="text-gray-700 hover:bg-gray-50"
               />
             </CustomTooltip>
 
-            <CustomTooltip title={record.status === 'ACTIVE' ? 'Tạm khóa' : 'Kích hoạt'}>
+            <CustomTooltip
+              title={record.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}
+            >
               <Button
                 type="text"
-                icon={record.status === 'ACTIVE' ? <LockOutlined /> : <UnlockOutlined />}
+                icon={
+                  record.status === "ACTIVE" ? (
+                    <LockOutlined />
+                  ) : (
+                    <UnlockOutlined />
+                  )
+                }
                 onClick={() => handleUpdateStatus(record.id, record.status)}
-                className={record.status === 'ACTIVE' ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}
+                className={
+                  record.status === "ACTIVE"
+                    ? "text-amber-600 hover:bg-amber-50"
+                    : "text-emerald-600 hover:bg-emerald-50"
+                }
               />
             </CustomTooltip>
 
@@ -282,7 +320,8 @@ export default function OrgMembersPage() {
             Quản lý thành viên (Team)
           </h1>
           <p className="text-sm text-gray-500 font-medium mt-0.5">
-            Danh sách các thành viên và phân quyền trong tổ chức {currentOrg?.name}.
+            Danh sách các thành viên và phân quyền trong tổ chức{" "}
+            {currentOrg?.name}.
           </p>
         </div>
 
@@ -291,7 +330,7 @@ export default function OrgMembersPage() {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setInviteModalOpen(true)}
-            className="bg-indigo-600 border-none font-semibold text-white shadow-sm hover:bg-indigo-700 rounded-xl h-[42px] px-5"
+            className="bg-blue-600 border-none font-semibold text-white shadow-sm hover:bg-blue-700 rounded-xl h-[42px] px-5"
           >
             Mời thành viên mới
           </Button>
@@ -299,7 +338,10 @@ export default function OrgMembersPage() {
       </div>
 
       {/* Members Table */}
-      <Card className="border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden" styles={{ body: { padding: 0 } }}>
+      <Card
+        className="border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden"
+        styles={{ body: { padding: 0 } }}
+      >
         <Table
           dataSource={members}
           columns={columns}
@@ -311,7 +353,11 @@ export default function OrgMembersPage() {
 
       {/* Invite Member Modal */}
       <Modal
-        title={<span className="font-bold text-gray-800 text-lg">Mời thành viên mới</span>}
+        title={
+          <span className="font-bold text-gray-800 text-lg">
+            Mời thành viên mới
+          </span>
+        }
         open={inviteModalOpen}
         onCancel={() => {
           inviteForm.resetFields();
@@ -329,9 +375,15 @@ export default function OrgMembersPage() {
           className="mt-4"
         >
           <Form.Item
-            label={<span className="text-gray-700 text-sm font-semibold">Tìm kiếm người dùng hoặc nhập email</span>}
+            label={
+              <span className="text-gray-700 text-sm font-semibold">
+                Tìm kiếm người dùng hoặc nhập email
+              </span>
+            }
             name="email"
-            rules={[{ required: true, message: 'Vui lòng nhập email hoặc username.' }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập email hoặc username." },
+            ]}
           >
             <AutoComplete
               onSearch={handleUserSearch}
@@ -341,11 +393,17 @@ export default function OrgMembersPage() {
                 value: u.email || u.username,
                 label: (
                   <div className="flex items-center gap-2.5 py-1 text-left">
-                    <Avatar src={u.avatarUrl} size={24} className="bg-indigo-100 text-indigo-600 font-bold">
+                    <Avatar
+                      src={u.avatarUrl}
+                      size={24}
+                      className="bg-gray-100 text-gray-700 font-bold"
+                    >
                       {u.fullName?.charAt(0) || u.username?.charAt(0)}
                     </Avatar>
                     <div className="flex flex-col text-xs leading-tight">
-                      <span className="font-bold text-gray-800">{u.fullName || u.username}</span>
+                      <span className="font-bold text-gray-800">
+                        {u.fullName || u.username}
+                      </span>
                       <span className="text-gray-400">{u.email}</span>
                     </div>
                   </div>
@@ -357,16 +415,20 @@ export default function OrgMembersPage() {
           </Form.Item>
 
           <Form.Item
-            label={<span className="text-gray-700 text-sm font-semibold">Vai trò</span>}
+            label={
+              <span className="text-gray-700 text-sm font-semibold">
+                Vai trò
+              </span>
+            }
             name="role"
             initialValue="MEMBER"
             rules={[{ required: true }]}
           >
             <Select
               options={[
-                { value: 'ADMIN', label: 'Quản trị viên (ADMIN)' },
-                { value: 'MEMBER', label: 'Thành viên (MEMBER)' },
-                { value: 'GUEST', label: 'Khách (GUEST)' },
+                { value: "ADMIN", label: "Quản trị viên (ADMIN)" },
+                { value: "MEMBER", label: "Thành viên (MEMBER)" },
+                { value: "GUEST", label: "Khách (GUEST)" },
               ]}
               popupClassName="rounded-xl shadow-lg"
             />
@@ -378,7 +440,7 @@ export default function OrgMembersPage() {
               type="primary"
               htmlType="submit"
               loading={inviting}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Gửi lời mời
             </Button>
@@ -388,7 +450,11 @@ export default function OrgMembersPage() {
 
       {/* Change Role Modal */}
       <Modal
-        title={<span className="font-bold text-gray-800 text-lg">Đổi vai trò thành viên</span>}
+        title={
+          <span className="font-bold text-gray-800 text-lg">
+            Đổi vai trò thành viên
+          </span>
+        }
         open={roleModalOpen}
         onCancel={() => setRoleModalOpen(false)}
         footer={null}
@@ -400,28 +466,36 @@ export default function OrgMembersPage() {
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
               <Avatar
                 src={selectedMember.user.avatarUrl}
-                icon={!selectedMember.user.avatarUrl ? <UserOutlined /> : undefined}
-                className="bg-indigo-100 text-indigo-600 font-bold"
+                icon={
+                  !selectedMember.user.avatarUrl ? <UserOutlined /> : undefined
+                }
+                className="bg-gray-100 text-gray-700 font-bold"
                 size={36}
               >
                 {selectedMember.user.fullName?.charAt(0)}
               </Avatar>
               <div className="flex flex-col text-left">
-                <span className="font-bold text-sm text-gray-800">{selectedMember.user.fullName}</span>
-                <span className="text-xs text-gray-400">@{selectedMember.user.username}</span>
+                <span className="font-bold text-sm text-gray-800">
+                  {selectedMember.user.fullName}
+                </span>
+                <span className="text-xs text-gray-400">
+                  @{selectedMember.user.username}
+                </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-700">Chọn vai trò mới:</label>
+              <label className="text-xs font-bold text-gray-700">
+                Chọn vai trò mới:
+              </label>
               <Select
                 value={newRole}
                 onChange={setNewRole}
                 className="w-full"
                 options={[
-                  { value: 'ADMIN', label: 'Quản trị viên (ADMIN)' },
-                  { value: 'MEMBER', label: 'Thành viên (MEMBER)' },
-                  { value: 'GUEST', label: 'Khách (GUEST)' },
+                  { value: "ADMIN", label: "Quản trị viên (ADMIN)" },
+                  { value: "MEMBER", label: "Thành viên (MEMBER)" },
+                  { value: "GUEST", label: "Khách (GUEST)" },
                 ]}
                 popupClassName="rounded-xl shadow-lg"
               />
@@ -433,7 +507,7 @@ export default function OrgMembersPage() {
                 type="primary"
                 loading={updatingRole}
                 onClick={handleConfirmRoleChange}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 Lưu thay đổi
               </Button>

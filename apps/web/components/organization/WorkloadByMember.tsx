@@ -1,23 +1,31 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Card, Avatar } from 'antd';
-import { TeamOutlined, ExclamationCircleOutlined, CheckCircleOutlined, InboxOutlined } from '@ant-design/icons';
-import { WorkloadItem } from '../../services/organization';
+import React from "react";
+import { Card, Avatar } from "antd";
+import {
+  TeamOutlined,
+  ExclamationCircleOutlined,
+  CheckCircleOutlined,
+  InboxOutlined,
+} from "@ant-design/icons";
+import { WorkloadItem } from "../../services/organization";
 
 interface WorkloadByMemberProps {
   workload: WorkloadItem[];
   totalTasksCount?: number;
 }
 
-export function WorkloadByMember({ workload = [], totalTasksCount = 0 }: WorkloadByMemberProps) {
+export function WorkloadByMember({
+  workload = [],
+  totalTasksCount = 0,
+}: WorkloadByMemberProps) {
   const maxCount = Math.max(...workload.map((w) => w.taskCount), 1);
   const isOpenEmpty = workload.length === 0;
 
   return (
     <Card className="rounded-2xl border border-gray-200/80 shadow-md bg-white overflow-hidden">
       <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+        <div className="w-8 h-8 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
           <TeamOutlined className="text-base" />
         </div>
         <div>
@@ -55,11 +63,14 @@ export function WorkloadByMember({ workload = [], totalTasksCount = 0 }: Workloa
         <div className="space-y-3.5">
           {workload.map((item) => {
             const isUnassigned = !item.assigneeId;
-            const percentage = Math.min(Math.round((item.taskCount / maxCount) * 100), 100);
+            const percentage = Math.min(
+              Math.round((item.taskCount / maxCount) * 100),
+              100,
+            );
 
             return (
               <div
-                key={item.assigneeId ?? 'unassigned'}
+                key={item.assigneeId ?? "unassigned"}
                 className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50/60 transition-colors"
               >
                 {isUnassigned ? (
@@ -71,10 +82,12 @@ export function WorkloadByMember({ workload = [], totalTasksCount = 0 }: Workloa
                 ) : (
                   <Avatar
                     src={item.avatarUrl || undefined}
-                    className="bg-blue-100 text-blue-700 font-semibold flex-shrink-0"
+                    className="bg-gray-200 text-gray-800 font-semibold flex-shrink-0"
                     size={38}
                   >
-                    {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : '?'}
+                    {item.assigneeName
+                      ? item.assigneeName.charAt(0).toUpperCase()
+                      : "?"}
                   </Avatar>
                 )}
 
@@ -82,12 +95,12 @@ export function WorkloadByMember({ workload = [], totalTasksCount = 0 }: Workloa
                   <div className="flex justify-between items-center text-sm mb-1.5">
                     <span
                       className={`truncate font-semibold text-xs md:text-sm ${
-                        isUnassigned ? 'text-amber-600' : 'text-gray-800'
+                        isUnassigned ? "text-amber-600" : "text-gray-800"
                       }`}
                       title={item.assigneeName}
                     >
                       {item.assigneeName}
-                      {isUnassigned && ' ⚠️'}
+                      {isUnassigned && " ⚠️"}
                     </span>
                     <span className="text-xs font-bold text-gray-500 ml-2 flex-shrink-0">
                       {item.taskCount} task
@@ -96,8 +109,8 @@ export function WorkloadByMember({ workload = [], totalTasksCount = 0 }: Workloa
 
                   <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        isUnassigned ? 'bg-amber-400' : 'bg-blue-500'
+                      className={`h-full rounded-full transition-colors duration-500 ${
+                        isUnassigned ? "bg-amber-400" : "bg-blue-500"
                       }`}
                       style={{ width: `${percentage}%` }}
                     />

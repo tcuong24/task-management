@@ -1,7 +1,23 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Tabs, Avatar, Button, Empty, Spin, Modal, Form, Input, Select, DatePicker, App, Tooltip, Dropdown, Switch } from 'antd';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  Tabs,
+  Avatar,
+  Button,
+  Empty,
+  Spin,
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  App,
+  Tooltip,
+  Dropdown,
+  Switch,
+} from "antd";
 import {
   CheckCircleOutlined,
   SyncOutlined,
@@ -14,33 +30,33 @@ import {
   CopyOutlined,
   UserAddOutlined,
   RobotOutlined,
-} from '@ant-design/icons';
-import { Pie, Column } from '@ant-design/charts';
-import dayjs from 'dayjs';
-import * as projectService from '../../services/project';
-import type { ProjectDashboardData } from '../../services/project';
-import * as orgService from '../../services/organization';
-import * as taskService from '../../services/task';
-import { KanbanBoard, TaskItem } from '../kanban/KanbanBoard';
-import { TaskListView } from './TaskListView';
-import { TaskCalendarView } from './TaskCalendarView';
-import { TaskTimelineView } from './TaskTimelineView';
-import { usePresence } from '../../hooks/usePresence';
-import { useTaskRealtimeSync } from '../../hooks/useTaskRealtimeSync';
-import InviteMemberModal from '../organization/InviteMemberModal';
+} from "@ant-design/icons";
+import { Pie, Column } from "@ant-design/charts";
+import dayjs from "dayjs";
+import * as projectService from "../../services/project";
+import type { ProjectDashboardData } from "../../services/project";
+import * as orgService from "../../services/organization";
+import * as taskService from "../../services/task";
+import { KanbanBoard, TaskItem } from "../kanban/KanbanBoard";
+import { TaskListView } from "./TaskListView";
+import { TaskCalendarView } from "./TaskCalendarView";
+import { TaskTimelineView } from "./TaskTimelineView";
+import { usePresence } from "../../hooks/usePresence";
+import { useTaskRealtimeSync } from "../../hooks/useTaskRealtimeSync";
+import InviteMemberModal from "../organization/InviteMemberModal";
 
 const STATUS_LABEL_MAP: Record<string, string> = {
-  TODO: 'Cần làm',
-  IN_PROGRESS: 'Đang làm',
-  IN_REVIEW: 'Đang kiểm tra',
-  DONE: 'Hoàn thành',
+  TODO: "Cần làm",
+  IN_PROGRESS: "Đang làm",
+  IN_REVIEW: "Đang kiểm tra",
+  DONE: "Hoàn thành",
 };
 
 const PRIORITY_LABEL_MAP: Record<string, string> = {
-  LOW: 'Thấp',
-  MEDIUM: 'Trung bình',
-  HIGH: 'Cao',
-  CRITICAL: 'Khẩn cấp',
+  LOW: "Thấp",
+  MEDIUM: "Trung bình",
+  HIGH: "Cao",
+  CRITICAL: "Khẩn cấp",
 };
 
 interface ProjectDashboardProps {
@@ -50,14 +66,21 @@ interface ProjectDashboardProps {
   project?: { id: string; name: string; key: string } | null;
 }
 
-export default function ProjectDashboard({ projectId, orgId, initialDashboardData, project }: ProjectDashboardProps) {
+export default function ProjectDashboard({
+  projectId,
+  orgId,
+  initialDashboardData,
+  project,
+}: ProjectDashboardProps) {
   const { message } = App.useApp();
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState("summary");
   const [boardTasks, setBoardTasks] = useState<TaskItem[]>([]);
   const [boardLoading, setBoardLoading] = useState<boolean>(false);
   const [timelineTasks, setTimelineTasks] = useState<TaskItem[]>([]);
   const [timelineLoading, setTimelineLoading] = useState<boolean>(false);
-  const [membersList, setMembersList] = useState<{ userId: string; name: string }[]>([]);
+  const [membersList, setMembersList] = useState<
+    { userId: string; name: string }[]
+  >([]);
 
   // Quick Create Modal from Calendar cell click
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
@@ -79,13 +102,13 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
 
   // Load automation rules
   useEffect(() => {
-    if (typeof window !== 'undefined' && projectId) {
+    if (typeof window !== "undefined" && projectId) {
       const saved = localStorage.getItem(`taskflow:automation:${projectId}`);
       if (saved) {
         try {
           setAutomationRules(JSON.parse(saved));
         } catch (e) {
-          console.error('Error parsing automation rules:', e);
+          console.error("Error parsing automation rules:", e);
         }
       }
     }
@@ -93,8 +116,11 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
 
   const saveAutomationRules = (rules: typeof automationRules) => {
     setAutomationRules(rules);
-    if (typeof window !== 'undefined' && projectId) {
-      localStorage.setItem(`taskflow:automation:${projectId}`, JSON.stringify(rules));
+    if (typeof window !== "undefined" && projectId) {
+      localStorage.setItem(
+        `taskflow:automation:${projectId}`,
+        JSON.stringify(rules),
+      );
     }
   };
 
@@ -103,14 +129,15 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
-        message.error('Không thể kích hoạt chế độ toàn màn hình.');
+        message.error("Không thể kích hoạt chế độ toàn màn hình.");
         console.error(err);
       });
     } else {
@@ -121,41 +148,45 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
   // Share dropdown menu items
   const shareMenuItems = [
     {
-      key: 'copy-link',
-      label: 'Sao chép liên kết dự án',
+      key: "copy-link",
+      label: "Sao chép liên kết dự án",
       icon: <CopyOutlined />,
       onClick: () => {
         navigator.clipboard.writeText(window.location.href);
-        message.success('Đã sao chép liên kết dự án vào bộ nhớ tạm!');
+        message.success("Đã sao chép liên kết dự án vào bộ nhớ tạm!");
       },
     },
     {
-      key: 'invite',
-      label: 'Mời thành viên mới',
+      key: "invite",
+      label: "Mời thành viên mới",
       icon: <UserAddOutlined />,
       onClick: () => setInviteModalOpen(true),
     },
   ];
 
-  const [data, setData] = useState<ProjectDashboardData | null>(initialDashboardData);
+  const [data, setData] = useState<ProjectDashboardData | null>(
+    initialDashboardData,
+  );
 
-  const { activeUsers } = usePresence(projectId ? `project:${projectId}` : undefined);
+  const { activeUsers } = usePresence(
+    projectId ? `project:${projectId}` : undefined,
+  );
 
   useTaskRealtimeSync({
     projectId,
     onRefresh: () => {
       fetchProjectTasks();
-      if (activeTab === 'timeline') {
+      if (activeTab === "timeline") {
         fetchProjectTimeline();
       }
     },
   });
 
   const tabItems = [
-    { key: 'summary', label: 'Tổng quan' },
-    { key: 'board', label: 'Bảng (Kanban)' },
-    { key: 'list', label: 'Danh sách' },
-    { key: 'timeline', label: 'Mốc thời gian' },
+    { key: "summary", label: "Tổng quan" },
+    { key: "board", label: "Bảng (Kanban)" },
+    { key: "list", label: "Danh sách" },
+    { key: "timeline", label: "Mốc thời gian" },
   ];
 
   const fetchMembers = useCallback(async () => {
@@ -168,11 +199,11 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             userId: m.userId,
             name: m.user?.fullName || m.user?.username || m.userId,
             avatarUrl: m.user?.avatarUrl || null,
-          }))
+          })),
         );
       }
     } catch (err) {
-      console.error('Error fetching members:', err);
+      console.error("Error fetching members:", err);
     }
   }, [orgId]);
 
@@ -185,7 +216,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
         setBoardTasks(res.tasks as unknown as TaskItem[]);
       }
     } catch (err) {
-      console.error('Error fetching project tasks:', err);
+      console.error("Error fetching project tasks:", err);
     } finally {
       setBoardLoading(false);
     }
@@ -200,25 +231,31 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
         setTimelineTasks(res.tasks as unknown as TaskItem[]);
       }
     } catch (err) {
-      console.error('Error fetching project timeline:', err);
+      console.error("Error fetching project timeline:", err);
     } finally {
       setTimelineLoading(false);
     }
   }, [orgId, projectId]);
 
   useEffect(() => {
-    if (activeTab === 'timeline') {
+    if (activeTab === "timeline") {
       fetchProjectTimeline();
       fetchMembers();
-    } else if (activeTab === 'board' || activeTab === 'list') {
+    } else if (activeTab === "board" || activeTab === "list") {
       fetchProjectTasks();
       fetchMembers();
     }
   }, [activeTab, fetchProjectTasks, fetchProjectTimeline, fetchMembers]);
 
-  const handleStatusChange = async (task: TaskItem, newStatus: TaskItem['status']) => {
+  const handleStatusChange = async (
+    task: TaskItem,
+    newStatus: TaskItem["status"],
+  ) => {
     // Determine if we need to auto-apply Start Date rule
-    const shouldAutoStart = automationRules.autoStartDate && newStatus === 'IN_PROGRESS' && !task.startDate;
+    const shouldAutoStart =
+      automationRules.autoStartDate &&
+      newStatus === "IN_PROGRESS" &&
+      !task.startDate;
 
     setBoardTasks((prev) =>
       prev.map((t) => {
@@ -230,7 +267,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           };
         }
         return t;
-      })
+      }),
     );
 
     try {
@@ -242,61 +279,91 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
         await taskService.updateTask(orgId, projectId, task.id, {
           startDate: new Date().toISOString(),
         });
-        message.info('[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.');
+        message.info("[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.");
       }
 
       // Check Rule 2: Auto complete parent task when all subtasks are DONE
-      if (automationRules.autoCompleteParent && newStatus === 'DONE' && task.parentTaskId) {
+      if (
+        automationRules.autoCompleteParent &&
+        newStatus === "DONE" &&
+        task.parentTaskId
+      ) {
         // Find parent task in current board tasks
         const parentTask = boardTasks.find((t) => t.id === task.parentTaskId);
-        if (parentTask && parentTask.subTasks && parentTask.subTasks.length > 0) {
+        if (
+          parentTask &&
+          parentTask.subTasks &&
+          parentTask.subTasks.length > 0
+        ) {
           const allSiblingsDone = parentTask.subTasks.every((st) => {
             if (st.id === task.id) return true;
-            return st.status === 'DONE';
+            return st.status === "DONE";
           });
 
-          if (allSiblingsDone && parentTask.status !== 'DONE') {
+          if (allSiblingsDone && parentTask.status !== "DONE") {
             await taskService.updateTask(orgId, projectId, parentTask.id, {
-              status: 'DONE',
+              status: "DONE",
             });
-            message.info('[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.');
+            message.info(
+              "[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.",
+            );
             fetchProjectTasks();
           }
         }
       }
     } catch (err) {
-      console.error('Error moving task:', err);
+      console.error("Error moving task:", err);
       fetchProjectTasks();
     }
   };
 
   const handleTaskSave = async (taskData: any) => {
     if (taskData.id) {
-      const shouldAutoStart = automationRules.autoStartDate && taskData.status === 'IN_PROGRESS' && !taskData.startDate;
+      const shouldAutoStart =
+        automationRules.autoStartDate &&
+        taskData.status === "IN_PROGRESS" &&
+        !taskData.startDate;
       const finalTaskData = shouldAutoStart
         ? { ...taskData, startDate: new Date().toISOString() }
         : taskData;
 
-      await taskService.updateTask(orgId, projectId, taskData.id, finalTaskData);
-      
+      await taskService.updateTask(
+        orgId,
+        projectId,
+        taskData.id,
+        finalTaskData,
+      );
+
       if (shouldAutoStart) {
-        message.info('[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.');
+        message.info("[Tự động hóa] Đã tự động đặt ngày bắt đầu là hôm nay.");
       }
 
       // Check Rule 2: Auto complete parent task when all subtasks are DONE
-      if (automationRules.autoCompleteParent && taskData.status === 'DONE' && taskData.parentTaskId) {
-        const parentTask = boardTasks.find((t) => t.id === taskData.parentTaskId);
-        if (parentTask && parentTask.subTasks && parentTask.subTasks.length > 0) {
+      if (
+        automationRules.autoCompleteParent &&
+        taskData.status === "DONE" &&
+        taskData.parentTaskId
+      ) {
+        const parentTask = boardTasks.find(
+          (t) => t.id === taskData.parentTaskId,
+        );
+        if (
+          parentTask &&
+          parentTask.subTasks &&
+          parentTask.subTasks.length > 0
+        ) {
           const allSiblingsDone = parentTask.subTasks.every((st) => {
             if (st.id === taskData.id) return true;
-            return st.status === 'DONE';
+            return st.status === "DONE";
           });
 
-          if (allSiblingsDone && parentTask.status !== 'DONE') {
+          if (allSiblingsDone && parentTask.status !== "DONE") {
             await taskService.updateTask(orgId, projectId, parentTask.id, {
-              status: 'DONE',
+              status: "DONE",
             });
-            message.info('[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.');
+            message.info(
+              "[Tự động hóa] Tất cả công việc con đã hoàn thành! Đã tự động hoàn thành công việc cha.",
+            );
           }
         }
       }
@@ -304,7 +371,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       await taskService.createTask(orgId, projectId, taskData);
     }
     fetchProjectTasks();
-    if (activeTab === 'timeline') {
+    if (activeTab === "timeline") {
       fetchProjectTimeline();
     }
   };
@@ -317,8 +384,8 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
   const handleOpenCalendarCreateModal = (dueDateStr: string) => {
     calendarForm.resetFields();
     calendarForm.setFieldsValue({
-      status: 'TODO',
-      priority: 'MEDIUM',
+      status: "TODO",
+      priority: "MEDIUM",
       dueDate: dayjs(dueDateStr),
     });
     setCalendarModalOpen(true);
@@ -330,17 +397,17 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       await taskService.createTask(orgId, projectId, {
         title: values.title,
         description: values.description,
-        status: values.status || 'TODO',
-        priority: values.priority || 'MEDIUM',
+        status: values.status || "TODO",
+        priority: values.priority || "MEDIUM",
         assigneeId: values.assigneeId,
         dueDate: values.dueDate ? values.dueDate.toISOString() : null,
       });
-      message.success('Tạo công việc thành công!');
+      message.success("Tạo công việc thành công!");
       setCalendarModalOpen(false);
       calendarForm.resetFields();
       fetchProjectTasks();
     } catch (err: any) {
-      message.error(err.message || 'Không thể tạo công việc.');
+      message.error(err.message || "Không thể tạo công việc.");
     } finally {
       setCalendarSubmitting(false);
     }
@@ -359,48 +426,50 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
     statusLabel: STATUS_LABEL_MAP[item.status] || item.status,
   }));
 
-  const priorityBreakdownData = (data.priorityBreakdown || []).map((item: any) => ({
-    ...item,
-    priorityLabel: PRIORITY_LABEL_MAP[item.priority] || item.priority,
-  }));
+  const priorityBreakdownData = (data.priorityBreakdown || []).map(
+    (item: any) => ({
+      ...item,
+      priorityLabel: PRIORITY_LABEL_MAP[item.priority] || item.priority,
+    }),
+  );
 
   const pieConfig = {
     data: statusOverviewData,
-    angleField: 'count',
-    colorField: 'statusLabel',
+    angleField: "count",
+    colorField: "statusLabel",
     innerRadius: 0.6,
     label: {
-      text: 'count',
+      text: "count",
       style: {
-        fontWeight: 'bold',
+        fontWeight: "bold",
       },
     },
     legend: {
       color: {
         title: false,
-        position: 'right',
+        position: "right",
         rowPadding: 5,
       },
     },
     theme: {
       styleSheet: {
-        paletteQualitative10: ['#1890ff', '#13c2c2', '#fa8c16', '#52c41a'],
+        paletteQualitative10: ["#1890ff", "#13c2c2", "#fa8c16", "#52c41a"],
       },
     },
   };
 
   const columnConfig = {
     data: priorityBreakdownData,
-    xField: 'priorityLabel',
-    yField: 'count',
+    xField: "priorityLabel",
+    yField: "count",
     label: {
       text: (d: any) => `${d.count}`,
-      textBaseline: 'bottom',
+      textBaseline: "bottom",
     },
-    colorField: 'priorityLabel',
+    colorField: "priorityLabel",
     theme: {
       styleSheet: {
-        paletteQualitative10: ['#ff4d4f', '#ff7a45', '#ffa940', '#7cb305'],
+        paletteQualitative10: ["#ff4d4f", "#ff7a45", "#ffa940", "#7cb305"],
       },
     },
     legend: false as const,
@@ -412,19 +481,21 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-bold text-xl uppercase">
-              {(project?.name || 'P').charAt(0)}
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-700 font-bold text-xl uppercase">
+              {(project?.name || "P").charAt(0)}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 m-0">{project?.name || 'Chi tiết dự án'}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 m-0">
+              {project?.name || "Chi tiết dự án"}
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             {activeUsers.length > 0 && (
-              <div className="flex items-center gap-2 bg-indigo-50/70 px-3 py-1.5 rounded-full border border-indigo-100/80">
+              <div className="flex items-center gap-2 bg-gray-50/70 px-3 py-1.5 rounded-full border border-gray-100/80">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-xs font-semibold text-indigo-900">
+                <span className="text-xs font-semibold text-gray-900">
                   {activeUsers.length} người đang xem
                 </span>
                 <Avatar.Group max={{ count: 3 }} size="small">
@@ -432,9 +503,11 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
                     <Tooltip key={u.userId} title={u.fullName || u.username}>
                       <Avatar
                         src={u.avatarUrl || undefined}
-                        style={{ backgroundColor: '#6366f1' }}
+                        style={{ backgroundColor: "#6366f1" }}
                       >
-                        {(u.fullName || u.username || 'U').charAt(0).toUpperCase()}
+                        {(u.fullName || u.username || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </Avatar>
                     </Tooltip>
                   ))}
@@ -442,14 +515,27 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
               </div>
             )}
             <div className="h-6 w-px bg-gray-200 mx-1" />
-            <Dropdown menu={{ items: shareMenuItems }} trigger={['click']} placement="bottomRight">
+            <Dropdown
+              menu={{ items: shareMenuItems }}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
               <Button icon={<ShareAltOutlined />}>Chia sẻ</Button>
             </Dropdown>
-            <Button icon={<RobotOutlined className="text-indigo-500" />} onClick={() => setAutomationModalOpen(true)}>
+            <Button
+              icon={<RobotOutlined className="text-gray-600" />}
+              onClick={() => setAutomationModalOpen(true)}
+            >
               Tự động hóa
             </Button>
             <Button
-              icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+              icon={
+                isFullscreen ? (
+                  <FullscreenExitOutlined />
+                ) : (
+                  <FullscreenOutlined />
+                )
+              }
               type="text"
               onClick={handleToggleFullscreen}
             />
@@ -469,7 +555,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       </div>
 
       {/* Content Area */}
-      {activeTab === 'board' ? (
+      {activeTab === "board" ? (
         <KanbanBoard
           tasks={boardTasks}
           loading={boardLoading}
@@ -481,7 +567,7 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           onTaskSave={handleTaskSave}
           onTaskDelete={handleTaskDelete}
         />
-      ) : activeTab === 'list' ? (
+      ) : activeTab === "list" ? (
         <TaskListView
           tasks={boardTasks}
           loading={boardLoading}
@@ -491,62 +577,92 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           onTaskDelete={handleTaskDelete}
           onRefresh={fetchProjectTasks}
         />
-      ) : activeTab === 'timeline' ? (
+      ) : activeTab === "timeline" ? (
         <TaskTimelineView
           tasks={timelineTasks}
           loading={timelineLoading}
           membersList={membersList}
-          onOpenCreateModal={() => handleOpenCalendarCreateModal(dayjs().format('YYYY-MM-DD'))}
+          onOpenCreateModal={() =>
+            handleOpenCalendarCreateModal(dayjs().format("YYYY-MM-DD"))
+          }
           onTaskSave={handleTaskSave}
         />
-      ) : activeTab === 'summary' ? (
+      ) : activeTab === "summary" ? (
         <div className="flex flex-col gap-6 animate-fade-in">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card size="small" className="shadow-sm border-gray-100 hover:shadow-md transition-shadow">
+            <Card
+              size="small"
+              className="shadow-sm border-gray-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500">
                   <CheckCircleOutlined className="text-xl" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{data.stats.completed}</div>
-                  <div className="text-xs text-gray-500">Hoàn thành trong 7 ngày qua</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {data.stats.completed}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Hoàn thành trong 7 ngày qua
+                  </div>
                 </div>
               </div>
             </Card>
 
-            <Card size="small" className="shadow-sm border-gray-100 hover:shadow-md transition-shadow">
+            <Card
+              size="small"
+              className="shadow-sm border-gray-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                   <SyncOutlined className="text-xl" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{data.stats.updated}</div>
-                  <div className="text-xs text-gray-500">Cập nhật trong 7 ngày qua</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {data.stats.updated}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Cập nhật trong 7 ngày qua
+                  </div>
                 </div>
               </div>
             </Card>
 
-            <Card size="small" className="shadow-sm border-gray-100 hover:shadow-md transition-shadow">
+            <Card
+              size="small"
+              className="shadow-sm border-gray-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
+                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600">
                   <PlusCircleOutlined className="text-xl" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{data.stats.created}</div>
-                  <div className="text-xs text-gray-500">Tạo mới trong 7 ngày qua</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {data.stats.created}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Tạo mới trong 7 ngày qua
+                  </div>
                 </div>
               </div>
             </Card>
 
-            <Card size="small" className="shadow-sm border-gray-100 hover:shadow-md transition-shadow">
+            <Card
+              size="small"
+              className="shadow-sm border-gray-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
                   <WarningOutlined className="text-xl" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{data.stats.dueSoon}</div>
-                  <div className="text-xs text-gray-500">Sắp đến hạn trong 7 ngày tới</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {data.stats.dueSoon}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Sắp đến hạn trong 7 ngày tới
+                  </div>
                 </div>
               </div>
             </Card>
@@ -555,20 +671,34 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Status Overview */}
-            <Card title="Tổng quan trạng thái" className="shadow-sm border-gray-100" styles={{ body: { height: 300 } }}>
+            <Card
+              title="Tổng quan trạng thái"
+              className="shadow-sm border-gray-100"
+              styles={{ body: { height: 300 } }}
+            >
               {data.statusOverview.length > 0 ? (
                 <Pie {...pieConfig} />
               ) : (
-                <Empty description="Không có dữ liệu công việc" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty
+                  description="Không có dữ liệu công việc"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
               )}
             </Card>
 
             {/* Priority Breakdown */}
-            <Card title="Phân bố độ ưu tiên" className="shadow-sm border-gray-100" styles={{ body: { height: 300 } }}>
+            <Card
+              title="Phân bố độ ưu tiên"
+              className="shadow-sm border-gray-100"
+              styles={{ body: { height: 300 } }}
+            >
               {data.priorityBreakdown.length > 0 ? (
                 <Column {...columnConfig} />
               ) : (
-                <Empty description="Không có dữ liệu công việc" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty
+                  description="Không có dữ liệu công việc"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
               )}
             </Card>
           </div>
@@ -576,15 +706,25 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       ) : (
         <div className="flex items-center justify-center h-64 bg-gray-50 rounded-xl border border-dashed border-gray-200">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-600 mb-1">Coming Soon</h3>
-            <p className="text-gray-400 text-sm">Nội dung của tab "{tabItems.find((t: any) => t.key === activeTab)?.label}" đang được phát triển.</p>
+            <h3 className="text-lg font-semibold text-gray-600 mb-1">
+              Coming Soon
+            </h3>
+            <p className="text-gray-400 text-sm">
+              Nội dung của tab "
+              {tabItems.find((t: any) => t.key === activeTab)?.label}" đang được
+              phát triển.
+            </p>
           </div>
         </div>
       )}
 
       {/* Calendar Quick Create Modal */}
       <Modal
-        title={<div className="flex items-center gap-2 text-gray-800 text-lg font-bold">Tạo công việc mới (từ Lịch)</div>}
+        title={
+          <div className="flex items-center gap-2 text-gray-800 text-lg font-bold">
+            Tạo công việc mới (từ Lịch)
+          </div>
+        }
         open={calendarModalOpen}
         onCancel={() => {
           setCalendarModalOpen(false);
@@ -603,13 +743,16 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
           <Form.Item
             name="title"
             label="Tiêu đề công việc"
-            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+            rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
           >
             <Input placeholder="Nhập tên công việc cần làm..." />
           </Form.Item>
 
           <Form.Item name="description" label="Mô tả chi tiết">
-            <Input.TextArea rows={3} placeholder="Mô tả công việc (không bắt buộc)..." />
+            <Input.TextArea
+              rows={3}
+              placeholder="Mô tả công việc (không bắt buộc)..."
+            />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">
@@ -644,13 +787,22 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             </Form.Item>
 
             <Form.Item name="dueDate" label="Hạn hoàn thành">
-              <DatePicker className="w-full" format="DD/MM/YYYY" placeholder="Chọn ngày" />
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày"
+              />
             </Form.Item>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
             <Button onClick={() => setCalendarModalOpen(false)}>Hủy</Button>
-            <Button type="primary" htmlType="submit" loading={calendarSubmitting} className="!bg-indigo-600">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={calendarSubmitting}
+              className="!bg-blue-600"
+            >
               Tạo mới
             </Button>
           </div>
@@ -671,24 +823,32 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
       {/* Automation Rules Config Modal */}
       <Modal
         title={
-          <div className="flex items-center gap-2 text-indigo-600">
+          <div className="flex items-center gap-2 text-gray-700">
             <RobotOutlined className="text-xl animate-bounce" />
-            <span className="font-bold text-base">Quy tắc tự động hóa dự án</span>
+            <span className="font-bold text-base">
+              Quy tắc tự động hóa dự án
+            </span>
           </div>
         }
         open={automationModalOpen}
         onCancel={() => setAutomationModalOpen(false)}
         footer={[
-          <Button key="close" type="primary" onClick={() => setAutomationModalOpen(false)} className="rounded-xl">
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setAutomationModalOpen(false)}
+            className="rounded-xl"
+          >
             Đóng
-          </Button>
+          </Button>,
         ]}
         className="rounded-2xl"
         width={500}
       >
         <div className="py-4 flex flex-col gap-5">
           <p className="text-xs text-gray-500 -mt-2">
-            Thiết lập các hành động tự động xử lý công việc khi có sự thay đổi trạng thái trong dự án.
+            Thiết lập các hành động tự động xử lý công việc khi có sự thay đổi
+            trạng thái trong dự án.
           </p>
 
           <div className="flex flex-col gap-4 divide-y divide-gray-100">
@@ -696,15 +856,23 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             <div className="flex items-start justify-between gap-4 pt-3 first:pt-0">
               <div className="flex-1">
                 <div className="text-xs font-bold text-gray-800">
-                  Tự động cập nhật Ngày bắt đầu (Start Date) khi chuyển sang "Đang làm"
+                  Tự động cập nhật Ngày bắt đầu (Start Date) khi chuyển sang
+                  "Đang làm"
                 </div>
                 <div className="text-[11px] text-gray-500 mt-1">
-                  Khi công việc được chuyển sang trạng thái "Đang làm" (IN_PROGRESS), tự động thiết lập ngày bắt đầu là hôm nay nếu trường này đang để trống.
+                  Khi công việc được chuyển sang trạng thái "Đang làm"
+                  (IN_PROGRESS), tự động thiết lập ngày bắt đầu là hôm nay nếu
+                  trường này đang để trống.
                 </div>
               </div>
               <Switch
                 checked={automationRules.autoStartDate}
-                onChange={(checked) => saveAutomationRules({ ...automationRules, autoStartDate: checked })}
+                onChange={(checked) =>
+                  saveAutomationRules({
+                    ...automationRules,
+                    autoStartDate: checked,
+                  })
+                }
                 className="mt-1 shrink-0"
               />
             </div>
@@ -713,15 +881,23 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             <div className="flex items-start justify-between gap-4 pt-4">
               <div className="flex-1">
                 <div className="text-xs font-bold text-gray-800">
-                  Tự động hoàn thành công việc cha khi tất cả công việc con hoàn thành
+                  Tự động hoàn thành công việc cha khi tất cả công việc con hoàn
+                  thành
                 </div>
                 <div className="text-[11px] text-gray-500 mt-1">
-                  Khi tất cả các công việc con (Subtasks) chuyển sang trạng thái "Hoàn thành" (DONE), công việc cha cũng tự động chuyển sang "Hoàn thành" (DONE).
+                  Khi tất cả các công việc con (Subtasks) chuyển sang trạng thái
+                  "Hoàn thành" (DONE), công việc cha cũng tự động chuyển sang
+                  "Hoàn thành" (DONE).
                 </div>
               </div>
               <Switch
                 checked={automationRules.autoCompleteParent}
-                onChange={(checked) => saveAutomationRules({ ...automationRules, autoCompleteParent: checked })}
+                onChange={(checked) =>
+                  saveAutomationRules({
+                    ...automationRules,
+                    autoCompleteParent: checked,
+                  })
+                }
                 className="mt-1 shrink-0"
               />
             </div>
@@ -730,14 +906,18 @@ export default function ProjectDashboard({ projectId, orgId, initialDashboardDat
             <div className="flex items-start justify-between gap-4 pt-4">
               <div className="flex-1">
                 <div className="text-xs font-bold text-gray-800 opacity-60">
-                  Tự động nâng mức độ ưu tiên sang Khẩn cấp (CRITICAL) khi quá hạn
+                  Tự động nâng mức độ ưu tiên sang Khẩn cấp (CRITICAL) khi quá
+                  hạn
                 </div>
                 <div className="text-[11px] text-gray-500 mt-1">
-                  Tự động nâng mức ưu tiên của công việc khi thời gian hiện tại vượt quá hạn hoàn thành (Due Date).
+                  Tự động nâng mức ưu tiên của công việc khi thời gian hiện tại
+                  vượt quá hạn hoàn thành (Due Date).
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-[10px] bg-slate-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full border border-gray-200">Sắp ra mắt</span>
+                <span className="text-[10px] bg-slate-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full border border-gray-200">
+                  Sắp ra mắt
+                </span>
                 <Switch disabled checked={false} className="shrink-0" />
               </div>
             </div>

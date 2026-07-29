@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Button,
   Avatar,
@@ -12,8 +12,8 @@ import {
   Tag,
   App,
   Spin,
-} from 'antd';
-import CustomTooltip from '../common/CustomTooltip';
+} from "antd";
+import CustomTooltip from "../common/CustomTooltip";
 import {
   PlusOutlined,
   ClockCircleOutlined,
@@ -23,19 +23,19 @@ import {
   ProjectOutlined,
   CheckCircleFilled,
   CheckSquareOutlined,
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '../../hooks/useAuth';
-import { useOrg } from '../../contexts/OrgContext';
-import { TaskDetailDrawer } from './TaskDetailDrawer';
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "../../hooks/useAuth";
+import { useOrg } from "../../contexts/OrgContext";
+import { TaskDetailDrawer } from "./TaskDetailDrawer";
 
 export interface TaskItem {
   id: string;
   title: string;
   description?: string | null;
-  status: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   position?: number;
   taskNumber?: number;
   displayCode?: string;
@@ -74,60 +74,85 @@ interface KanbanBoardProps {
   requireProjectSelect?: boolean;
   projectsList?: { id: string; key: string; name: string }[];
   membersList?: { userId: string; name: string }[];
-  onStatusChange: (task: TaskItem, newStatus: TaskItem['status']) => void;
+  onStatusChange: (task: TaskItem, newStatus: TaskItem["status"]) => void;
   onTaskSave: (data: {
     id?: string;
     projectId: string;
     title: string;
     description?: string;
-    status?: TaskItem['status'];
-    priority?: TaskItem['priority'];
+    status?: TaskItem["status"];
+    priority?: TaskItem["priority"];
     assigneeId?: string | null;
     dueDate?: string | null;
   }) => Promise<void>;
   onTaskDelete?: (task: TaskItem) => Promise<void>;
 }
 
-const COLUMN_TITLES: Record<TaskItem['status'], string> = {
-  TODO: 'Cần làm',
-  IN_PROGRESS: 'Đang làm',
-  IN_REVIEW: 'Đang kiểm tra',
-  DONE: 'Hoàn thành',
+const COLUMN_TITLES: Record<TaskItem["status"], string> = {
+  TODO: "Cần làm",
+  IN_PROGRESS: "Đang làm",
+  IN_REVIEW: "Đang kiểm tra",
+  DONE: "Hoàn thành",
 };
 
-const COLUMN_COLORS: Record<TaskItem['status'], { bg: string; border: string; badge: string }> = {
-  TODO: { bg: 'bg-gray-50/80', border: 'border-gray-200', badge: 'bg-gray-200 text-gray-700' },
-  IN_PROGRESS: { bg: 'bg-blue-50/50', border: 'border-blue-200', badge: 'bg-blue-100 text-blue-700' },
-  IN_REVIEW: { bg: 'bg-amber-50/50', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-700' },
-  DONE: { bg: 'bg-emerald-50/50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
+const COLUMN_COLORS: Record<
+  TaskItem["status"],
+  { bg: string; border: string; badge: string }
+> = {
+  TODO: {
+    bg: "bg-gray-50/80",
+    border: "border-gray-200",
+    badge: "bg-gray-200 text-gray-700",
+  },
+  IN_PROGRESS: {
+    bg: "bg-blue-50/50",
+    border: "border-blue-200",
+    badge: "bg-blue-100 text-blue-700",
+  },
+  IN_REVIEW: {
+    bg: "bg-amber-50/50",
+    border: "border-amber-200",
+    badge: "bg-amber-100 text-amber-700",
+  },
+  DONE: {
+    bg: "bg-emerald-50/50",
+    border: "border-emerald-200",
+    badge: "bg-emerald-100 text-emerald-700",
+  },
 };
 
-const PRIORITY_BADGES: Record<TaskItem['priority'], string> = {
-  LOW: '!bg-[#F1F5F9] !text-[#64748B]',
-  MEDIUM: '!bg-blue-50 !text-blue-700',
-  HIGH: '!bg-[#FFEDD5] !text-[#C2410C]',
-  CRITICAL: '!bg-red-100 !text-red-700 font-bold',
+const PRIORITY_BADGES: Record<TaskItem["priority"], string> = {
+  LOW: "!bg-slate-100 !text-slate-500",
+  MEDIUM: "!bg-blue-50 !text-blue-700",
+  HIGH: "!bg-orange-100 !text-orange-700",
+  CRITICAL: "!bg-red-100 !text-red-700 font-bold",
 };
 
-const PRIORITY_LABELS: Record<TaskItem['priority'], string> = {
-  LOW: 'Thấp',
-  MEDIUM: 'Trung bình',
-  HIGH: 'Cao',
-  CRITICAL: 'Khẩn cấp',
+const PRIORITY_LABELS: Record<TaskItem["priority"], string> = {
+  LOW: "Thấp",
+  MEDIUM: "Trung bình",
+  HIGH: "Cao",
+  CRITICAL: "Khẩn cấp",
 };
 
 const AVATAR_PALETTE = [
-  '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#F59E0B', '#EF4444', '#06B6D4',
+  "#10B981",
+  "#3B82F6",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 function getUserAvatarColor(id?: string | null): string {
-  if (!id) return '#9CA3AF';
+  if (!id) return "#9CA3AF";
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || '#9CA3AF';
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length] || "#9CA3AF";
 }
 
 export function KanbanBoard({
@@ -148,8 +173,8 @@ export function KanbanBoard({
   const params = useParams();
   const router = useRouter();
 
-  const orgSlug = (params?.orgSlug as string) || '';
-  const projectKey = (params?.projectKey as string) || '';
+  const orgSlug = (params?.orgSlug as string) || "";
+  const projectKey = (params?.projectKey as string) || "";
 
   const effectiveMembersList = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -169,31 +194,39 @@ export function KanbanBoard({
     if (tasks && Array.isArray(tasks)) {
       tasks.forEach((t) => {
         if (t.assigneeId && t.assignee) {
-          map.set(t.assigneeId, t.assignee.fullName || t.assignee.username || t.assigneeId);
+          map.set(
+            t.assigneeId,
+            t.assignee.fullName || t.assignee.username || t.assigneeId,
+          );
         }
       });
     }
 
-    return Array.from(map.entries()).map(([userId, name]) => ({ userId, name }));
+    return Array.from(map.entries()).map(([userId, name]) => ({
+      userId,
+      name,
+    }));
   }, [membersList, tasks, user]);
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   // Modal create/edit task state
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createInitialStatus, setCreateInitialStatus] = useState<TaskItem['status']>('TODO');
+  const [createInitialStatus, setCreateInitialStatus] =
+    useState<TaskItem["status"]>("TODO");
   const [submittingTask, setSubmittingTask] = useState(false);
-  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<TaskItem | null>(null);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] =
+    useState<TaskItem | null>(null);
   const [taskForm] = Form.useForm();
 
   const isEditable = (task: TaskItem | null) => {
     if (!task) return true;
-    if (userRole === 'OWNER' || userRole === 'ADMIN') return true;
+    if (userRole === "OWNER" || userRole === "ADMIN") return true;
     return task.assigneeId === user?.id || task.reporterId === user?.id;
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.setData("text/plain", id);
     setDraggedTaskId(id);
   };
 
@@ -201,9 +234,9 @@ export function KanbanBoard({
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, targetStatus: TaskItem['status']) => {
+  const handleDrop = (e: React.DragEvent, targetStatus: TaskItem["status"]) => {
     e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain') || draggedTaskId;
+    const id = e.dataTransfer.getData("text/plain") || draggedTaskId;
     setDraggedTaskId(null);
 
     if (!id) return;
@@ -211,21 +244,27 @@ export function KanbanBoard({
     if (!task || task.status === targetStatus) return;
 
     if (!isEditable(task)) {
-      message.warning('Bạn không có quyền chuyển trạng thái công việc này.');
+      message.warning("Bạn không có quyền chuyển trạng thái công việc này.");
       return;
     }
 
     onStatusChange(task, targetStatus);
   };
 
-  const handleOpenCreateModal = (initialStatus: TaskItem['status'] = 'TODO') => {
+  const handleOpenCreateModal = (
+    initialStatus: TaskItem["status"] = "TODO",
+  ) => {
     setCreateInitialStatus(initialStatus);
     setSelectedTaskForDetail(null);
     taskForm.resetFields();
     taskForm.setFieldsValue({
       status: initialStatus,
-      priority: 'MEDIUM',
-      projectId: defaultProjectId || (projectsList && projectsList.length > 0 ? projectsList[0]?.id : undefined),
+      priority: "MEDIUM",
+      projectId:
+        defaultProjectId ||
+        (projectsList && projectsList.length > 0
+          ? projectsList[0]?.id
+          : undefined),
       assigneeId: user?.id,
     });
     setCreateModalOpen(true);
@@ -234,7 +273,9 @@ export function KanbanBoard({
   const handleTaskCardClick = (task: TaskItem) => {
     const keyToUse = task.project?.key || projectKey;
     if (orgSlug && keyToUse) {
-      router.push(`/dashboard/${orgSlug}/projects/${keyToUse}/tasks/${task.id}`);
+      router.push(
+        `/dashboard/${orgSlug}/projects/${keyToUse}/tasks/${task.id}`,
+      );
     }
   };
 
@@ -244,7 +285,7 @@ export function KanbanBoard({
       const projectIdToUse = values.projectId || defaultProjectId;
 
       if (requireProjectSelect && !projectIdToUse) {
-        message.error('Vui lòng chọn Dự án cho công việc.');
+        message.error("Vui lòng chọn Dự án cho công việc.");
         return;
       }
 
@@ -254,7 +295,7 @@ export function KanbanBoard({
         title: values.title,
         description: values.description,
         status: values.status || createInitialStatus,
-        priority: values.priority || 'MEDIUM',
+        priority: values.priority || "MEDIUM",
         assigneeId: values.assigneeId || user?.id,
         dueDate: values.dueDate ? values.dueDate.toISOString() : null,
       });
@@ -262,13 +303,18 @@ export function KanbanBoard({
       setCreateModalOpen(false);
       taskForm.resetFields();
     } catch (err: any) {
-      message.error(err.message || 'Thao tác không thành công.');
+      message.error(err.message || "Thao tác không thành công.");
     } finally {
       setSubmittingTask(false);
     }
   };
 
-  const statuses: TaskItem['status'][] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
+  const statuses: TaskItem["status"][] = [
+    "TODO",
+    "IN_PROGRESS",
+    "IN_REVIEW",
+    "DONE",
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -277,8 +323,8 @@ export function KanbanBoard({
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={() => handleOpenCreateModal('TODO')}
-          className="!bg-indigo-600 hover:!bg-indigo-700 border-none font-semibold text-white shadow-sm rounded-xl h-[40px] px-5"
+          onClick={() => handleOpenCreateModal("TODO")}
+          className="!bg-blue-600 hover:!bg-blue-700 border-none font-semibold text-white shadow-sm rounded-xl h-10 px-5"
         >
           Tạo task mới
         </Button>
@@ -291,7 +337,9 @@ export function KanbanBoard({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start min-h-[500px]">
           {statuses.map((status) => {
-            const colTasks = tasks.filter((t) => t.status === status && !t.parentTaskId);
+            const colTasks = tasks.filter(
+              (t) => t.status === status && !t.parentTaskId,
+            );
             const style = COLUMN_COLORS[status];
 
             return (
@@ -307,7 +355,9 @@ export function KanbanBoard({
                     <h3 className="font-bold text-gray-800 text-sm tracking-tight m-0">
                       {COLUMN_TITLES[status]}
                     </h3>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.badge}`}
+                    >
                       {colTasks.length}
                     </span>
                   </div>
@@ -324,11 +374,19 @@ export function KanbanBoard({
                 <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto">
                   {colTasks.map((task) => {
                     const editable = isEditable(task);
-                    const commentsCount = task._count?.comments ?? task.comments?.length ?? 0;
-                    const attachmentsCount = task._count?.attachments ?? task.attachments?.length ?? 0;
-                    const hasSubtasks = task.subTasks && task.subTasks.length > 0;
-                    const completedSubtasks = hasSubtasks ? task.subTasks!.filter((st) => st.status === 'DONE').length : 0;
-                    const totalSubtasks = hasSubtasks ? task.subTasks!.length : 0;
+                    const commentsCount =
+                      task._count?.comments ?? task.comments?.length ?? 0;
+                    const attachmentsCount =
+                      task._count?.attachments ?? task.attachments?.length ?? 0;
+                    const hasSubtasks =
+                      task.subTasks && task.subTasks.length > 0;
+                    const completedSubtasks = hasSubtasks
+                      ? task.subTasks!.filter((st) => st.status === "DONE")
+                          .length
+                      : 0;
+                    const totalSubtasks = hasSubtasks
+                      ? task.subTasks!.length
+                      : 0;
 
                     return (
                       <div
@@ -336,34 +394,43 @@ export function KanbanBoard({
                         draggable={editable}
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onClick={() => handleTaskCardClick(task)}
-                        className={`bg-white p-3.5 rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group relative ${
-                          draggedTaskId === task.id ? 'opacity-40 scale-[0.98]' : ''
-                        } ${hasSubtasks ? 'border-l-4 border-l-indigo-300/80 pl-2.5' : ''}`}
+                        className={`bg-white p-3.5 rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md hover:border-gray-200 transition-colors cursor-pointer group relative ${
+                          draggedTaskId === task.id
+                            ? "opacity-40 scale-[0.98]"
+                            : ""
+                        } ${hasSubtasks ? "border-l-4 border-l-gray-300/80 pl-2.5" : ""}`}
                       >
                         {/* Project & Code Badge */}
                         <div className="mb-2 flex items-center justify-between gap-1.5">
                           {showProjectBadge && task.project ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 truncate">
-                              <ProjectOutlined className="text-[10px]" />
-                              [{task.project.key}] {task.project.name}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-50 text-gray-800 border border-gray-100 truncate">
+                              <ProjectOutlined className="text-[10px]" />[
+                              {task.project.key}] {task.project.name}
                             </span>
-                          ) : <div />}
+                          ) : (
+                            <div />
+                          )}
 
-                          {(task.displayCode || (task.project?.key && task.taskNumber)) && (
-                            <span className="inline-flex items-center text-[11px] font-mono font-semibold text-indigo-600 bg-slate-50 px-1.5 py-0.5 rounded border border-gray-200/80">
-                              {task.status === 'DONE' && (
+                          {(task.displayCode ||
+                            (task.project?.key && task.taskNumber)) && (
+                            <span className="inline-flex items-center text-[11px] font-mono font-semibold text-gray-700 bg-slate-50 px-1.5 py-0.5 rounded border border-gray-200/80">
+                              {task.status === "DONE" && (
                                 <CheckCircleFilled className="text-emerald-500 text-[11px] mr-1" />
                               )}
-                              {task.displayCode || `${task.project?.key}-${task.taskNumber}`}
+                              {task.displayCode ||
+                                `${task.project?.key}-${task.taskNumber}`}
                             </span>
                           )}
                         </div>
 
                         {/* Title */}
-                        <h4 className={`text-sm font-semibold leading-snug line-clamp-2 mb-2 transition-colors ${task.status === 'DONE'
-                            ? 'line-through text-gray-400 font-normal'
-                            : 'text-gray-800 group-hover:text-indigo-600'
-                          }`}>
+                        <h4
+                          className={`text-sm font-semibold leading-snug line-clamp-2 mb-2 transition-colors ${
+                            task.status === "DONE"
+                              ? "line-through text-gray-400 font-normal"
+                              : "text-gray-800 group-hover:text-gray-700"
+                          }`}
+                        >
                           {task.title}
                         </h4>
 
@@ -371,12 +438,16 @@ export function KanbanBoard({
                         {hasSubtasks && (
                           <div
                             className={`flex items-center gap-1.5 text-[11px] font-semibold mb-2.5 ${
-                              completedSubtasks === totalSubtasks ? 'text-emerald-500' : 'text-gray-400'
+                              completedSubtasks === totalSubtasks
+                                ? "text-emerald-500"
+                                : "text-gray-400"
                             }`}
                             title="Tiến độ công việc con"
                           >
                             <CheckSquareOutlined className="text-[10px]" />
-                            <span>{completedSubtasks}/{totalSubtasks} subtasks</span>
+                            <span>
+                              {completedSubtasks}/{totalSubtasks} subtasks
+                            </span>
                           </div>
                         )}
 
@@ -384,20 +455,23 @@ export function KanbanBoard({
                         <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-gray-100 text-xs text-gray-500">
                           <div className="flex items-center gap-2 flex-wrap">
                             {/* Priority Badge */}
-                            <Tag className={`m-0 text-[10px] border-none px-2 py-0.5 rounded-md font-semibold ${PRIORITY_BADGES[task.priority]}`}>
+                            <Tag
+                              className={`m-0 text-[10px] border-none px-2 py-0.5 rounded-md font-semibold ${PRIORITY_BADGES[task.priority]}`}
+                            >
                               {PRIORITY_LABELS[task.priority]}
                             </Tag>
 
                             {/* Due Date (only if exists) */}
                             {task.dueDate ? (
                               <span
-                                className={`flex items-center gap-1 text-[11px] font-medium ${dayjs(task.dueDate).isBefore(dayjs(), 'day')
-                                    ? '!text-red-500 font-bold'
-                                    : '!text-gray-400'
-                                  }`}
+                                className={`flex items-center gap-1 text-[11px] font-medium ${
+                                  dayjs(task.dueDate).isBefore(dayjs(), "day")
+                                    ? "!text-red-500 font-bold"
+                                    : "!text-gray-400"
+                                }`}
                               >
                                 <ClockCircleOutlined className="text-[10px]" />
-                                {dayjs(task.dueDate).format('DD/MM')}
+                                {dayjs(task.dueDate).format("DD/MM")}
                               </span>
                             ) : null}
                           </div>
@@ -421,19 +495,38 @@ export function KanbanBoard({
 
                             {/* Assignee Avatar */}
                             {task.assignee ? (
-                              <CustomTooltip title={task.assignee.fullName || task.assignee.username}>
+                              <CustomTooltip
+                                title={
+                                  task.assignee.fullName ||
+                                  task.assignee.username
+                                }
+                              >
                                 <Avatar
                                   size={22}
                                   src={task.assignee.avatarUrl || undefined}
-                                  style={{ backgroundColor: getUserAvatarColor(task.assignee.id) }}
+                                  style={{
+                                    backgroundColor: getUserAvatarColor(
+                                      task.assignee.id,
+                                    ),
+                                  }}
                                   className="text-white font-bold text-[10px] flex-shrink-0 border border-white"
                                 >
-                                  {(task.assignee.fullName || task.assignee.username || 'U').charAt(0).toUpperCase()}
+                                  {(
+                                    task.assignee.fullName ||
+                                    task.assignee.username ||
+                                    "U"
+                                  )
+                                    .charAt(0)
+                                    .toUpperCase()}
                                 </Avatar>
                               </CustomTooltip>
                             ) : (
                               <CustomTooltip title="Chưa phân công">
-                                <Avatar size={22} icon={<UserOutlined />} className="bg-gray-100 text-gray-400 text-[10px]" />
+                                <Avatar
+                                  size={22}
+                                  icon={<UserOutlined />}
+                                  className="bg-gray-100 text-gray-400 text-[10px]"
+                                />
                               </CustomTooltip>
                             )}
                           </div>
@@ -444,7 +537,9 @@ export function KanbanBoard({
 
                   {colTasks.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-gray-200/80 rounded-xl my-1 flex-1 min-h-[140px]">
-                      <p className="text-xs font-medium text-gray-400 m-0">Kéo task vào đây</p>
+                      <p className="text-xs font-medium text-gray-400 m-0">
+                        Kéo task vào đây
+                      </p>
                     </div>
                   )}
                 </div>
@@ -456,7 +551,11 @@ export function KanbanBoard({
 
       {/* Modal Create Task */}
       <Modal
-        title={<div className="flex items-center gap-2 text-gray-800 text-lg font-bold">Tạo công việc mới</div>}
+        title={
+          <div className="flex items-center gap-2 text-gray-800 text-lg font-bold">
+            Tạo công việc mới
+          </div>
+        }
         open={createModalOpen}
         onCancel={() => {
           setCreateModalOpen(false);
@@ -470,14 +569,14 @@ export function KanbanBoard({
           form={taskForm}
           layout="vertical"
           onFinish={handleSaveTask}
-          initialValues={{ priority: 'MEDIUM', status: createInitialStatus }}
+          initialValues={{ priority: "MEDIUM", status: createInitialStatus }}
           className="mt-4 flex flex-col gap-1"
         >
           {requireProjectSelect && (
             <Form.Item
               name="projectId"
               label="Dự án"
-              rules={[{ required: true, message: 'Vui lòng chọn dự án' }]}
+              rules={[{ required: true, message: "Vui lòng chọn dự án" }]}
             >
               <Select placeholder="Chọn dự án">
                 {projectsList.map((p) => (
@@ -492,13 +591,16 @@ export function KanbanBoard({
           <Form.Item
             name="title"
             label="Tiêu đề công việc"
-            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+            rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
           >
             <Input placeholder="Nhập tên công việc cần làm..." />
           </Form.Item>
 
           <Form.Item name="description" label="Mô tả chi tiết">
-            <Input.TextArea rows={3} placeholder="Mô tả công việc (không bắt buộc)..." />
+            <Input.TextArea
+              rows={3}
+              placeholder="Mô tả công việc (không bắt buộc)..."
+            />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">
@@ -533,13 +635,22 @@ export function KanbanBoard({
             </Form.Item>
 
             <Form.Item name="dueDate" label="Hạn hoàn thành">
-              <DatePicker className="w-full" format="DD/MM/YYYY" placeholder="Chọn ngày" />
+              <DatePicker
+                className="w-full"
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày"
+              />
             </Form.Item>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
             <Button onClick={() => setCreateModalOpen(false)}>Hủy</Button>
-            <Button type="primary" htmlType="submit" loading={submittingTask} className="!bg-indigo-600">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submittingTask}
+              className="!bg-blue-600"
+            >
               Tạo mới
             </Button>
           </div>
