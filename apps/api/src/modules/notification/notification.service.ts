@@ -6,16 +6,26 @@ import { emitToUser } from '../../common/socket';
  * Lấy danh sách thông báo của user (giới hạn 10 cái gần nhất)
  */
 export async function getNotifications(userId: string, unreadOnly: boolean) {
-  return prisma.notification.findMany({
-    where: {
-      userId,
-      ...(unreadOnly ? { isRead: false } : {}),
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 10,
-  });
+  const [notifications, unreadCount] = await prisma.$transaction([
+    prisma.notification.findMany({
+      where: {
+        userId,
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 10,
+    }),
+    prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    }),
+  ]);
+
+  return { notifications, unreadCount };
 }
 
 /**

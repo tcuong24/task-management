@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   Card,
   Tabs,
@@ -31,19 +32,47 @@ import {
   UserAddOutlined,
   RobotOutlined,
 } from "@ant-design/icons";
-import { Pie, Column } from "@ant-design/charts";
 import dayjs from "dayjs";
 import * as projectService from "../../services/project";
 import type { ProjectDashboardData } from "../../services/project";
 import * as orgService from "../../services/organization";
 import * as taskService from "../../services/task";
-import { KanbanBoard, TaskItem } from "../kanban/KanbanBoard";
-import { TaskListView } from "./TaskListView";
-import { TaskCalendarView } from "./TaskCalendarView";
-import { TaskTimelineView } from "./TaskTimelineView";
+import { isAbortError } from "../../services/auth";
+import type { TaskItem } from "../kanban/KanbanBoard";
 import { usePresence } from "../../hooks/usePresence";
 import { useTaskRealtimeSync } from "../../hooks/useTaskRealtimeSync";
 import InviteMemberModal from "../organization/InviteMemberModal";
+
+const ViewLoading = () => (
+  <div className="flex min-h-64 items-center justify-center rounded-2xl border border-gray-100 bg-white">
+    <Spin size="large" />
+  </div>
+);
+
+const Pie = dynamic(
+  () => import("@ant-design/charts").then((module) => module.Pie),
+  { ssr: false, loading: ViewLoading },
+);
+const Column = dynamic(
+  () => import("@ant-design/charts").then((module) => module.Column),
+  { ssr: false, loading: ViewLoading },
+);
+const KanbanBoard = dynamic(
+  () => import("../kanban/KanbanBoard").then((module) => module.KanbanBoard),
+  { ssr: false, loading: ViewLoading },
+);
+const TaskListView = dynamic(
+  () => import("./TaskListView").then((module) => module.TaskListView),
+  { ssr: false, loading: ViewLoading },
+);
+const TaskCalendarView = dynamic(
+  () => import("./TaskCalendarView").then((module) => module.TaskCalendarView),
+  { ssr: false, loading: ViewLoading },
+);
+const TaskTimelineView = dynamic(
+  () => import("./TaskTimelineView").then((module) => module.TaskTimelineView),
+  { ssr: false, loading: ViewLoading },
+);
 
 const STATUS_LABEL_MAP: Record<string, string> = {
   TODO: "Cần làm",
@@ -189,10 +218,10 @@ export default function ProjectDashboard({
     { key: "timeline", label: "Mốc thời gian" },
   ];
 
-  const fetchMembers = useCallback(async () => {
+  const fetchMembers = useCallback(async (signal?: AbortSignal) => {
     if (!orgId) return;
     try {
-      const res = await orgService.getMembers(orgId);
+      const res = await orgService.getMembers(orgId, signal);
       if (res.success && res.members) {
         setMembersList(
           res.members.map((m: any) => ({
@@ -203,48 +232,57 @@ export default function ProjectDashboard({
         );
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Error fetching members:", err);
     }
   }, [orgId]);
 
-  const fetchProjectTasks = useCallback(async () => {
+  const fetchProjectTasks = useCallback(async (signal?: AbortSignal) => {
     if (!orgId || !projectId) return;
     try {
       setBoardLoading(true);
-      const res = await taskService.getProjectTasks(orgId, projectId);
+      const res = await taskService.getProjectTasks(orgId, projectId, signal);
       if (res.success) {
         setBoardTasks(res.tasks as unknown as TaskItem[]);
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Error fetching project tasks:", err);
     } finally {
-      setBoardLoading(false);
+      if (!signal?.aborted) setBoardLoading(false);
     }
   }, [orgId, projectId]);
 
-  const fetchProjectTimeline = useCallback(async () => {
+  const fetchProjectTimeline = useCallback(async (signal?: AbortSignal) => {
     if (!orgId || !projectId) return;
     try {
       setTimelineLoading(true);
-      const res = await projectService.getProjectTimeline(orgId, projectId);
+      const res = await projectService.getProjectTimeline(
+        orgId,
+        projectId,
+        signal,
+      );
       if (res.success && res.tasks) {
         setTimelineTasks(res.tasks as unknown as TaskItem[]);
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Error fetching project timeline:", err);
     } finally {
-      setTimelineLoading(false);
+      if (!signal?.aborted) setTimelineLoading(false);
     }
   }, [orgId, projectId]);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (activeTab === "timeline") {
-      fetchProjectTimeline();
-      fetchMembers();
+      void fetchProjectTimeline(controller.signal);
+      void fetchMembers(controller.signal);
     } else if (activeTab === "board" || activeTab === "list") {
-      fetchProjectTasks();
-      fetchMembers();
+      void fetchProjectTasks(controller.signal);
+      void fetchMembers(controller.signal);
     }
+    return () => controller.abort();
   }, [activeTab, fetchProjectTasks, fetchProjectTimeline, fetchMembers]);
 
   const handleStatusChange = async (

@@ -118,9 +118,13 @@ export async function updateOrganization(id: string, name: string, slug: string)
   });
 }
 
-export async function getMembers(id: string): Promise<GetMembersResponse> {
+export async function getMembers(
+  id: string,
+  signal?: AbortSignal,
+): Promise<GetMembersResponse> {
   return request<GetMembersResponse>(`/organizations/${id}/members`, {
     method: 'GET',
+    signal,
   });
 }
 
@@ -337,8 +341,9 @@ export interface GetActivitiesResponse {
   activities: ActivityLogItem[];
 }
 
-export async function getOrganizationActivities(id: string, limit = 20): Promise<GetActivitiesResponse> {
+export async function getOrganizationActivities(id: string, limit = 20, signal?: AbortSignal): Promise<GetActivitiesResponse> {
   return request<GetActivitiesResponse>(`/organizations/${id}/activities?limit=${limit}`, {
     method: 'GET',
+    signal,
   });
 }

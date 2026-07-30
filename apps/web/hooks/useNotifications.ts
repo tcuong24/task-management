@@ -1,88 +1,143 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { getNotifications, markAsRead, Notification } from '../services/notification';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getSocket } from "../lib/socket";
+import {
+  getNotifications,
+  markAsRead,
+  Notification,
+} from "../services/notification";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const NOTIFICATION_STALE_TIME_MS = 60_000;
+
+interface NotificationState {
+  notifications: Notification[];
+  unreadCount: number;
+}
 
 export function useNotifications(userId?: string) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationState, setNotificationState] =
+    useState<NotificationState>({
+      notifications: [],
+      unreadCount: 0,
+    });
   const [loading, setLoading] = useState(true);
-  const socketRef = useRef<Socket | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const lastFetchedAtRef = useRef(0);
 
   const fetchNotifications = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setNotificationState({ notifications: [], unreadCount: 0 });
+      setLoading(false);
+      return;
+    }
+
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+
     try {
       setLoading(true);
-      const res = await getNotifications();
-      if (res.success) {
-        setNotifications(res.notifications);
+
+      const response = await getNotifications(false, controller.signal);
+      if (response.success) {
+        setNotificationState({
+          notifications: response.notifications,
+          unreadCount: response.unreadCount,
+        });
+        lastFetchedAtRef.current = Date.now();
       }
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      console.error("Không thể tải thông báo:", error);
     } finally {
-      setLoading(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+        setLoading(false);
+      }
     }
   }, [userId]);
 
-  // Giải pháp Polling dự phòng mỗi 30 giây
+  // Load once, then refresh on focus only when the current data is stale.
   useEffect(() => {
-    if (!userId) return;
     fetchNotifications();
 
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 30000);
+    const handleFocus = () => {
+      if (
+        userId &&
+        Date.now() - lastFetchedAtRef.current >= NOTIFICATION_STALE_TIME_MS
+      ) {
+        fetchNotifications();
+      }
+    };
 
-    return () => clearInterval(interval);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      requestControllerRef.current?.abort();
+    };
   }, [userId, fetchNotifications]);
 
-  // Kết nối Socket.io realtime chính
+  // Reuse the singleton socket shared by notifications, Kanban and Presence.
   useEffect(() => {
     if (!userId) return;
 
-    const socket = io(API_URL, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'], // Đảm bảo fallback tốt
-    });
-    socketRef.current = socket;
+    const socket = getSocket();
 
-    socket.on('connect', () => {
-      console.log('Socket.io connected, joining user room:', userId);
-      socket.emit('join', userId);
-    });
+    const handleNewNotification = (notification: Notification) => {
+      setNotificationState((current) => {
+        if (
+          current.notifications.some((item) => item.id === notification.id)
+        ) {
+          return current;
+        }
 
-    socket.on('notification:new', (newNotification: Notification) => {
-      console.log('Received realtime notification:', newNotification);
-      setNotifications((prev) => {
-        // Tránh trùng lặp nếu trùng id
-        if (prev.some((n) => n.id === newNotification.id)) return prev;
-        return [newNotification, ...prev];
+        return {
+          notifications: [notification, ...current.notifications].slice(0, 10),
+          unreadCount:
+            current.unreadCount + (notification.isRead ? 0 : 1),
+        };
       });
-    });
+    };
+
+    socket.on("notification:new", handleNewNotification);
 
     return () => {
-      socket.disconnect();
+      socket.off("notification:new", handleNewNotification);
     };
   }, [userId]);
 
   const handleMarkAsRead = async (id: string) => {
+    const notification = notificationState.notifications.find(
+      (item) => item.id === id,
+    );
+    if (!notification || notification.isRead) return;
+
+    setNotificationState((current) => ({
+      notifications: current.notifications.map((item) =>
+        item.id === id ? { ...item, isRead: true } : item,
+      ),
+      unreadCount: Math.max(0, current.unreadCount - 1),
+    }));
+
     try {
-      const res = await markAsRead(id);
-      if (res.success) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-        );
-      }
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      await markAsRead(id);
+    } catch (error) {
+      setNotificationState((current) => ({
+        notifications: current.notifications.map((item) =>
+          item.id === id ? { ...item, isRead: false } : item,
+        ),
+        unreadCount: current.unreadCount + 1,
+      }));
+      console.error("Không thể đánh dấu đã đọc:", error);
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
   return {
-    notifications,
-    unreadCount,
+    notifications: notificationState.notifications,
+    unreadCount: notificationState.unreadCount,
     loading,
     markAsRead: handleMarkAsRead,
     refresh: fetchNotifications,

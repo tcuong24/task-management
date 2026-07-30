@@ -10,9 +10,9 @@ export async function getNotificationsHandler(req: Request, res: Response, next:
     }
 
     const unreadOnly = req.query.unread === 'true';
-    const notifications = await notificationService.getNotifications(userId, unreadOnly);
+    const result = await notificationService.getNotifications(userId, unreadOnly);
 
-    res.status(200).json({ success: true, notifications });
+    res.status(200).json({ success: true, ...result });
   } catch (err) {
     next(err);
   }

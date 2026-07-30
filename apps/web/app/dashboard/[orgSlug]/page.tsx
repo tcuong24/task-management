@@ -21,20 +21,21 @@ import ActivityFeed from "../../../components/organization/ActivityFeed";
 import { TaskStatusChart } from "../../../components/organization/TaskStatusChart";
 import { AttentionAlerts } from "../../../components/organization/AttentionAlerts";
 import { UpcomingDeadlines } from "../../../components/organization/UpcomingDeadlines";
+import { hasPermission } from "@repo/permissions";
 
 export default function OrgSlugDashboardPage() {
   const params = useParams();
-  const router = useRouter();
   const orgSlug = (params?.orgSlug || params?.id) as string;
-
-  const { currentOrg, loading: orgLoading } = useOrg();
+  const { currentOrg,userRole, loading: orgLoading } = useOrg();
   const orgId = currentOrg?.id;
 
   const [loadingData, setLoadingData] = useState(true);
   const [summaryData, setSummaryData] = useState<
     orgService.DashboardSummaryResponse["summary"] | null
   >(null);
-
+const canViewActivities = Boolean(
+  userRole && hasPermission(userRole, "view:org-activities")
+);
   useEffect(() => {
     if (!orgId) return;
 
@@ -308,7 +309,7 @@ export default function OrgSlugDashboardPage() {
       </div>
 
       {/* Tier 4: Row 3 - Recent Activity Stream (Full Width) */}
-      {orgId && <ActivityFeed orgId={orgId} />}
+      {orgId && canViewActivities && <ActivityFeed orgId={orgId} />}
     </div>
   );
 }

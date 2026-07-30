@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '@repo/database';
 import {
+  AppError,
   EmailAlreadyExistsError,
   UsernameAlreadyExistsError,
   InvalidCredentialsError,
@@ -87,6 +88,10 @@ export async function login(username: string, password: string, rememberMe = fal
     throw new InvalidCredentialsError();
   }
 
+  if (user.status === 'SUSPENDED') {
+    throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Tài khoản đã bị khóa.');
+  }
+
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
   if (!passwordMatch) {
     throw new InvalidCredentialsError();
@@ -98,7 +103,7 @@ export async function login(username: string, password: string, rememberMe = fal
     data: { lastLoginAt: new Date() },
   });
 
-  const accessToken = await generateAccessToken(user.id, user.username, user.email);
+  const accessToken = await generateAccessToken(user.id, user.username, user.email, user.platformRole);
   const refreshToken = await generateRefreshToken(user.id, rememberMe);
 
   const profile = await getUserProfile(user.id);
@@ -122,6 +127,8 @@ export async function getUserProfile(userId: string) {
       email: true,
       fullName: true,
       avatarUrl: true,
+      platformRole: true,
+      status: true,
       memberships: {
         select: {
           role: true,
@@ -155,6 +162,8 @@ export async function getUserProfile(userId: string) {
     email: user.email,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
+    platformRole: user.platformRole,
+    status: user.status,
     role: highestRole,
   };
 }
@@ -174,6 +183,10 @@ export async function refreshTokens(oldRawToken: string) {
 
   if (!storedToken) {
     throw new TokenInvalidError();
+  }
+
+  if (storedToken.user.status === 'SUSPENDED') {
+    throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Tài khoản đã bị khóa.');
   }
 
   // Reuse detection: if this token was already revoked, someone stole it.
@@ -213,6 +226,7 @@ export async function refreshTokens(oldRawToken: string) {
     storedToken.user.id,
     storedToken.user.username,
     storedToken.user.email,
+    storedToken.user.platformRole
   );
   const refreshToken = await generateRefreshToken(storedToken.userId, isLongTerm);
 
@@ -247,7 +261,7 @@ export async function verifyAccessToken(token: string) {
     const { payload } = await jwtVerify(token, getJwtSecret(), {
       algorithms: ['HS512'],
     });
-    return payload as { userId: string; username: string; email: string | null };
+    return payload as { userId: string; username: string; email: string | null ; platformRole?: 'USER' | 'ADMIN' };
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes('exp')) {
       throw new TokenExpiredError();
@@ -262,8 +276,9 @@ async function generateAccessToken(
   userId: string,
   username: string,
   email: string | null,
+  platformRole?: 'USER' | 'ADMIN',
 ): Promise<string> {
-  return new SignJWT({ userId, username, email })
+  return new SignJWT({ userId, username, email, platformRole })
     .setProtectedHeader({ alg: 'HS512' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_TTL)

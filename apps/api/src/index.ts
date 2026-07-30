@@ -16,12 +16,12 @@ import authRoutes from './modules/auth/auth.routes';
 import orgRoutes from './modules/organization/org.routes';
 import invitationRoutes from './modules/organization/invitation.routes';
 import notificationRoutes from './modules/notification/notification.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 import { authenticate } from './modules/auth/auth.middleware';
 import { getUserProfile } from './modules/auth/auth.service';
 import { globalErrorHandler } from './common/errors';
 import { setupSwagger } from './config/swagger';
-import { requirePermission } from './common/middlewares/permission.middleware';
 
 import { prisma } from '@repo/database';
 
@@ -62,6 +62,7 @@ app.use('/organizations', orgRoutes);
 app.use('/invitations', invitationRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/tasks', directTaskRoutes);
+app.use('/admin', adminRoutes);
 
 // ─── Protected routes (example) ─────────────────────────────
 /**
@@ -129,64 +130,6 @@ app.get('/users/search', authenticate, async (req, res, next) => {
   }
 });
 
-app.get('/users', authenticate, async (req, res, next) => {
-  try {
-    const userId = req.user!.userId;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        memberships: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
-
-    let highestRole = 'MEMBER';
-    if (user?.memberships && user.memberships.length > 0) {
-      const roles = user.memberships.map((m) => m.role);
-      if (roles.includes('OWNER')) {
-        highestRole = 'OWNER';
-      } else if (roles.includes('ADMIN')) {
-        highestRole = 'ADMIN';
-      }
-    }
-
-    if (highestRole !== 'ADMIN') {
-      res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền thực hiện hành động này. Chỉ Platform Admin mới có quyền truy cập.',
-      });
-      return;
-    }
-
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        fullName: true,
-        email: true,
-        avatarUrl: true,
-        memberships: {
-          include: {
-            organization: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-    });
-    res.json({ success: true, users });
-  } catch (err) {
-    next(err);
-  }
-});
-
 app.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await getUserProfile(req.user!.userId);
@@ -194,10 +137,6 @@ app.get('/me', authenticate, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
-
-app.get('/admin-only', authenticate, requirePermission('view:org-settings'), (req, res) => {
-  res.json({ success: true, message: 'Welcome Admin or Owner!' });
 });
 
 app.get('/', (req, res) => {

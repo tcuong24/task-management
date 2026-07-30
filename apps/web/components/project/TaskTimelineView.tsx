@@ -6,6 +6,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useDeferredValue,
 } from "react";
 import { Input, Select, Avatar, Spin, Button, Checkbox, App } from "antd";
 import { CustomTooltip as Tooltip } from "../common/CustomTooltip";
@@ -141,6 +142,7 @@ export function TaskTimelineView({
 
   // Filter States
   const [searchText, setSearchText] = useState("");
+  const deferredSearchText = useDeferredValue(searchText);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
 
@@ -163,8 +165,14 @@ export function TaskTimelineView({
     if (tasks && tasks.length > 0) {
       setExpandedIds((prev) => {
         const next = new Set(prev);
-        tasks.forEach((t) => next.add(t.id));
-        return next;
+        let changed = false;
+        tasks.forEach((task) => {
+          if (!next.has(task.id)) {
+            next.add(task.id);
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
       });
     }
   }, [tasks]);
@@ -198,6 +206,7 @@ export function TaskTimelineView({
   // Flatten root tasks & subtasks into visible rows depending on expandedIds & filters
   const visibleRows = useMemo(() => {
     const rows: FlattenedRow[] = [];
+    const query = deferredSearchText.toLowerCase().trim();
 
     tasks.forEach((rootTask) => {
       const subTasks = rootTask.subTasks || [];
@@ -206,16 +215,14 @@ export function TaskTimelineView({
 
       // Check root task filter match
       const rootMatchesSearch =
-        !searchText.trim() ||
-        rootTask.title
-          .toLowerCase()
-          .includes(searchText.toLowerCase().trim()) ||
+        !query ||
+        rootTask.title.toLowerCase().includes(query) ||
         (
           rootTask.displayCode ||
           `${rootTask.project?.key}-${rootTask.taskNumber}`
         )
           .toLowerCase()
-          .includes(searchText.toLowerCase().trim());
+          .includes(query);
       const rootMatchesStatus =
         !statusFilter || rootTask.status === statusFilter;
       const rootMatchesAssignee =
@@ -223,14 +230,13 @@ export function TaskTimelineView({
 
       // Filter subtasks
       const matchingSubtasks = subTasks.filter((st) => {
-        if (searchText.trim()) {
-          const q = searchText.toLowerCase().trim();
+        if (query) {
           const code = (
             st.displayCode ||
             `${st.project?.key || rootTask.project?.key}-${st.taskNumber}`
           ).toLowerCase();
-          const matchTitle = st.title.toLowerCase().includes(q);
-          const matchCode = code.includes(q);
+          const matchTitle = st.title.toLowerCase().includes(query);
+          const matchCode = code.includes(query);
           if (!matchTitle && !matchCode) return false;
         }
         if (statusFilter && st.status !== statusFilter) return false;
@@ -272,7 +278,13 @@ export function TaskTimelineView({
     });
 
     return rows;
-  }, [tasks, expandedIds, searchText, statusFilter, selectedAssignee]);
+  }, [
+    tasks,
+    expandedIds,
+    deferredSearchText,
+    statusFilter,
+    selectedAssignee,
+  ]);
 
   // Determine timeline start and end dates based on viewMode & baseDate
   const { startDate, endDate, timeColumns } = useMemo(() => {

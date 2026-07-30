@@ -123,9 +123,14 @@ export async function getMyTasks(orgId: string): Promise<{ success: boolean; tas
   });
 }
 
-export async function getProjectTasks(orgId: string, projectId: string): Promise<{ success: boolean; tasks: OrgTask[] }> {
+export async function getProjectTasks(
+  orgId: string,
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<{ success: boolean; tasks: OrgTask[] }> {
   return request<{ success: boolean; tasks: OrgTask[] }>(`/organizations/${orgId}/projects/${projectId}/tasks`, {
     method: 'GET',
+    signal,
   });
 }
 
@@ -268,4 +273,3 @@ export async function deleteAttachment(attachmentId: string): Promise<{ success:
     method: 'DELETE',
   });
 }
-

@@ -64,9 +64,11 @@ export async function getProjectDashboard(
 
 export async function getProjectTimeline(
   orgId: string,
-  projectId: string
+  projectId: string,
+  signal?: AbortSignal,
 ): Promise<{ success: boolean; tasks: any[] }> {
   return request<{ success: boolean; tasks: any[] }>(`/organizations/${orgId}/projects/${projectId}/timeline`, {
     method: 'GET',
+    signal,
   });
 }

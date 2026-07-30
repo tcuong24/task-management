@@ -23,13 +23,20 @@ async function main() {
   }
 
   // Helper function to seed user and organization membership
-  const seedUserWithRole = async (username: string, email: string, fullName: string, role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST') => {
+  const seedUserWithRole = async (
+    username: string,
+    email: string,
+    fullName: string,
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST',
+    platformRole: 'USER' | 'ADMIN' = 'USER',
+  ) => {
     const user = await prisma.user.upsert({
       where: { username },
       update: {
         passwordHash: passwordHash,
         fullName,
         email,
+        platformRole,
       },
       create: {
         username,
@@ -37,6 +44,7 @@ async function main() {
         passwordHash,
         fullName,
         isVerified: true,
+        platformRole,
       },
     });
     console.log(`✅ Seeded User: ${user.username} (${fullName})`);
@@ -68,7 +76,13 @@ async function main() {
 
   // Seed required test accounts
   await seedUserWithRole('owner', 'owner@taskmanager.com', 'Workspace Owner', 'OWNER');
-  await seedUserWithRole('admin', 'admin@taskmanager.com', 'System Admin', 'ADMIN');
+  await seedUserWithRole(
+    'admin',
+    'admin@taskmanager.com',
+    'System Admin',
+    'ADMIN',
+    'ADMIN',
+  );
   await seedUserWithRole('member', 'member@taskmanager.com', 'Regular Member', 'MEMBER');
   await seedUserWithRole('guest', 'guest@taskmanager.com', 'Guest User', 'GUEST');
 

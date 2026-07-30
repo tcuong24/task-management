@@ -71,11 +71,16 @@ export async function changePassword(oldPassword: string, newPassword: string): 
   });
 }
 
-export async function searchUsers(query: string, excludeOrgId?: string): Promise<{ success: boolean; users: SearchUser[] }> {
+export async function searchUsers(
+  query: string,
+  excludeOrgId?: string,
+  signal?: AbortSignal,
+): Promise<{ success: boolean; users: SearchUser[] }> {
   const params = new URLSearchParams({ q: query });
   if (excludeOrgId) params.append('excludeOrgId', excludeOrgId);
   return request<{ success: boolean; users: SearchUser[] }>(`/users/search?${params.toString()}`, {
     method: 'GET',
+    signal,
   });
 }
 

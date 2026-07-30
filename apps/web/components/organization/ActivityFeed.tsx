@@ -48,29 +48,40 @@ export default function ActivityFeed({ orgId, limit = 20 }: ActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityLogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const controller = new AbortController();
   useEffect(() => {
     if (!orgId) return;
 
-    let isMounted = true;
-    const fetchActivities = async () => {
+    const controller = new AbortController();
+
+    async function fetchActivities() {
       try {
         setLoading(true);
-        const res = await getOrganizationActivities(orgId, limit);
-        if (isMounted && res.success) {
-          setActivities(res.activities || []);
+
+        const response = await getOrganizationActivities(
+          orgId,
+          limit,
+          controller.signal,
+        );
+
+        setActivities(response.activities ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching organization activities:", err);
+
+        console.error("Không thể tải hoạt động:", error);
       } finally {
-        if (isMounted) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
-    };
+    }
 
     fetchActivities();
+
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, [orgId, limit]);
 

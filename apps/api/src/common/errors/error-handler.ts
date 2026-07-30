@@ -20,13 +20,9 @@ export function globalErrorHandler(
   // Unknown / unexpected errors
   console.error('Unhandled error:', err);
 
-  const isProduction = process.env.NODE_ENV === 'production';
-
   res.status(500).json({
     success: false,
     errorCode: 'INTERNAL_ERROR',
-    message: isProduction
-      ? 'An unexpected error occurred.'
-      : err.message || 'An unexpected error occurred.',
+    message: 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
   });
 }

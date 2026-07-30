@@ -16,8 +16,8 @@ export function middleware(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if (pathname === '/login') {
     if (accessToken) {
-      const dashboardUrl = new URL('/dashboard', request.url);
-      return NextResponse.redirect(dashboardUrl);
+      const rootUrl = new URL('/', request.url);
+      return NextResponse.redirect(rootUrl);
     }
   }
 

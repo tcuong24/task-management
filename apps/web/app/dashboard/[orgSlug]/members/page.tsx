@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useOrg } from "../../../../contexts/OrgContext";
@@ -33,6 +33,7 @@ import {
 } from "@ant-design/icons";
 import * as orgService from "../../../../services/organization";
 import * as userService from "../../../../services/user";
+import { isAbortError } from "../../../../services/auth";
 
 const ROLE_COLORS: Record<string, string> = {
   OWNER: "gold",
@@ -66,6 +67,8 @@ export default function OrgMembersPage() {
   const [searchResults, setSearchResults] = useState<userService.SearchUser[]>(
     [],
   );
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const searchTimerRef = useRef<number | null>(null);
 
   // Role Change Modal State
   const [roleModalOpen, setRoleModalOpen] = useState(false);
@@ -95,20 +98,39 @@ export default function OrgMembersPage() {
   }, [fetchMembers]);
 
   // Handle User Search for AutoComplete
-  const handleUserSearch = async (query: string) => {
+  const handleUserSearch = (query: string) => {
+    if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    searchAbortRef.current?.abort();
+
     if (!query || query.trim().length < 2) {
       setSearchResults([]);
       return;
     }
-    try {
-      const res = await userService.searchUsers(query);
-      if (res.success) {
-        setSearchResults(res.users);
+
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    searchTimerRef.current = window.setTimeout(async () => {
+      try {
+        const res = await userService.searchUsers(
+          query.trim(),
+          undefined,
+          controller.signal,
+        );
+        if (res.success) setSearchResults(res.users);
+      } catch (err) {
+        if (isAbortError(err)) return;
+        console.error("Error searching users:", err);
       }
-    } catch (err) {
-      console.error("Error searching users:", err);
-    }
+    }, 250);
   };
+
+  useEffect(
+    () => () => {
+      if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+      searchAbortRef.current?.abort();
+    },
+    [],
+  );
 
   const handleInviteFinish = async (values: {
     email: string;

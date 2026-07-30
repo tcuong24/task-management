@@ -9,6 +9,8 @@ export interface UserProfile {
   fullName: string;
   avatarUrl: string | null;
   role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST' | null;
+  platformRole: 'USER' | 'ADMIN';
+  status: 'ACTIVE' | 'SUSPENDED';
 }
 
 export interface LoginResponse {
@@ -45,6 +47,10 @@ export class ApiError extends Error {
     super(msg);
     this.name = 'ApiError';
   }
+}
+
+export function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 let isRefreshing = false;

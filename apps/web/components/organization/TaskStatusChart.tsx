@@ -1,9 +1,19 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { Card } from "antd";
 import { PieChartOutlined } from "@ant-design/icons";
-import { Pie } from "@ant-design/charts";
+
+const Pie = dynamic(
+  () => import("@ant-design/charts").then((module) => module.Pie),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-52 w-full animate-pulse rounded-xl bg-gray-50 motion-reduce:animate-none" />
+    ),
+  },
+);
 
 interface TaskStatusChartProps {
   statusBreakdown?: {

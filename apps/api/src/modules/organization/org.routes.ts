@@ -200,7 +200,7 @@ router.post('/', orgController.createOrganizationHandler);
 router.get('/by-slug/:slug', orgController.getOrganizationBySlugHandler);
 router.get('/:id/stats', orgController.getOrganizationStatsHandler);
 router.get('/:id/dashboard-summary', requirePermission('view:personal-dashboard'), orgController.getDashboardSummaryHandler);
-router.get('/:id/activities', requirePermission('view:org-settings'), orgController.getOrganizationActivitiesHandler);
+router.get('/:id/activities', requirePermission('view:org-activities'), orgController.getOrganizationActivitiesHandler);
 router.get('/:id/tasks/me', requirePermission('view:personal-dashboard'), orgController.getMyTasksHandler);
 router.get('/:id/my-tasks', requirePermission('view:personal-dashboard'), orgController.getMyTasksHandler);
 router.get('/:id', orgController.getOrganizationHandler);

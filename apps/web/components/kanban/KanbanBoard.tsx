@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Button,
   Avatar,
@@ -28,7 +28,6 @@ import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import { useOrg } from "../../contexts/OrgContext";
-import { TaskDetailDrawer } from "./TaskDetailDrawer";
 
 export interface TaskItem {
   id: string;
@@ -218,6 +217,18 @@ export function KanbanBoard({
   const [selectedTaskForDetail, setSelectedTaskForDetail] =
     useState<TaskItem | null>(null);
   const [taskForm] = Form.useForm();
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<TaskItem["status"], TaskItem[]> = {
+      TODO: [],
+      IN_PROGRESS: [],
+      IN_REVIEW: [],
+      DONE: [],
+    };
+    tasks.forEach((task) => {
+      if (!task.parentTaskId) grouped[task.status].push(task);
+    });
+    return grouped;
+  }, [tasks]);
 
   const isEditable = (task: TaskItem | null) => {
     if (!task) return true;
@@ -337,9 +348,7 @@ export function KanbanBoard({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start min-h-[500px]">
           {statuses.map((status) => {
-            const colTasks = tasks.filter(
-              (t) => t.status === status && !t.parentTaskId,
-            );
+            const colTasks = tasksByStatus[status];
             const style = COLUMN_COLORS[status];
 
             return (

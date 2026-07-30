@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
-import { TokenInvalidError } from '../../common/errors';
+import { AppError, TokenInvalidError } from '../../common/errors';
+import { prisma } from '@repo/database';
 
 // Extend Express Request to include the authenticated user
 declare global {
@@ -10,6 +11,8 @@ declare global {
         userId: string;
         username: string;
         email: string | null;
+        platformRole: 'USER' | 'ADMIN';
+        status: 'ACTIVE' | 'SUSPENDED';
       };
     }
   }
@@ -31,7 +34,19 @@ export async function authenticate(
     }
 
     const payload = await authService.verifyAccessToken(accessToken);
-    req.user = payload;
+    const account = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { platformRole: true, status: true },
+    });
+
+    if (!account) {
+      throw new TokenInvalidError('Tài khoản không còn tồn tại.');
+    }
+    if (account.status === 'SUSPENDED') {
+      throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Tài khoản đã bị khóa.');
+    }
+
+    req.user = { ...payload, ...account };
 
     next();
   } catch (err) {
