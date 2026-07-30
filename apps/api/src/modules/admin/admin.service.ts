@@ -29,6 +29,7 @@ export interface AuditLogFilters {
   actorId?: string;
   action?: string;
   targetType?: string;
+  targetId?: string;
   dateFrom?: Date;
   dateTo?: Date;
   page: number;
@@ -164,7 +165,23 @@ export async function getUserById(userId: string) {
   }
 
   const { _count, ...result } = user;
-  return { ...result, organizationCount: _count.memberships };
+  const suspendedByUser = result.suspendedBy
+    ? await prisma.user.findUnique({
+        where: { id: result.suspendedBy },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          fullName: true,
+        },
+      })
+    : null;
+
+  return {
+    ...result,
+    suspendedByUser,
+    organizationCount: _count.memberships,
+  };
 }
 
 export async function suspendUser(
@@ -509,6 +526,7 @@ export async function getAuditLogs(filters: AuditLogFilters) {
   if (filters.actorId) where.actorId = filters.actorId;
   if (filters.action) where.action = filters.action;
   if (filters.targetType) where.targetType = filters.targetType;
+  if (filters.targetId) where.targetId = filters.targetId;
   if (filters.dateFrom || filters.dateTo) {
     where.createdAt = {
       ...(filters.dateFrom ? { gte: filters.dateFrom } : {}),

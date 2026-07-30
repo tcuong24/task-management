@@ -92,7 +92,7 @@ const canViewActivities = Boolean(
         </div>
 
         <Link href={`/dashboard/${orgSlug}/my-tasks`}>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium !bg-gray-100 !text-blue-600 hover:!bg-blue-600 hover:!text-white transition-colors shadow-sm cursor-pointer">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-900 !bg-gray-100 ! hover:bg-blue-600! hover:!text-white transition-colors shadow-sm cursor-pointer">
             <span>Đến Task của tôi</span>
             <RightOutlined className="text-xs" />
           </button>
@@ -104,7 +104,7 @@ const canViewActivities = Boolean(
         {/* Metric 1: Total Projects */}
         <Card className="rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center text-lg font-bold flex-shrink-0 border border-gray-100">
+            <div className="w-11 h-11 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center text-lg font-bold shrink-0 border border-gray-100">
               <ProjectOutlined />
             </div>
             <div className="flex flex-col min-w-0">

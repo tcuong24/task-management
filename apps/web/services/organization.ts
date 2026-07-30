@@ -304,7 +304,8 @@ export async function getDashboardSummary(id: string): Promise<DashboardSummaryR
 
 export async function getMyTasksInOrg(
   id: string,
-  filters?: { projectId?: string; priority?: string }
+  filters?: { projectId?: string; priority?: string },
+  signal?: AbortSignal
 ): Promise<{ success: boolean; tasks: any[] }> {
   const queryParams = new URLSearchParams();
   if (filters?.projectId) queryParams.append('projectId', filters.projectId);
@@ -314,6 +315,7 @@ export async function getMyTasksInOrg(
 
   return request<{ success: boolean; tasks: any[] }>(`/organizations/${id}/my-tasks${queryString}`, {
     method: 'GET',
+    signal
   });
 }
 

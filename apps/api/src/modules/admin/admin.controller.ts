@@ -225,6 +225,10 @@ export async function getAuditLogsHandler(
         typeof req.query.targetType === 'string'
           ? req.query.targetType
           : undefined,
+      targetId:
+        typeof req.query.targetId === 'string'
+          ? req.query.targetId
+          : undefined,
       dateFrom,
       dateTo,
       page: positiveInteger(req.query.page, 1),

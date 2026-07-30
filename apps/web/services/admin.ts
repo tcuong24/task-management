@@ -63,6 +63,7 @@ export interface AdminUserMembership {
 export interface AdminUserDetail extends AdminUserSummary {
   isVerified: boolean;
   suspendedBy: string | null;
+  suspendedByUser: AdminOrganizationOwner | null;
   memberships: AdminUserMembership[];
 }
 
@@ -103,6 +104,7 @@ export interface AdminAuditLogFilters {
   actorId?: string;
   action?: string;
   targetType?: string;
+  targetId?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -254,6 +256,7 @@ export async function getAdminAuditLogs(
   if (filters.actorId) params.set("actorId", filters.actorId);
   if (filters.action) params.set("action", filters.action);
   if (filters.targetType) params.set("targetType", filters.targetType);
+  if (filters.targetId) params.set("targetId", filters.targetId);
   if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
   if (filters.dateTo) params.set("dateTo", filters.dateTo);
   if (filters.page) params.set("page", String(filters.page));

@@ -162,7 +162,7 @@ export default function DashboardShell({
         type="text"
         icon={<UserOutlined />}
         onClick={handleOpenProfile}
-        className="flex h-11 w-full items-center justify-start rounded-xl px-3 text-gray-700 transition-colors duration-150 ease-out hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+        className="flex h-11 w-full items-center justify-start! rounded-xl px-3 text-gray-700 transition-colors duration-150 ease-out hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
       >
         Thông tin cá nhân
       </Button>
@@ -173,7 +173,7 @@ export default function DashboardShell({
         icon={<LogoutOutlined />}
         loading={loggingOut}
         onClick={handleLogout}
-        className="flex h-11 w-full items-center justify-start rounded-xl px-3 transition-colors duration-150 ease-out hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+        className="flex h-11 w-full items-center justify-start! rounded-xl px-3 transition-colors duration-150 ease-out hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
       >
         Đăng xuất
       </Button>

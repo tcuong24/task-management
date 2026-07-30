@@ -12,9 +12,10 @@ export interface ProjectInfo {
   };
 }
 
-export async function getProjects(orgId: string): Promise<{ success: boolean; projects: ProjectInfo[] }> {
+export async function getProjects(orgId: string,signal?:AbortSignal): Promise<{ success: boolean; projects: ProjectInfo[] }> {
   return request<{ success: boolean; projects: ProjectInfo[] }>(`/organizations/${orgId}/projects`, {
     method: 'GET',
+    signal,
   });
 }
 

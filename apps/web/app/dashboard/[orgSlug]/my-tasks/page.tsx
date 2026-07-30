@@ -1,14 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import { Select, Spin, App } from 'antd';
-import { FilterOutlined } from '@ant-design/icons';
-import { useOrg } from '../../../../contexts/OrgContext';
-import * as orgService from '../../../../services/organization';
-import * as projectService from '../../../../services/project';
-import * as taskService from '../../../../services/task';
-import { KanbanBoard, TaskItem } from '../../../../components/kanban/KanbanBoard';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { Select, Spin, App } from "antd";
+import { FilterOutlined } from "@ant-design/icons";
+import { useOrg } from "../../../../contexts/OrgContext";
+import * as orgService from "../../../../services/organization";
+import * as projectService from "../../../../services/project";
+import * as taskService from "../../../../services/task";
+import {
+  KanbanBoard,
+  TaskItem,
+} from "../../../../components/kanban/KanbanBoard";
 
 export default function MyTasksPage() {
   const params = useParams();
@@ -20,88 +23,118 @@ export default function MyTasksPage() {
 
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [projectsList, setProjectsList] = useState<{ id: string; key: string; name: string }[]>([]);
+  const [projectsList, setProjectsList] = useState<
+    { id: string; key: string; name: string }[]
+  >([]);
 
   // Filter States
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
-  const [selectedPriority, setSelectedPriority] = useState<string | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedPriority, setSelectedPriority] = useState<string | undefined>(
+    undefined,
+  );
 
-  const fetchMyTasks = useCallback(async () => {
-    if (!orgId) return;
-    try {
-      setLoading(true);
-      const res = await orgService.getMyTasksInOrg(orgId, {
-        projectId: selectedProjectId,
-        priority: selectedPriority,
-      });
-
-      if (res.success) {
-        setTasks(res.tasks);
+  const fetchMyTasks = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orgId) {
+        setTasks([]);
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      console.error('Error fetching my tasks:', err);
-      message.error(err.message || 'Không thể tải danh sách công việc.');
-    } finally {
-      setLoading(false);
-    }
-  }, [orgId, selectedProjectId, selectedPriority, message]);
 
-  const fetchProjects = useCallback(async () => {
-    if (!orgId) return;
-    try {
-      const res = await projectService.getProjects(orgId);
-      if (res.success) {
-        setProjectsList(
-          res.projects.map((p: projectService.ProjectInfo) => ({
-            id: p.id,
-            key: p.key,
-            name: p.name,
-          }))
+      try {
+        setLoading(true);
+
+        const response = await orgService.getMyTasksInOrg(
+          orgId,
+          {
+            projectId: selectedProjectId,
+            priority: selectedPriority,
+          },
+          signal,
         );
-      }
-    } catch (err) {
-      console.error('Error fetching projects list:', err);
-    }
-  }, [orgId]);
 
-  const [membersList, setMembersList] = useState<{ userId: string; name: string }[]>([]);
+        if (response.success) {
+          setTasks(response.tasks);
+        }
+      } catch (error: any) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
 
-  const fetchMembers = useCallback(async () => {
-    if (!orgId) return;
-    try {
-      const res = await orgService.getMembers(orgId);
-      if (res.success && res.members) {
-        setMembersList(
-          res.members.map((m: any) => ({
-            userId: m.userId,
-            name: m.user?.fullName || m.user?.username || m.userId,
-          }))
-        );
+        console.error("Không thể tải task của tôi:", error);
+        message.error(error.message || "Không thể tải danh sách công việc.");
+      } finally {
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching members:', err);
-    }
-  }, [orgId]);
+    },
+    [orgId, selectedProjectId, selectedPriority, message],
+  );
+  const fetchProjects = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orgId) {
+        setProjectsList([]);
+        return;
+      }
+
+      try {
+        const response = await projectService.getProjects(orgId, signal);
+
+        if (response.success) {
+          setProjectsList(
+            response.projects.map((project) => ({
+              id: project.id,
+              key: project.key,
+              name: project.name,
+            })),
+          );
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Không thể tải project:", error);
+      }
+    },
+    [orgId],
+  );
 
   useEffect(() => {
-    if (orgId) {
-      fetchMyTasks();
-      fetchProjects();
-      fetchMembers();
-    }
-  }, [orgId, fetchMyTasks, fetchProjects, fetchMembers]);
+    const controller = new AbortController();
 
-  const handleStatusChange = async (task: TaskItem, newStatus: TaskItem['status']) => {
+    fetchMyTasks(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [fetchMyTasks]);
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchProjects(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [fetchProjects]);
+  const handleStatusChange = async (
+    task: TaskItem,
+    newStatus: TaskItem["status"],
+  ) => {
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t)),
     );
 
     try {
       if (!orgId) return;
       await taskService.moveTask(orgId, task.projectId, task.id, newStatus, 0);
-      message.success('Cập nhật trạng thái công việc thành công!');
+      message.success("Cập nhật trạng thái công việc thành công!");
     } catch (err: any) {
-      message.error(err.message || 'Không thể cập nhật trạng thái.');
+      message.error(err.message || "Không thể cập nhật trạng thái.");
       fetchMyTasks();
     }
   };
@@ -110,10 +143,10 @@ export default function MyTasksPage() {
     if (!orgId) return;
     if (data.id) {
       await taskService.updateTask(orgId, data.projectId, data.id, data);
-      message.success('Cập nhật công việc thành công!');
+      message.success("Cập nhật công việc thành công!");
     } else {
       await taskService.createTask(orgId, data.projectId, data);
-      message.success('Tạo công việc thành công!');
+      message.success("Tạo công việc thành công!");
     }
     fetchMyTasks();
   };
@@ -121,7 +154,7 @@ export default function MyTasksPage() {
   const handleTaskDelete = async (task: TaskItem) => {
     if (!orgId) return;
     await taskService.deleteTask(orgId, task.projectId, task.id);
-    message.success('Đã xóa công việc.');
+    message.success("Đã xóa công việc.");
     fetchMyTasks();
   };
 
@@ -142,7 +175,6 @@ export default function MyTasksPage() {
           <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
             Task của tôi
           </h1>
-
         </div>
 
         {/* Filters */}
@@ -188,7 +220,6 @@ export default function MyTasksPage() {
         showProjectBadge={true}
         requireProjectSelect={true}
         projectsList={projectsList}
-        membersList={membersList}
         onStatusChange={handleStatusChange}
         onTaskSave={handleTaskSave}
         onTaskDelete={handleTaskDelete}

@@ -19,7 +19,6 @@
     "@fontsource-variable/nunito": "5.2.7",
     "@repo/database": "workspace:^",
     "@repo/permissions": "workspace:^",
-    "@repo/ui": "workspace:*",
     "antd": "^6.5.1",
     "dayjs": "^1.11.21",
     "framer-motion": "^12.42.2",

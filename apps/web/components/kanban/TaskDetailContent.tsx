@@ -140,7 +140,8 @@ export function TaskDetailContent({
           setDescInput(res.task.description || "");
 
           // Fetch org members for assignee selection if org ID is available
-          if (res.task.project?.organizationId) {
+          const canLoadMembers = userRole === "OWNER" || userRole === "ADMIN";
+          if (canLoadMembers && res.task.project?.organizationId) {
             try {
               const orgRes = await orgService.getMembers(
                 res.task.project.organizationId,

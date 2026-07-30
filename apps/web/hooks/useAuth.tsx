@@ -66,13 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       const data = await authService.login(username, password, rememberMe);
       setUser(data.user);
-      if (redirectTo !== "/dashboard") {
-        router.push(redirectTo);
-      } else if (data.user.platformRole === "ADMIN") {
-        router.push("/admin");
-      } else {
-        router.push("/dashboard");
+      if (
+        redirectTo &&
+        redirectTo !== "/dashboard" &&
+        redirectTo.startsWith("/")
+      ) {
+        router.replace(redirectTo);
+        return;
       }
+
+      if (data.user.platformRole === "ADMIN") {
+        router.replace("/admin");
+        return;
+      }
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message || "Login failed.");
       throw err;
