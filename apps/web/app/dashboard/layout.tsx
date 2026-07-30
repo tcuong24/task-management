@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import { OrgProvider, useOrg } from "../../contexts/OrgContext";
 import { Sidebar } from "../../components/sidebar/Sidebar";
-import { Avatar, Skeleton, Input } from "antd";
-import { SearchOutlined, UserOutlined } from "@ant-design/icons";
+import { Avatar, Button, Popover, Skeleton, Input } from "antd";
+import {
+  LogoutOutlined,
+  SearchOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import NotificationBell from "../../components/notification/NotificationBell";
 
 // Helper functions for Cookie
@@ -83,7 +86,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // Load initial collapsed state from cookie
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
@@ -128,6 +134,52 @@ export default function DashboardLayout({
     ? user.fullName.charAt(0).toUpperCase()
     : "U";
 
+  const handleOpenProfile = () => {
+    setAccountMenuOpen(false);
+    router.push("/profile");
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      setAccountMenuOpen(false);
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const accountMenu = (
+    <div className="flex min-w-52 flex-col gap-1">
+      <div className="border-b border-gray-100 px-3 pb-3 pt-1 text-left">
+        <p className="truncate text-sm font-semibold text-gray-900">
+          {user?.fullName}
+        </p>
+        <p className="truncate text-xs text-gray-500">@{user?.username}</p>
+      </div>
+
+      <Button
+        type="text"
+        icon={<UserOutlined />}
+        onClick={handleOpenProfile}
+        className="flex h-11 w-full items-center justify-start rounded-xl px-3 text-gray-700 transition-colors duration-150 ease-out hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+      >
+        Thông tin cá nhân
+      </Button>
+
+      <Button
+        type="text"
+        danger
+        icon={<LogoutOutlined />}
+        loading={loggingOut}
+        onClick={handleLogout}
+        className="flex h-11 w-full items-center justify-start rounded-xl px-3 transition-colors duration-150 ease-out hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+      >
+        Đăng xuất
+      </Button>
+    </div>
+  );
+
   return (
     <OrgProvider>
       <div className="relative flex min-h-screen w-full bg-gray-50">
@@ -158,14 +210,33 @@ export default function DashboardLayout({
 
               {/* User Avatar */}
               <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-                <Avatar
-                  src={user?.avatarUrl}
-                  icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
-                  className="bg-gray-200 text-gray-800 font-bold cursor-pointer transition-opacity duration-150 hover:opacity-80 focus-ring"
-                  size={32}
+                <Popover
+                  content={accountMenu}
+                  trigger="click"
+                  placement="bottomRight"
+                  open={accountMenuOpen}
+                  onOpenChange={setAccountMenuOpen}
+                  classNames={{
+                    container: "rounded-xl shadow-xl",
+                    content: "p-2",
+                  }}
                 >
-                  {firstLetter}
-                </Avatar>
+                  <button
+                    type="button"
+                    aria-label="Mở menu tài khoản"
+                    aria-expanded={accountMenuOpen}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-150 ease-out hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+                  >
+                    <Avatar
+                      src={user?.avatarUrl}
+                      icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
+                      className="bg-gray-200 text-gray-800 font-bold"
+                      size={32}
+                    >
+                      {firstLetter}
+                    </Avatar>
+                  </button>
+                </Popover>
               </div>
             </div>
           </header>

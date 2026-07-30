@@ -19,6 +19,7 @@ import {
   ReloadOutlined,
   UserOutlined,
   MailOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAuth } from "../../../../../hooks/useAuth";
@@ -27,6 +28,8 @@ import * as orgService from "../../../../../services/organization";
 import { RoleBadge } from "../../../../../components/common/RoleBadge";
 import { StatusBadge } from "../../../../../components/common/StatusBadge";
 import type { OrgRole } from "@repo/permissions";
+import CustomTooltip from "../../../../../components/common/CustomTooltip";
+import CustomConfirmModal from "../../../../../components/common/CustomConfirmModal";
 
 const AVATAR_PALETTE = [
   "#10B981",
@@ -73,7 +76,9 @@ export default function TeamPage() {
   const [invitations, setInvitations] = useState<orgService.OrgInvitation[]>(
     [],
   );
-
+  const [memberToSuspend, setMemberToSuspend] =
+    useState<TeamRowItem | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   // Invite Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
@@ -111,6 +116,28 @@ export default function TeamPage() {
       fetchTeamData();
     } catch (err: any) {
       message.error(err.message || "Không thể cập nhật vai trò.");
+    }
+  };
+  const handleSuspendMember = async (memberId: string) => {
+    if (!orgId) return;
+    try {
+      await orgService.suspendMember(orgId, memberId);
+      message.success("Đã tạm khóa thành viên.");
+      fetchTeamData();
+    } catch (err: any) {
+      message.error(err.message || "Không thể tạm khóa thành viên.");
+    }
+  };
+
+  const handleConfirmSuspend = async () => {
+    if (!memberToSuspend) return;
+
+    try {
+      setSubmitting(true);
+      await handleSuspendMember(memberToSuspend.id);
+      setMemberToSuspend(null);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -230,28 +257,6 @@ export default function TeamPage() {
       key: "role",
       width: 180,
       render: (role: OrgRole, record: TeamRowItem) => {
-        const isSelf = currentUser?.id === record.userId;
-        const canEditRole =
-          isAdminOrOwner &&
-          !isSelf &&
-          !record.isInvitation &&
-          record.role !== "OWNER";
-
-        if (canEditRole) {
-          return (
-            <Select
-              value={role}
-              onChange={(val) => handleRoleChange(record.id, val)}
-              size="small"
-              className="w-32"
-            >
-              <Select.Option value="ADMIN">ADMIN</Select.Option>
-              <Select.Option value="MEMBER">MEMBER</Select.Option>
-              <Select.Option value="GUEST">GUEST</Select.Option>
-            </Select>
-          );
-        }
-
         return <RoleBadge role={role} />;
       },
     },
@@ -263,7 +268,7 @@ export default function TeamPage() {
       render: (status: string) => <StatusBadge status={status} />,
     },
     {
-      title: "THAM GIA / HÀNH ĐỘNG",
+      title: "THAM GIA",
       key: "actions",
       width: 220,
       render: (_: any, record: TeamRowItem) => {
@@ -307,6 +312,29 @@ export default function TeamPage() {
             <span className="text-xs text-gray-400 italic">
               Tài khoản bị khóa
             </span>
+          );
+        }
+
+        return null;
+      },
+    },{
+      title: "Khóa tài khoản",
+      key: "actions",
+      width: 220,
+      render: (_: any, record: TeamRowItem) => {
+        if (record.status === "ACTIVE" && record.role !== "OWNER") {
+          return (
+            <CustomTooltip title="Khóa tài khoản">
+            <Button
+              className="p-0 text-gray-700 hover:text-gray-800 font-semibold text-xs"
+              type="link"
+              size="small"
+              onClick={() => setMemberToSuspend(record)}
+            >
+
+              <LockOutlined />
+            </Button>
+            </CustomTooltip>
           );
         }
 
@@ -420,6 +448,21 @@ export default function TeamPage() {
           </div>
         </Form>
       </Modal>
+      <CustomConfirmModal
+        open={Boolean(memberToSuspend)}
+        variant="danger"
+        title="Khóa tài khoản?"
+        description={
+          memberToSuspend
+            ? `Tài khoản ${memberToSuspend.name} sẽ không thể truy cập tổ chức cho đến khi được kích hoạt lại.`
+            : undefined
+        }
+        okText="Khóa tài khoản"
+        cancelText="Hủy"
+        confirmLoading={submitting}
+        onOk={handleConfirmSuspend}
+        onCancel={() => setMemberToSuspend(null)}
+      />
     </div>
   );
 }

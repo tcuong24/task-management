@@ -130,7 +130,12 @@ export async function inviteMember(id: string, email: string, role: OrgRole): Pr
     body: JSON.stringify({ email, role }),
   });
 }
-
+export async function suspendMember(id: string, memberId: string): Promise<{ success: boolean; member: OrgMember }> {
+  return request<{ success: boolean; member: OrgMember }>(`/organizations/${id}/members/${memberId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'SUSPENDED' }),
+  });
+}
 export async function updateMemberRole(id: string, memberId: string, role: OrgRole): Promise<UpdateMemberRoleResponse> {
   return request<UpdateMemberRoleResponse>(`/organizations/${id}/members/${memberId}/role`, {
     method: 'PATCH',

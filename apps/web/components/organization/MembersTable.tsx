@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Table, Avatar, Select, Button, Modal, message } from "antd";
+import { Table, Avatar, Select, Button, message } from "antd";
 import {
   UserOutlined,
   DeleteOutlined,
-  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { OrgRole } from "@repo/permissions";
 import {
@@ -17,6 +16,7 @@ import { useOrgPermissions } from "../../hooks/useOrgPermissions";
 import { useAuth } from "../../hooks/useAuth";
 import { RoleBadge } from "../common/RoleBadge";
 import { StatusBadge } from "../common/StatusBadge";
+import { customConfirm } from "../common/CustomConfirmModal";
 
 const { Option } = Select;
 
@@ -57,13 +57,13 @@ export default function MembersTable({
   };
 
   const handleDeleteConfirm = (member: OrgMember) => {
-    Modal.confirm({
+    customConfirm({
+      variant: "danger",
       title: (
         <span className="font-extrabold text-gray-800 text-lg">
           Xóa thành viên?
         </span>
       ),
-      icon: <ExclamationCircleOutlined className="text-red-500" />,
       content: (
         <span className="text-sm text-gray-600 leading-normal">
           Xóa <strong>{member.user.fullName}</strong> khỏi tổ chức? Hành động
@@ -72,19 +72,6 @@ export default function MembersTable({
       ),
       okText: "Xóa thành viên",
       cancelText: "Hủy",
-      okButtonProps: {
-        danger: true,
-        className:
-          "rounded-xl h-10 font-bold bg-red-600 border-none hover:bg-red-700 text-white shadow-md",
-      },
-      cancelButtonProps: {
-        className:
-          "rounded-xl h-10 font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50",
-      },
-      centered: true,
-      className: "delete-member-confirm-modal",
-      // Lớp 4 shadow-2xl for dangerous action confirm modal
-      wrapClassName: "elevation-4-confirm-popover",
       onOk: async () => {
         try {
           const res = await removeMember(organizationId, member.id);

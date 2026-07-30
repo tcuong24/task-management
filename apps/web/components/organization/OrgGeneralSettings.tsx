@@ -1,51 +1,56 @@
 "use client";
 
-import React, { useState } from "react";
-import { Card, Button, Modal, Form, Input, message } from "antd";
-import { EditOutlined, SaveOutlined } from "@ant-design/icons";
-import { Organization, updateOrganization } from "../../services/organization";
-import { useOrgPermissions } from "../../hooks/useOrgPermissions";
+import React, { useEffect, useState } from "react";
+import { App, Avatar, Button, Form, Input } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
+import {
+  Organization,
+  updateOrganization,
+} from "../../services/organization";
 
 interface OrgGeneralSettingsProps {
   organization: Organization;
+  canEdit: boolean;
   onUpdate: (updated: Organization) => void;
+}
+
+interface OrganizationFormValues {
+  name: string;
+  slug: string;
 }
 
 export default function OrgGeneralSettings({
   organization,
+  canEdit,
   onUpdate,
 }: OrgGeneralSettingsProps) {
-  const { canViewSettings } = useOrgPermissions();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form] = Form.useForm();
+  const { message } = App.useApp();
+  const [form] = Form.useForm<OrganizationFormValues>();
   const [saving, setSaving] = useState(false);
 
-  const handleEditClick = () => {
+  useEffect(() => {
     form.setFieldsValue({
       name: organization.name,
       slug: organization.slug,
     });
-    setIsModalOpen(true);
-  };
+  }, [form, organization]);
 
-  const handleFinish = async (values: { name: string; slug: string }) => {
+  const handleFinish = async (values: OrganizationFormValues) => {
     try {
       setSaving(true);
-      const res = await updateOrganization(
+      const response = await updateOrganization(
         organization.id,
-        values.name,
-        values.slug,
+        values.name.trim(),
+        values.slug.trim(),
       );
-      if (res.success) {
-        message.success("Cập nhật thông tin tổ chức thành công.");
-        onUpdate(res.organization);
-        setIsModalOpen(false);
-      }
+
+      onUpdate(response.organization);
+      message.success("Đã cập nhật thông tin tổ chức.");
     } catch (err: any) {
       if (err.status === 403) {
-        message.error("Bạn không có quyền thực hiện hành động này.");
+        message.error("Bạn không có quyền cập nhật tổ chức này.");
       } else {
-        message.error(err.message || "Lỗi khi cập nhật tổ chức.");
+        message.error(err.message || "Không thể cập nhật thông tin tổ chức.");
       }
     } finally {
       setSaving(false);
@@ -53,110 +58,101 @@ export default function OrgGeneralSettings({
   };
 
   return (
-    <Card
-      title={
-        <span className="font-extrabold text-gray-800 text-base">
-          Thông tin chung
-        </span>
-      }
-      className="border-none shadow-md rounded-2xl bg-white text-left"
-      extra={
-        canViewSettings && (
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={handleEditClick}
-            className="text-gray-500 hover:text-gray-700 transition-colors flex items-center font-semibold text-sm border-none bg-transparent"
-          >
-            Chỉnh sửa
-          </Button>
-        )
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 bg-gray-50 text-gray-700 rounded-2xl flex items-center justify-center font-semibold text-2xl uppercase border border-gray-100/50">
-            {organization.name.charAt(0)}
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-lg font-bold text-gray-800">
-              {organization.name}
-            </span>
-            <span className="text-sm text-gray-400 font-medium">
-              Slug: /{organization.slug}
-            </span>
-          </div>
+    <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+      <div className="flex flex-col items-center gap-3 rounded-xl bg-gray-50/50 p-4 text-center">
+        <Avatar
+          src={organization.avatarUrl || undefined}
+          size={72}
+          className="border border-gray-200 bg-gray-100 text-xl font-semibold text-gray-700"
+        >
+          {organization.name.charAt(0).toUpperCase()}
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-gray-900">
+            {organization.name}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">Ảnh đại diện tổ chức</p>
         </div>
       </div>
 
-      <Modal
-        title={
-          <span className="font-extrabold text-gray-800 text-lg">
-            Chỉnh sửa thông tin tổ chức
-          </span>
-        }
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        centered
-        width={440}
-        className="org-edit-modal"
+      <Form<OrganizationFormValues>
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        onFinish={handleFinish}
+        disabled={!canEdit}
+        className="min-w-0"
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleFinish}
-          requiredMark={false}
-          className="mt-4"
+        <Form.Item
+          label={
+            <span className="text-sm font-semibold text-gray-700">
+              Tên tổ chức
+            </span>
+          }
+          name="name"
+          rules={[
+            { required: true, whitespace: true, message: "Nhập tên tổ chức." },
+            { max: 255, message: "Tên tổ chức tối đa 255 ký tự." },
+          ]}
         >
-          <Form.Item
-            label={
-              <span className="text-gray-700 text-sm font-semibold">
-                Tên tổ chức
-              </span>
-            }
-            name="name"
-            rules={[
-              { required: true, message: "Tên tổ chức không được để trống." },
-            ]}
-          >
-            <Input size="large" className="rounded-xl border-gray-200" />
-          </Form.Item>
+          <Input
+            size="large"
+            autoComplete="organization"
+            placeholder="Ví dụ: Acme Studio"
+            className="rounded-xl border-gray-200"
+          />
+        </Form.Item>
 
-          <Form.Item
-            label={
-              <span className="text-gray-700 text-sm font-semibold">Slug</span>
-            }
-            name="slug"
-            rules={[{ required: true, message: "Slug không được để trống." }]}
-          >
-            <Input
-              size="large"
-              addonBefore="taskflow.vn/org/"
-              className="rounded-xl border-gray-200 overflow-hidden"
-            />
-          </Form.Item>
+        <Form.Item
+          label={
+            <span className="text-sm font-semibold text-gray-700">
+              Đường dẫn tổ chức
+            </span>
+          }
+          extra={
+            <span className="text-xs text-gray-500">
+              Slug chỉ gồm chữ thường, số và dấu gạch ngang.
+            </span>
+          }
+          name="slug"
+          normalize={(value: string) =>
+            value?.toLowerCase().replace(/\s+/g, "-")
+          }
+          rules={[
+            { required: true, whitespace: true, message: "Nhập slug tổ chức." },
+            {
+              pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+              message: "Slug không đúng định dạng.",
+            },
+            { max: 255, message: "Slug tối đa 255 ký tự." },
+          ]}
+        >
+          <Input
+            size="large"
+            addonBefore="/dashboard/"
+            placeholder="acme-studio"
+            className="overflow-hidden rounded-xl border-gray-200"
+          />
+        </Form.Item>
 
-          <div className="flex items-center gap-3 mt-6">
-            <Button
-              disabled={saving}
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 rounded-xl h-10 text-sm font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center"
-            >
-              Hủy
-            </Button>
+        {canEdit ? (
+          <div className="flex justify-end border-t border-gray-100 pt-4">
             <Button
               type="primary"
               htmlType="submit"
               loading={saving}
               icon={<SaveOutlined />}
-              className="flex-1 rounded-xl h-10 text-sm font-bold bg-blue-600 hover:bg-blue-700 border-none text-white shadow-md flex items-center justify-center"
+              className="h-11 rounded-xl border-none bg-blue-600 px-5 font-semibold text-white shadow-md transition-colors duration-150 ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
             >
-              Lưu cấu hình
+              Lưu thay đổi
             </Button>
           </div>
-        </Form>
-      </Modal>
-    </Card>
+        ) : (
+          <p className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+            Bạn chỉ có quyền xem cài đặt này.
+          </p>
+        )}
+      </Form>
+    </div>
   );
 }

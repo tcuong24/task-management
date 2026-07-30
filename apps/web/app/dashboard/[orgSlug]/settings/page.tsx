@@ -1,88 +1,89 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useCallback, useEffect, useState } from "react";
+import { Alert, Button, Card, Skeleton } from "antd";
+import {
+  ClockCircleOutlined,
+  SettingOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import { useOrg } from "../../../../contexts/OrgContext";
 import * as orgService from "../../../../services/organization";
 import OrgGeneralSettings from "../../../../components/organization/OrgGeneralSettings";
-import MembersTable from "../../../../components/organization/MembersTable";
-import InviteMemberModal from "../../../../components/organization/InviteMemberModal";
-import { Card, Button, Skeleton, Alert } from "antd";
-import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
+
+function formatDate(value?: string) {
+  if (!value) return "Chưa có dữ liệu";
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
 
 export default function OrgSettingsPage() {
   const router = useRouter();
   const { currentOrg, userRole, refreshOrganizations } = useOrg();
   const orgId = currentOrg?.id;
 
-  const [org, setOrg] = useState<orgService.Organization | null>(null);
-  const [members, setMembers] = useState<orgService.OrgMember[]>([]);
+  const [organization, setOrganization] =
+    useState<orgService.Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
-  const isAdminOrOwner = userRole === "ADMIN" || userRole === "OWNER";
+  const canEdit = userRole === "ADMIN" || userRole === "OWNER";
 
-  const fetchData = async () => {
+  const fetchOrganization = useCallback(async () => {
     if (!orgId) return;
+
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch org details
-      const orgRes = await orgService.getOrganization(orgId);
-      if (orgRes.success) {
-        setOrg(orgRes.organization);
-      }
-
-      // Fetch members
-      try {
-        const membersRes = await orgService.getMembers(orgId);
-        if (membersRes.success) {
-          setMembers(membersRes.members);
-        }
-      } catch (err) {
-        // Forbidden skipped
-      }
+      const response = await orgService.getOrganization(orgId);
+      setOrganization(response.organization);
     } catch (err: any) {
-      console.error("Error fetching organization details:", err);
+      console.error("Error fetching organization settings:", err);
+
       if (err.status === 403) {
-        setError("Bạn không có quyền xem thông tin cài đặt của tổ chức này.");
+        setError("Bạn không có quyền xem cài đặt của tổ chức này.");
       } else if (err.status === 404) {
-        setError("Không tìm thấy tổ chức yêu cầu.");
+        setError("Không tìm thấy tổ chức.");
       } else {
-        setError(err.message || "Lỗi kết nối máy chủ.");
+        setError(err.message || "Không thể tải cài đặt tổ chức.");
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
   useEffect(() => {
-    fetchData();
-  }, [orgId]);
+    void fetchOrganization();
+  }, [fetchOrganization]);
 
   if (loading) {
     return (
-      <div className="p-8 flex justify-center">
-        <div className="w-full max-w-4xl space-y-4">
+      <div className="mx-auto w-full max-w-5xl p-4 md:p-6">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <Skeleton active avatar paragraph={{ rows: 6 }} />
-        </div>
+        </Card>
       </div>
     );
   }
 
-  if (error || !org) {
+  if (error || !organization) {
     return (
-      <div className="p-8 max-w-3xl mx-auto text-left">
+      <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
         <Alert
-          message="Truy cập bị từ chối"
+          message="Không thể mở cài đặt"
           description={error || "Không tìm thấy thông tin tổ chức."}
           type="error"
           showIcon
-          className="rounded-2xl shadow-sm border border-red-100 mb-4"
+          className="mb-4 rounded-2xl border border-red-100"
         />
-        <Button onClick={() => router.push(`/dashboard`)}>
+        <Button
+          onClick={() => router.push("/dashboard")}
+          className="h-11 rounded-xl border border-gray-200 bg-white px-5 font-semibold text-gray-700 transition-colors duration-150 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+        >
           Quay lại Dashboard
         </Button>
       </div>
@@ -90,72 +91,113 @@ export default function OrgSettingsPage() {
   }
 
   return (
-    <div className="p-3 md:p-4 flex flex-col gap-6  mx-auto w-full text-left">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
+      <header className="flex items-start gap-3 text-left">
+        <span
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-700"
+          aria-hidden="true"
+        >
+          <SettingOutlined className="text-lg" />
+        </span>
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight flex items-center gap-2.5">
-            <SettingOutlined className="text-gray-700" />
-            <span>Cài đặt Tổ chức: {org.name}</span>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Cài đặt tổ chức
           </h1>
-          <p className="text-sm text-gray-500 font-medium mt-0.5">
-            Cấu hình thông tin chung và phân quyền thành viên tổ chức.
+          <p className="mt-1 text-sm leading-6 text-gray-500">
+            Quản lý thông tin nhận diện và đường dẫn của {organization.name}.
           </p>
         </div>
+      </header>
 
-        {isAdminOrOwner && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setInviteModalOpen(true)}
-            className="bg-blue-600 border-none font-semibold text-white shadow-sm hover:bg-blue-700 rounded-xl h-[42px] px-5"
-          >
-            Mời thành viên
-          </Button>
-        )}
-      </div>
+      <section aria-labelledby="general-settings-title">
+        <Card
+          className="rounded-2xl border border-gray-100 bg-white shadow-sm"
+          styles={{ body: { padding: 0 } }}
+        >
+          <div className="border-b border-gray-100 p-6">
+            <h2
+              id="general-settings-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              Thông tin chung
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Tên và slug được sử dụng trên toàn bộ không gian làm việc.
+            </p>
+          </div>
 
-      {/* Main Content Layout */}
-      <div className="flex flex-col gap-8">
-        {/* Section 1: General Info */}
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold text-gray-800">Thông tin chung</h2>
-          <Card className="border border-gray-100 shadow-sm rounded-2xl bg-white">
+          <div className="p-6">
             <OrgGeneralSettings
-              organization={org}
-              onUpdate={() => {
-                fetchData();
-                refreshOrganizations();
+              organization={organization}
+              canEdit={canEdit}
+              onUpdate={(updated) => {
+                setOrganization(updated);
+                void refreshOrganizations();
               }}
             />
-          </Card>
-        </section>
+          </div>
+        </Card>
+      </section>
 
-        {/* Section 2: Members List (Admin/Owner only) */}
-        {isAdminOrOwner && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">
-                Thành viên tổ chức
-              </h2>
+      <section aria-labelledby="system-information-title">
+        <Card
+          className="rounded-2xl border border-gray-100 bg-white shadow-sm"
+          styles={{ body: { padding: 0 } }}
+        >
+          <div className="border-b border-gray-100 p-6">
+            <h2
+              id="system-information-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              Thông tin hệ thống
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Các thông tin định danh chỉ đọc của tổ chức.
+            </p>
+          </div>
+
+          <dl className="divide-y divide-gray-100 px-6">
+            <div className="grid gap-2 py-4 sm:grid-cols-[180px_1fr] sm:items-center">
+              <dt className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <SafetyCertificateOutlined
+                  className="text-gray-400"
+                  aria-hidden="true"
+                />
+                Mã tổ chức
+              </dt>
+              <dd className="break-all rounded-md border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-sm text-gray-500">
+                {organization.id}
+              </dd>
             </div>
-            <MembersTable
-              organizationId={org.id}
-              members={members}
-              loading={loading}
-              onRefresh={fetchData}
-            />
-          </section>
-        )}
-      </div>
 
-      {/* Invite Member Modal */}
-      <InviteMemberModal
-        organizationId={org.id}
-        isOpen={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-        onSuccess={fetchData}
-      />
+            <div className="grid gap-2 py-4 sm:grid-cols-[180px_1fr] sm:items-center">
+              <dt className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <ClockCircleOutlined
+                  className="text-gray-400"
+                  aria-hidden="true"
+                />
+                Ngày tạo
+              </dt>
+              <dd className="text-sm text-gray-700">
+                {formatDate(organization.createdAt)}
+              </dd>
+            </div>
+
+            <div className="grid gap-2 py-4 sm:grid-cols-[180px_1fr] sm:items-center">
+              <dt className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <ClockCircleOutlined
+                  className="text-gray-400"
+                  aria-hidden="true"
+                />
+                Cập nhật gần nhất
+              </dt>
+              <dd className="text-sm text-gray-700">
+                {formatDate(organization.updatedAt)}
+              </dd>
+            </div>
+          </dl>
+        </Card>
+      </section>
     </div>
   );
 }

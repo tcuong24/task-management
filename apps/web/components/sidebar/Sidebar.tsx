@@ -2,15 +2,11 @@
 
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Avatar, Button } from "antd";
-import CustomTooltip from "../common/CustomTooltip";
 import {
   DashboardOutlined,
   CheckSquareOutlined,
   TeamOutlined,
   SettingOutlined,
-  LogoutOutlined,
-  UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
@@ -19,53 +15,26 @@ import { useOrg } from "../../contexts/OrgContext";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { RecentProjects } from "./RecentProjects";
-
-import Link from "next/link";
-
 interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
   isMobile?: boolean;
 }
 
-const ROLE_TAG_STYLES: Record<string, string> = {
-  OWNER: "!bg-gray-100 !text-gray-800 !border-gray-200",
-  ADMIN: "!bg-gray-100 !text-gray-800 !border-gray-200",
-  MEMBER: "!bg-gray-100 !text-gray-700 !border-gray-200",
-  GUEST: "!bg-gray-100 !text-gray-700 !border-gray-200",
-};
 
 export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { currentOrg, userRole } = useOrg();
-  const [loggingOut, setLoggingOut] = useState(false);
-
   const orgSlug = currentOrg?.slug || currentOrg?.id;
   const isAdminOrOwner = userRole === "ADMIN" || userRole === "OWNER";
-
-  const handleLogout = async () => {
-    try {
-      setLoggingOut(true);
-      await logout();
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
   const dashboardUrl = orgSlug ? `/dashboard/${orgSlug}` : "/dashboard";
   const myTasksUrl = orgSlug ? `/dashboard/${orgSlug}/my-tasks` : "/dashboard";
   const teamUrl = orgSlug ? `/dashboard/${orgSlug}/team` : "/dashboard/members";
-  const profileUrl = "/profile";
   const settingsUrl = orgSlug
-    ? `/dashboard/${orgSlug}/team`
-    : "/dashboard/members";
+    ? `/dashboard/${orgSlug}/settings`
+    : "/dashboard";
 
-  const firstLetter = user?.fullName
-    ? user.fullName.charAt(0).toUpperCase()
-    : "U";
 
   return (
     <aside
@@ -174,65 +143,6 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
         )}
       </div>
 
-      {/* 7. Footer: User Info & Logout */}
-      <div
-        className={`flex flex-col gap-3 border-t border-gray-200/80 pt-4 ${collapsed ? "items-center px-0" : "px-1"}`}
-      >
-        <Link
-          href={profileUrl}
-          className={`flex items-center gap-2.5 ${collapsed ? "px-0 justify-center" : "px-1"} hover:opacity-80 transition-opacity cursor-pointer`}
-          title="Hồ sơ của tôi"
-        >
-          <Avatar
-            icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
-            src={user?.avatarUrl}
-            className="bg-gray-200 text-gray-800 font-bold border border-gray-300 flex-shrink-0"
-            size={36}
-          >
-            {firstLetter}
-          </Avatar>
-          {!collapsed && (
-            <div className="flex flex-col text-left leading-tight overflow-hidden flex-1">
-              <span
-                className="text-sm font-bold text-gray-800 truncate"
-                title={user?.fullName}
-              >
-                {user?.fullName}
-              </span>
-              <span className="text-[11px] text-gray-400">
-                @{user?.username}
-              </span>
-            </div>
-          )}
-        </Link>
-
-        <div
-          className={`flex items-center ${collapsed ? "flex-col justify-center px-0 gap-1" : "justify-between px-1"}`}
-        >
-          {!collapsed && (
-            <span
-              className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
-                ROLE_TAG_STYLES[userRole || user?.role || "MEMBER"]
-              }`}
-            >
-              {userRole || user?.role || "MEMBER"}
-            </span>
-          )}
-
-          <CustomTooltip
-            title="Đăng xuất"
-            placement={collapsed ? "right" : "top"}
-          >
-            <Button
-              type="text"
-              icon={<LogoutOutlined />}
-              loading={loggingOut}
-              onClick={handleLogout}
-              className="text-gray-500 hover:text-red-600 transition-colors duration-150 h-11 w-11 flex items-center justify-center p-0 border-none bg-transparent focus-ring"
-            />
-          </CustomTooltip>
-        </div>
-      </div>
     </aside>
   );
 }

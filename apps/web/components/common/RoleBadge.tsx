@@ -11,19 +11,19 @@ interface RoleBadgeProps {
 
 const ROLE_CONFIG: Record<string, { label: string; bgClass: string }> = {
   OWNER: {
-    label: "OWNER",
-    bgClass: "bg-gray-100 text-gray-800 border-gray-200 font-bold",
+    label: "Chủ sở hữu",
+    bgClass: "bg-indigo-50 text-indigo-700 border-gray-200 font-bold",
   },
   ADMIN: {
-    label: "ADMIN",
-    bgClass: "bg-gray-100 text-gray-800 border-gray-200 font-semibold",
+    label: "Quản trị viên",
+    bgClass: "bg-amber-50 text-amber-50 border-gray-200 font-semibold",
   },
   MEMBER: {
-    label: "MEMBER",
+    label: "Thành viên",
     bgClass: "bg-gray-100 text-gray-700 border-gray-200 font-normal",
   },
   GUEST: {
-    label: "GUEST",
+    label: "Khách",
     bgClass: "bg-gray-100 text-gray-700 border-gray-200 font-normal",
   },
 };

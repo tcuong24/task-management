@@ -48,7 +48,10 @@ enum ActivityEntityType {
   ORGANIZATION
   MEMBER
 }
-
+enum PlatformRole{
+  USER
+  ADMIN
+}
 // ============ USERS ============
 model User {
   id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -58,6 +61,7 @@ model User {
   fullName           String               @map("full_name") @db.VarChar(255)
   avatarUrl          String?              @map("avatar_url")
   isVerified         Boolean              @default(false) @map("is_verified")
+  platformRole       PlatformRole         @default(USER)
   lastLoginAt        DateTime?            @map("last_login_at") @db.Timestamptz
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz
