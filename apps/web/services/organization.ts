@@ -201,7 +201,7 @@ export async function getUserOrganizations(): Promise<GetUserOrgsResponse> {
 export async function createOrganization(
   name: string,
   slug: string,
-  ownerId: string,
+  ownerId?: string,
   avatarUrl?: string,
   memberIds?: string[]
 ): Promise<UpdateOrgResponse> {

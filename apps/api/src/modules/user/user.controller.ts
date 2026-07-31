@@ -69,3 +69,25 @@ export async function searchUsersHandler(req: Request, res: Response, next: Next
     next(err);
   }
 }
+
+export async function getMemberProfileHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const viewerId = req.user!.userId;
+    const { userId } = req.params as { userId: string };
+    const orgId = req.query.orgId as string;
+
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'Thiếu mã người dùng.' });
+      return;
+    }
+    if (!orgId) {
+      res.status(400).json({ success: false, message: 'Thiếu mã tổ chức (orgId).' });
+      return;
+    }
+
+    const profile = await userService.getMemberPublicProfile(viewerId, userId, orgId);
+    res.json({ success: true, profile });
+  } catch (err) {
+    next(err);
+  }
+}

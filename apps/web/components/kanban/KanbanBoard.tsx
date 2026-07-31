@@ -335,7 +335,7 @@ export function KanbanBoard({
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => handleOpenCreateModal("TODO")}
-          className="!bg-blue-600 hover:!bg-blue-700 border-none font-semibold text-white shadow-sm rounded-xl h-10 px-5"
+          className="!bg-blue-600 hover:!bg-blue-700 border-none font-semibold text-white shadow-sm rounded-xl   px-5 py-1.5!"
         >
           Tạo task mới
         </Button>

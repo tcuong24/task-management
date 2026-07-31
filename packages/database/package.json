@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "main": "./index.ts",
   "types": "./index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "postinstall": "prisma generate"
+  },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.16.0",
     "@types/bcrypt": "^6.0.0",

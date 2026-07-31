@@ -91,23 +91,8 @@ export default function OrgSettingsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
-      <header className="flex items-start gap-3 text-left">
-        <span
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-700"
-          aria-hidden="true"
-        >
-          <SettingOutlined className="text-lg" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-            Cài đặt tổ chức
-          </h1>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
-            Quản lý thông tin nhận diện và đường dẫn của {organization.name}.
-          </p>
-        </div>
-      </header>
+    <div className="mx-auto flex w-full  flex-col gap-6 p-2 md:p-3">
+
 
       <section aria-labelledby="general-settings-title">
         <Card

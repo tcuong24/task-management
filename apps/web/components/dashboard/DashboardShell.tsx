@@ -6,12 +6,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { OrgProvider, useOrg } from "../../contexts/OrgContext";
 import { Sidebar } from "../../components/sidebar/Sidebar";
 import { Avatar, Button, Popover, Skeleton, Input } from "antd";
-import {
-  LogoutOutlined,
-  SearchOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
 import NotificationBell from "../../components/notification/NotificationBell";
+import HeaderSearch from "./HeaderSearch";
 
 // Helper functions for Cookie
 const getCookie = (name: string): string | null => {
@@ -136,7 +133,7 @@ export default function DashboardShell({
 
   const handleOpenProfile = () => {
     setAccountMenuOpen(false);
-    router.push("/profile");
+    router.push("/account/profile");
   };
 
   const handleLogout = async () => {
@@ -199,11 +196,7 @@ export default function DashboardShell({
 
             {/* Right: Search & User controls */}
             <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
-              <Input
-                placeholder="Tìm kiếm công việc..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                className="w-36 sm:w-48 md:w-64 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white transition-colors duration-150 ease-out text-xs focus-ring"
-              />
+              <HeaderSearch />
 
               {/* Notification Bell */}
               <NotificationBell />

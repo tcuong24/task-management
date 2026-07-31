@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useOrg } from "../../../../contexts/OrgContext";
 import { OrgRole, hasPermission } from "@repo/permissions";
@@ -206,19 +207,23 @@ export default function OrgMembersPage() {
       key: "user",
       render: (_: any, record: orgService.OrgMember) => {
         const isMe = record.userId === currentUser?.id;
+        const profileUrl = `/dashboard/${currentOrg?.slug || record.organizationId}/members/${record.user.id}`;
         return (
-          <div className="flex items-center gap-3">
+          <Link
+            href={profileUrl}
+            className="flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1 transition-colors duration-150 ease-out"
+          >
             <Avatar
               src={record.user.avatarUrl}
               icon={!record.user.avatarUrl ? <UserOutlined /> : undefined}
-              className="bg-gray-100 text-gray-700 border border-gray-200"
+              className="bg-gray-100 text-gray-700 border border-gray-200 group-hover:border-blue-500 transition-colors duration-150 ease-out"
               size={40}
             >
               {record.user.fullName?.charAt(0) ||
                 record.user.username?.charAt(0)}
             </Avatar>
             <div className="flex flex-col text-left">
-              <span className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+              <span className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-150 ease-out text-sm flex items-center gap-1.5">
                 {record.user.fullName || record.user.username}
                 {isMe && (
                   <span className="text-[10px] bg-gray-50 text-gray-700 px-1.5 py-0.5 rounded border border-gray-100 font-normal">
@@ -230,7 +235,7 @@ export default function OrgMembersPage() {
                 @{record.user.username}
               </span>
             </div>
-          </div>
+          </Link>
         );
       },
     },

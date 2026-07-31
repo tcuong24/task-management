@@ -171,11 +171,6 @@ export default function MyTasksPage() {
     <div className="p-4 md:p-6 flex flex-col gap-6 mx-auto w-full text-left max-w-full">
       {/* Header & Filter Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
-            Task của tôi
-          </h1>
-        </div>
 
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">

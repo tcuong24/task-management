@@ -215,8 +215,10 @@ router.patch('/:id/members/:memberId/status', requirePermission('member:change-r
 router.delete('/:id/members/:memberId', requirePermission('member:remove'), orgController.removeMemberHandler);
 
 import projectRoutes from '../project/project.routes';
+import searchRoutes from '../search/search.routes';
 
 // 3. Quản lý dự án trong tổ chức
 router.use('/:id/projects', projectRoutes);
+router.use('/:id/search', searchRoutes);
 
 export default router;

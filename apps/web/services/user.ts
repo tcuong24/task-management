@@ -108,3 +108,36 @@ export async function uploadAvatar(file: File): Promise<{ success: boolean; user
 
   return data;
 }
+
+// --- Public Member Profile ---
+
+export interface MemberPublicProfile {
+  id: string;
+  username: string;
+  fullName: string;
+  avatarUrl: string | null;
+  membership: {
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST';
+    joinedAt: string;
+  };
+  stats: {
+    assignedTasksCount: number;
+    completedTasksCount: number;
+  };
+  projects: Array<{
+    id: string;
+    name: string;
+    key: string;
+    taskCount: number;
+  }>;
+}
+
+export async function getMemberProfile(
+  userId: string,
+  orgId: string,
+): Promise<{ success: boolean; profile: MemberPublicProfile }> {
+  return request<{ success: boolean; profile: MemberPublicProfile }>(
+    `/users/${userId}/profile?orgId=${orgId}`,
+    { method: 'GET' },
+  );
+}

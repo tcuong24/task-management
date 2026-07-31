@@ -182,3 +182,100 @@ export async function searchUsers(query: string) {
     take: 10,
   });
 }
+
+/**
+ * Lấy hồ sơ công khai của một thành viên trong tổ chức.
+ * Chỉ trả về các field an toàn — không email, password, verification, v.v.
+ * Yêu cầu cả viewer và target đều là thành viên ACTIVE trong cùng org.
+ */
+export async function getMemberPublicProfile(viewerId: string, targetUserId: string, orgId: string) {
+  // Verify viewer is an ACTIVE member of the org
+  const viewerMembership = await prisma.organizationMember.findFirst({
+    where: { organizationId: orgId, userId: viewerId, status: 'ACTIVE' },
+  });
+  if (!viewerMembership) {
+    throw new AppError(403, 'ACCESS_DENIED', 'Bạn không có quyền truy cập tổ chức này.');
+  }
+
+  // Verify target user is a member of the org
+  const targetMembership = await prisma.organizationMember.findFirst({
+    where: { organizationId: orgId, userId: targetUserId, status: 'ACTIVE' },
+    select: { role: true, joinedAt: true },
+  });
+  if (!targetMembership) {
+    throw new AppError(404, 'MEMBER_NOT_FOUND', 'Không tìm thấy thành viên trong tổ chức này.');
+  }
+
+  // Fetch public user fields only — no email, passwordHash, isVerified, etc.
+  const user = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      username: true,
+      fullName: true,
+      avatarUrl: true,
+    },
+  });
+  if (!user) {
+    throw new UserNotFoundError();
+  }
+
+  // Get all project IDs in this org
+  const orgProjects = await prisma.project.findMany({
+    where: { organizationId: orgId },
+    select: { id: true, name: true, key: true },
+  });
+  const orgProjectIds = orgProjects.map((p) => p.id);
+
+  // Count assigned tasks (not DONE) and completed tasks in this org
+  const [assignedTasksCount, completedTasksCount] = await Promise.all([
+    prisma.task.count({
+      where: {
+        assigneeId: targetUserId,
+        projectId: { in: orgProjectIds },
+        status: { not: 'DONE' },
+      },
+    }),
+    prisma.task.count({
+      where: {
+        assigneeId: targetUserId,
+        projectId: { in: orgProjectIds },
+        status: 'DONE',
+      },
+    }),
+  ]);
+
+  // Get projects with task counts for the target user
+  const tasksPerProject = await prisma.task.groupBy({
+    by: ['projectId'],
+    where: {
+      assigneeId: targetUserId,
+      projectId: { in: orgProjectIds },
+    },
+    _count: { id: true },
+  });
+
+  const projectTaskMap = new Map(tasksPerProject.map((t) => [t.projectId, t._count.id]));
+  const projects = orgProjects
+    .filter((p) => projectTaskMap.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      key: p.key,
+      taskCount: projectTaskMap.get(p.id) || 0,
+    }))
+    .sort((a, b) => b.taskCount - a.taskCount);
+
+  return {
+    ...user,
+    membership: {
+      role: targetMembership.role,
+      joinedAt: targetMembership.joinedAt,
+    },
+    stats: {
+      assignedTasksCount,
+      completedTasksCount,
+    },
+    projects,
+  };
+}

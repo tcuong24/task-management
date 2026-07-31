@@ -476,6 +476,8 @@ export default function ProjectDashboard({
     angleField: "count",
     colorField: "statusLabel",
     innerRadius: 0.6,
+    autoFit: true,
+    padding: [10, 10, 10, 10],
     label: {
       text: "count",
       style: {
@@ -500,6 +502,15 @@ export default function ProjectDashboard({
     data: priorityBreakdownData,
     xField: "priorityLabel",
     yField: "count",
+    autoFit: true,
+    axis: {
+      x: {
+        title: false,
+      },
+      y: {
+        title: false,
+      },
+    },
     label: {
       text: (d: any) => `${d.count}`,
       textBaseline: "bottom",
@@ -711,11 +722,13 @@ export default function ProjectDashboard({
             {/* Status Overview */}
             <Card
               title="Tổng quan trạng thái"
-              className="shadow-sm border-gray-100"
-              styles={{ body: { height: 300 } }}
+              className="shadow-sm border-gray-100 rounded-2xl"
+              styles={{ body: { minHeight: 310, padding: "16px 20px 20px" } }}
             >
               {data.statusOverview.length > 0 ? (
-                <Pie {...pieConfig} />
+                <div className="w-full h-[260px] flex items-center justify-center">
+                  <Pie {...pieConfig} />
+                </div>
               ) : (
                 <Empty
                   description="Không có dữ liệu công việc"
@@ -727,11 +740,13 @@ export default function ProjectDashboard({
             {/* Priority Breakdown */}
             <Card
               title="Phân bố độ ưu tiên"
-              className="shadow-sm border-gray-100"
-              styles={{ body: { height: 300 } }}
+              className="shadow-sm border-gray-100 rounded-2xl"
+              styles={{ body: { minHeight: 310, padding: "16px 20px 20px" } }}
             >
               {data.priorityBreakdown.length > 0 ? (
-                <Column {...columnConfig} />
+                <div className="w-full h-[260px] flex items-center justify-center">
+                  <Column {...columnConfig} />
+                </div>
               ) : (
                 <Empty
                   description="Không có dữ liệu công việc"
