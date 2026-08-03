@@ -8,6 +8,10 @@ import {
   broadcastTaskUpdated,
   broadcastCommentAdded,
 } from '../../common/socket';
+import {
+  getPlatformSetting,
+  isAllowedUploadType,
+} from '../../common/services/platformSetting.service';
 
 export async function getTasks(projectId: string, filters: { status?: TaskStatus; priority?: TaskPriority; assigneeId?: string }) {
   const tasks = await prisma.task.findMany({
@@ -533,6 +537,19 @@ export async function createLabel(projectId: string, name: string, color: string
 }
 
 export async function uploadTaskAttachment(taskId: string, uploaderId: string, file: Express.Multer.File) {
+  const [maxSizeMb, allowedTypes] = await Promise.all([
+    getPlatformSetting('max_upload_size_mb'),
+    getPlatformSetting('allowed_file_types'),
+  ]);
+
+  if (file.size > maxSizeMb * 1024 * 1024) {
+    throw new AppError(413, 'FILE_TOO_LARGE', `File không được vượt quá ${maxSizeMb} MB.`);
+  }
+
+  if (!isAllowedUploadType(file, allowedTypes)) {
+    throw new AppError(415, 'FILE_TYPE_NOT_ALLOWED', 'Loại file này không được phép tải lên.');
+  }
+
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy task.');
 
@@ -574,4 +591,3 @@ export async function deleteTaskAttachment(attachmentId: string) {
   await prisma.attachment.delete({ where: { id: attachmentId } });
   return true;
 }
-

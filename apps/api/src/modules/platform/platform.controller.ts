@@ -32,6 +32,10 @@ export async function getPublicPlatformSettingsHandler(
           settings.announcement_enabled,
         announcement_message:
           settings.announcement_message,
+        max_upload_size_mb:
+          settings.max_upload_size_mb,
+        allowed_file_types:
+          settings.allowed_file_types,
       },
     });
   } catch (error) {

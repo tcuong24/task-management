@@ -68,6 +68,23 @@ export function formatActivity(
     );
   };
 
+  // A project activity needs only the project name, without the "trong dự án" prefix.
+  const renderProjectEntityLink = (name: string) => {
+    const label = `"${name || projectKey || "Dự án"}"`;
+    if (orgSlug && projectKey) {
+      return (
+        <Link
+          href={`/dashboard/${orgSlug}/projects/${projectKey}`}
+          className="font-bold text-gray-700 hover:text-gray-900 underline hover:no-underline transition-colors duration-150 mx-0.5"
+        >
+          {label}
+        </Link>
+      );
+    }
+
+    return <span className="font-bold text-gray-900 mx-0.5">{label}</span>;
+  };
+
   const oldSt = formatStatus(log.oldValue);
   const newSt = formatStatus(log.newValue);
 
@@ -76,7 +93,7 @@ export function formatActivity(
       if (log.entityType === "PROJECT") {
         return (
           <span>
-            đã tạo dự án {renderProjectLink(projectName || "dự án mới")}
+            đã tạo dự án {renderProjectEntityLink(projectName || "Dự án mới")}
           </span>
         );
       }
@@ -84,6 +101,47 @@ export function formatActivity(
       return (
         <span>
           đã tạo công việc {renderTaskLink(label)}
+          {renderProjectLink(projectName)}
+        </span>
+      );
+    }
+
+    case "deleted": {
+      if (log.entityType === "PROJECT") {
+        return (
+          <span>
+            đã chuyển dự án{" "}
+            <span className="font-bold text-gray-900">
+              &quot;{projectName || projectKey || "Dự án"}&quot;
+            </span>{" "}
+            vào thùng rác
+          </span>
+        );
+      }
+
+      const label = taskTitle ? `"${displayCode}${taskTitle}"` : "công việc";
+      return (
+        <span>
+          đã chuyển công việc{" "}
+          <span className="font-bold text-gray-900 mx-0.5">{label}</span>
+          {renderProjectLink(projectName)} vào thùng rác
+        </span>
+      );
+    }
+
+    case "restored": {
+      if (log.entityType === "PROJECT") {
+        return (
+          <span>
+            đã khôi phục dự án {renderProjectEntityLink(projectName)}
+          </span>
+        );
+      }
+
+      const label = taskTitle ? `"${displayCode}${taskTitle}"` : "công việc";
+      return (
+        <span>
+          đã khôi phục công việc {renderTaskLink(label)}
           {renderProjectLink(projectName)}
         </span>
       );
@@ -150,6 +208,29 @@ export function formatActivity(
           <span className="font-bold text-gray-900">
             {log.newValue ?? "Chưa đặt"}
           </span>
+        </span>
+      );
+    }
+
+    case "start_date_changed": {
+      const label = taskTitle ? `"${displayCode}${taskTitle}"` : "công việc";
+      return (
+        <span>
+          đã cập nhật ngày bắt đầu công việc {renderTaskLink(label)}
+          {renderProjectLink(projectName)} thành{" "}
+          <span className="font-bold text-gray-900">
+            {log.newValue ?? "Chưa đặt"}
+          </span>
+        </span>
+      );
+    }
+
+    case "description_changed": {
+      const label = taskTitle ? `"${displayCode}${taskTitle}"` : "công việc";
+      return (
+        <span>
+          đã cập nhật mô tả công việc {renderTaskLink(label)}
+          {renderProjectLink(projectName)}
         </span>
       );
     }

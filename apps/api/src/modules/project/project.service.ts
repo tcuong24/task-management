@@ -264,7 +264,7 @@ export async function deleteProject(organizationId: string, projectId: string, a
     },
   });
 
-  logActivity({
+  await logActivity({
     organizationId,
     entityType: 'PROJECT',
     entityId: projectId,
@@ -278,4 +278,3 @@ export async function deleteProject(organizationId: string, projectId: string, a
 
   return { success: true };
 }
-

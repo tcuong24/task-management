@@ -14,6 +14,8 @@ export interface PublicPlatformSettings {
 
   announcement_enabled: boolean;
   announcement_message: string;
+  max_upload_size_mb: number;
+  allowed_file_types: string[];
 }
 
 export const DEFAULT_PUBLIC_PLATFORM_SETTINGS: PublicPlatformSettings = {
@@ -27,6 +29,8 @@ export const DEFAULT_PUBLIC_PLATFORM_SETTINGS: PublicPlatformSettings = {
   default_project_view: "summary",
   announcement_enabled: false,
   announcement_message: "",
+  max_upload_size_mb: 50,
+  allowed_file_types: ["image/png", "image/jpeg", "application/pdf"],
 };
 
 export async function getPublicPlatformSettings(signal?: AbortSignal) {

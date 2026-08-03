@@ -73,3 +73,27 @@ export async function getPlatformSetting<
     row?.value ?? PLATFORM_SETTING_DEFAULTS[key]
   ) as PlatformSettings[Key];
 }
+
+export function isAllowedUploadType(
+  file: Pick<Express.Multer.File, "mimetype" | "originalname">,
+  allowedTypes: string[],
+): boolean {
+  const mimeType = file.mimetype.toLowerCase();
+  const fileName = file.originalname.toLowerCase();
+
+  return allowedTypes.some((rawType) => {
+    const type = rawType.trim().toLowerCase();
+    if (!type) return false;
+
+    if (type.endsWith("/*")) {
+      return mimeType.startsWith(type.slice(0, -1));
+    }
+
+    if (type.includes("/")) {
+      return mimeType === type;
+    }
+
+    const extension = type.startsWith(".") ? type : `.${type}`;
+    return fileName.endsWith(extension);
+  });
+}

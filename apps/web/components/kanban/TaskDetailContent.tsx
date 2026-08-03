@@ -37,6 +37,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useOrg } from "../../contexts/OrgContext";
 import { usePresence } from "../../hooks/usePresence";
 import { useTaskRealtimeSync } from "../../hooks/useTaskRealtimeSync";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
@@ -96,6 +97,7 @@ export function TaskDetailContent({
   const { message } = App.useApp();
   const { user } = useAuth();
   const { userRole } = useOrg();
+  const { settings: platformSettings } = usePlatformSettings();
   const params = useParams();
   const router = useRouter();
 
@@ -294,6 +296,13 @@ export function TaskDetailContent({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !task) return;
+
+    const maxBytes = platformSettings.max_upload_size_mb * 1024 * 1024;
+    if (file.size > maxBytes) {
+      message.error(`File không được vượt quá ${platformSettings.max_upload_size_mb} MB.`);
+      e.target.value = "";
+      return;
+    }
     try {
       setUploadingAttachment(true);
       await taskService.uploadAttachment(task.id, file);
@@ -786,6 +795,7 @@ export function TaskDetailContent({
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
+                    accept={platformSettings.allowed_file_types.join(",")}
                     className="hidden"
                   />
                 </div>
