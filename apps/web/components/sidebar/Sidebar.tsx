@@ -9,9 +9,11 @@ import {
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../../hooks/useAuth";
 import { useOrg } from "../../contexts/OrgContext";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { RecentProjects } from "./RecentProjects";
@@ -26,6 +28,15 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { currentOrg, userRole } = useOrg();
+  const { settings } = usePlatformSettings();
+  const platformInitials =
+    settings.platform_name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "TF";
   const orgSlug = currentOrg?.slug || currentOrg?.id;
   const isAdminOrOwner = userRole === "ADMIN" || userRole === "OWNER";
   const dashboardUrl = orgSlug ? `/dashboard/${orgSlug}` : "/dashboard";
@@ -34,7 +45,9 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
   const settingsUrl = orgSlug
     ? `/dashboard/${orgSlug}/settings`
     : "/dashboard";
-
+  const trashUrl = orgSlug
+    ? `/dashboard/${orgSlug}/settings/trash`
+    : "/dashboard";
 
   return (
     <aside
@@ -68,14 +81,14 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
           {collapsed ? (
             <span
               className="font-brand text-2xl font-semibold tracking-tight text-gray-900"
-              title="TaskFlow"
+              title={settings.platform_name}
             >
-              TF
+              {platformInitials}
             </span>
           ) : (
             <>
               <span className="font-brand text-2xl font-semibold tracking-tight text-gray-900">
-                TaskFlow
+                {settings.platform_name}
               </span>
               <span className="text-[10px] leading-none font-bold text-gray-400 bg-white/80 px-1.5 py-1 rounded-sm border border-gray-100">
                 v1.0
@@ -114,7 +127,7 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
         {/* 4. Projects section */}
         <RecentProjects collapsed={collapsed} />
 
-        {/* 5 & 6. Admin Section (Team & Settings) */}
+        {/* 5 & 6. Admin Section (Team, Settings & Trash) */}
         {isAdminOrOwner && (
           <>
             <div className="h-px bg-gray-200/60 my-1" />
@@ -135,7 +148,14 @@ export function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
                 href={settingsUrl}
                 icon={<SettingOutlined />}
                 label="Settings"
-                active={pathname.includes("/settings")}
+                active={pathname.endsWith("/settings")}
+                collapsed={collapsed}
+              />
+              <SidebarNavItem
+                href={trashUrl}
+                icon={<DeleteOutlined />}
+                label="Thùng rác"
+                active={pathname.includes("/settings/trash")}
                 collapsed={collapsed}
               />
             </div>

@@ -1,4 +1,6 @@
 import React from 'react';
+import ProjectCursorScope from '../../../../../components/project/ProjectCursorScope';
+import { ProjectCollaborationProvider } from '../../../../../contexts/ProjectCollaborationContext';
 
 interface ProjectLayoutProps {
   children: React.ReactNode;
@@ -7,9 +9,12 @@ interface ProjectLayoutProps {
 
 export default function ProjectLayout({ children, modal }: ProjectLayoutProps) {
   return (
-    <div className="relative w-full h-full">
-      {children}
-      {modal}
-    </div>
+    <ProjectCollaborationProvider>
+      <div className="relative w-full h-full">
+        <ProjectCursorScope />
+        {children}
+        {modal}
+      </div>
+    </ProjectCollaborationProvider>
   );
 }

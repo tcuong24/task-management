@@ -81,7 +81,7 @@ export async function createProject(
 
 export async function getProjects(orgId: string) {
   return prisma.project.findMany({
-    where: { organizationId: orgId },
+    where: { organizationId: orgId, deletedAt: null },
     include: {
       owner: {
         select: {
@@ -104,6 +104,7 @@ export async function getProjectByKey(organizationId: string, key: string) {
     where: {
       organizationId,
       key: key.toUpperCase(),
+      deletedAt: null,
     },
     include: {
       owner: {
@@ -129,24 +130,26 @@ export async function getProjectDashboard(projectId: string) {
 
   // Stats
   const createdLast7Days = await prisma.task.count({
-    where: { projectId, createdAt: { gte: sevenDaysAgo } }
+    where: { projectId, deletedAt: null, createdAt: { gte: sevenDaysAgo } }
   });
 
   const updatedLast7Days = await prisma.task.count({
     where: { 
       projectId, 
+      deletedAt: null,
       updatedAt: { gte: sevenDaysAgo },
-      createdAt: { lt: sevenDaysAgo } // Only count tasks updated but not created in the last 7 days to avoid overlap
+      createdAt: { lt: sevenDaysAgo }
     }
   });
 
   const completedLast7Days = await prisma.task.count({
-    where: { projectId, status: 'DONE', completedAt: { gte: sevenDaysAgo } }
+    where: { projectId, deletedAt: null, status: 'DONE', completedAt: { gte: sevenDaysAgo } }
   });
 
   const dueSoon = await prisma.task.count({
     where: { 
       projectId, 
+      deletedAt: null,
       status: { not: 'DONE' }, 
       dueDate: { gte: new Date(), lte: nextSevenDays } 
     }
@@ -155,7 +158,7 @@ export async function getProjectDashboard(projectId: string) {
   // Status breakdown
   const statusGroup = await prisma.task.groupBy({
     by: ['status'],
-    where: { projectId },
+    where: { projectId, deletedAt: null },
     _count: { id: true },
   });
 
@@ -167,7 +170,7 @@ export async function getProjectDashboard(projectId: string) {
   // Priority breakdown
   const priorityGroup = await prisma.task.groupBy({
     by: ['priority'],
-    where: { projectId },
+    where: { projectId, deletedAt: null },
     _count: { id: true },
   });
 
@@ -176,7 +179,7 @@ export async function getProjectDashboard(projectId: string) {
     count: item._count.id,
   }));
 
-  // Task types (Mock since Prisma schema doesn't have TaskType enum yet)
+  // Task types
   const taskTypes = [
     { type: 'Task', count: 70 },
     { type: 'Subtask', count: 15 },
@@ -202,6 +205,7 @@ export async function getProjectTimeline(projectId: string) {
     where: {
       projectId,
       parentTaskId: null,
+      deletedAt: null,
     },
     orderBy: [
       { position: 'asc' },
@@ -213,6 +217,7 @@ export async function getProjectTimeline(projectId: string) {
       reporter: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
       labels: { include: { label: true } },
       subTasks: {
+        where: { deletedAt: null },
         orderBy: [
           { position: 'asc' },
           { createdAt: 'asc' },
@@ -240,5 +245,37 @@ export async function getProjectTimeline(projectId: string) {
       }),
     };
   });
+}
+
+export async function deleteProject(organizationId: string, projectId: string, actorId: string) {
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, organizationId },
+  });
+
+  if (!project) {
+    throw new AppError(404, 'PROJECT_NOT_FOUND', 'Không tìm thấy dự án.');
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      deletedAt: new Date(),
+      deletedById: actorId,
+    },
+  });
+
+  logActivity({
+    organizationId,
+    entityType: 'PROJECT',
+    entityId: projectId,
+    actorId,
+    action: 'deleted',
+    metadata: {
+      projectName: project.name,
+      projectKey: project.key,
+    },
+  });
+
+  return { success: true };
 }
 

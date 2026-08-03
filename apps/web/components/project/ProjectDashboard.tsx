@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import {
   Card,
   Tabs,
@@ -42,6 +43,12 @@ import type { TaskItem } from "../kanban/KanbanBoard";
 import { usePresence } from "../../hooks/usePresence";
 import { useTaskRealtimeSync } from "../../hooks/useTaskRealtimeSync";
 import InviteMemberModal from "../organization/InviteMemberModal";
+import {
+  useProjectCollaboration,
+  type ProjectSection,
+} from "../../contexts/ProjectCollaborationContext";
+import { useProjectLocations } from "../../hooks/useProjectLocations";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
 const ViewLoading = () => (
   <div className="flex min-h-64 items-center justify-center rounded-2xl border border-gray-100 bg-white">
@@ -102,7 +109,14 @@ export default function ProjectDashboard({
   project,
 }: ProjectDashboardProps) {
   const { message } = App.useApp();
-  const [activeTab, setActiveTab] = useState("summary");
+  const pathname = usePathname();
+  const { setSection } = useProjectCollaboration();
+  const { settings } = usePlatformSettings();
+  const userSelectedTabRef = useRef(false);
+
+  const [activeTab, setActiveTab] = useState<
+    "summary" | "board" | "list" | "timeline"
+  >("summary");
   const [boardTasks, setBoardTasks] = useState<TaskItem[]>([]);
   const [boardLoading, setBoardLoading] = useState<boolean>(false);
   const [timelineTasks, setTimelineTasks] = useState<TaskItem[]>([]);
@@ -131,6 +145,11 @@ export default function ProjectDashboard({
 
   // Load automation rules
   useEffect(() => {
+    if (!userSelectedTabRef.current) {
+      setActiveTab(settings.default_project_view);
+    }
+  }, [settings.default_project_view]);
+  useEffect(() => {
     if (typeof window !== "undefined" && projectId) {
       const saved = localStorage.getItem(`taskflow:automation:${projectId}`);
       if (saved) {
@@ -142,7 +161,11 @@ export default function ProjectDashboard({
       }
     }
   }, [projectId]);
+  const handleTabChange = (tab: string) => {
+    userSelectedTabRef.current = true;
 
+    setActiveTab(tab as "summary" | "board" | "list" | "timeline");
+  };
   const saveAutomationRules = (rules: typeof automationRules) => {
     setAutomationRules(rules);
     if (typeof window !== "undefined" && projectId) {
@@ -162,7 +185,6 @@ export default function ProjectDashboard({
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
@@ -197,9 +219,18 @@ export default function ProjectDashboard({
     initialDashboardData,
   );
 
-  const { activeUsers } = usePresence(
-    projectId ? `project:${projectId}` : undefined,
-  );
+  // Mỗi project là một presence room riêng. Hook trả về danh sách người
+  // đang mở dashboard này; activeUsers.length chính là số người đang xem.
+  const presenceRoom = projectId ? `project:${projectId}` : undefined;
+
+  const { activeUsers } = usePresence(presenceRoom);
+  const { locations: projectLocations } = useProjectLocations(projectId);
+
+  useEffect(() => {
+    if (!pathname.includes("/tasks/")) {
+      setSection(activeTab as ProjectSection);
+    }
+  }, [activeTab, pathname, setSection]);
 
   useTaskRealtimeSync({
     projectId,
@@ -211,67 +242,102 @@ export default function ProjectDashboard({
     },
   });
 
+  const createTabLabel = (section: ProjectSection, label: string) => {
+    const users = projectLocations[section] || [];
+    const names = users
+      .map((user) => user.fullName || user.username)
+      .join(", ");
+
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span>{label}</span>
+        {users.length > 0 && (
+          <Tooltip title={names}>
+            <span
+              className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-gray-100 px-1 text-xs font-semibold text-gray-700"
+              aria-label={`${users.length} người đang ở ${label}`}
+            >
+              {users.length}
+            </span>
+          </Tooltip>
+        )}
+      </span>
+    );
+  };
+
   const tabItems = [
-    { key: "summary", label: "Tổng quan" },
-    { key: "board", label: "Bảng (Kanban)" },
-    { key: "list", label: "Danh sách" },
-    { key: "timeline", label: "Mốc thời gian" },
+    { key: "summary", label: createTabLabel("summary", "Tổng quan") },
+    { key: "board", label: createTabLabel("board", "Bảng (Kanban)") },
+    { key: "list", label: createTabLabel("list", "Danh sách") },
+    {
+      key: "timeline",
+      label: createTabLabel("timeline", "Mốc thời gian"),
+    },
   ];
 
-  const fetchMembers = useCallback(async (signal?: AbortSignal) => {
-    if (!orgId) return;
-    try {
-      const res = await orgService.getMembers(orgId, signal);
-      if (res.success && res.members) {
-        setMembersList(
-          res.members.map((m: any) => ({
-            userId: m.userId,
-            name: m.user?.fullName || m.user?.username || m.userId,
-            avatarUrl: m.user?.avatarUrl || null,
-          })),
+  const fetchMembers = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orgId) return;
+      try {
+        const res = await orgService.getMembers(orgId, signal);
+        if (res.success && res.members) {
+          setMembersList(
+            res.members.map((m: any) => ({
+              userId: m.userId,
+              name: m.user?.fullName || m.user?.username || m.userId,
+              avatarUrl: m.user?.avatarUrl || null,
+            })),
+          );
+        }
+      } catch (err) {
+        if (isAbortError(err)) return;
+        console.error("Error fetching members:", err);
+      }
+    },
+    [orgId],
+  );
+
+  const fetchProjectTasks = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orgId || !projectId) return;
+      try {
+        setBoardLoading(true);
+        const res = await taskService.getProjectTasks(orgId, projectId, signal);
+        if (res.success) {
+          setBoardTasks(res.tasks as unknown as TaskItem[]);
+        }
+      } catch (err) {
+        if (isAbortError(err)) return;
+        console.error("Error fetching project tasks:", err);
+      } finally {
+        if (!signal?.aborted) setBoardLoading(false);
+      }
+    },
+    [orgId, projectId],
+  );
+
+  const fetchProjectTimeline = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orgId || !projectId) return;
+      try {
+        setTimelineLoading(true);
+        const res = await projectService.getProjectTimeline(
+          orgId,
+          projectId,
+          signal,
         );
+        if (res.success && res.tasks) {
+          setTimelineTasks(res.tasks as unknown as TaskItem[]);
+        }
+      } catch (err) {
+        if (isAbortError(err)) return;
+        console.error("Error fetching project timeline:", err);
+      } finally {
+        if (!signal?.aborted) setTimelineLoading(false);
       }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error("Error fetching members:", err);
-    }
-  }, [orgId]);
-
-  const fetchProjectTasks = useCallback(async (signal?: AbortSignal) => {
-    if (!orgId || !projectId) return;
-    try {
-      setBoardLoading(true);
-      const res = await taskService.getProjectTasks(orgId, projectId, signal);
-      if (res.success) {
-        setBoardTasks(res.tasks as unknown as TaskItem[]);
-      }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error("Error fetching project tasks:", err);
-    } finally {
-      if (!signal?.aborted) setBoardLoading(false);
-    }
-  }, [orgId, projectId]);
-
-  const fetchProjectTimeline = useCallback(async (signal?: AbortSignal) => {
-    if (!orgId || !projectId) return;
-    try {
-      setTimelineLoading(true);
-      const res = await projectService.getProjectTimeline(
-        orgId,
-        projectId,
-        signal,
-      );
-      if (res.success && res.tasks) {
-        setTimelineTasks(res.tasks as unknown as TaskItem[]);
-      }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error("Error fetching project timeline:", err);
-    } finally {
-      if (!signal?.aborted) setTimelineLoading(false);
-    }
-  }, [orgId, projectId]);
+    },
+    [orgId, projectId],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -538,6 +604,7 @@ export default function ProjectDashboard({
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            {/* Chỉ hiện bộ đếm và avatar khi phòng project có người đang xem. */}
             {activeUsers.length > 0 && (
               <div className="flex items-center gap-2 bg-gray-50/70 px-3 py-1.5 rounded-full border border-gray-100/80">
                 <span className="relative flex h-2 w-2">
@@ -545,6 +612,7 @@ export default function ProjectDashboard({
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 <span className="text-xs font-semibold text-gray-900">
+                  {/* Số user đã được backend loại trùng theo userId. */}
                   {activeUsers.length} người đang xem
                 </span>
                 <Avatar.Group max={{ count: 3 }} size="small">
@@ -595,7 +663,7 @@ export default function ProjectDashboard({
         <div className="border-b border-gray-200">
           <Tabs
             activeKey={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
             items={tabItems}
             className="mb-0"
             tabBarStyle={{ marginBottom: 0 }}

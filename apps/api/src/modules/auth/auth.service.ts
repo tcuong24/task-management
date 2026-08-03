@@ -11,6 +11,7 @@ import {
   TokenInvalidError,
   UserNotFoundError,
 } from '../../common/errors';
+import { getPlatformSetting } from '../../common/services/platformSetting.service';
 
 // ─── Constants ───────────────────────────────────────────────
 const SALT_ROUNDS = 12;
@@ -43,6 +44,19 @@ export async function register(
   password: string,
   fullName: string,
 ) {
+   const registrationEnabled =
+    await getPlatformSetting(
+      "registration_enabled",
+    );
+
+  if (!registrationEnabled) {
+    throw new AppError(
+      403,
+      "REGISTRATION_DISABLED",
+      "Hệ thống đang tạm dừng đăng ký tài khoản.",
+    );
+  }
+
   // Check if username is already taken
   const existingUsername = await prisma.user.findUnique({ where: { username } });
   if (existingUsername) {

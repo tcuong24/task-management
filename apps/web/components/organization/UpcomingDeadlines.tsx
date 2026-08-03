@@ -61,9 +61,6 @@ export function UpcomingDeadlines({
             <h3 className="font-semibold text-lg text-gray-900 m-0">
               Hạn chót sắp tới
             </h3>
-            <p className="text-xs text-gray-500 m-0 font-medium">
-              Các mốc hoàn thành trong 7–14 ngày tới
-            </p>
           </div>
         </div>
         <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">

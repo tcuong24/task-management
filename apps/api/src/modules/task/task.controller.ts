@@ -191,7 +191,7 @@ export async function deleteTaskHandler(req: Request, res: Response, next: NextF
       }
     }
 
-    await taskService.deleteTask(taskId, projectId);
+    await taskService.deleteTask(taskId, userId, projectId);
     res.json({ success: true, message: 'Xóa task thành công.' });
   } catch (err) {
     next(err);

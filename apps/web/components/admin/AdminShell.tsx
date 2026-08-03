@@ -17,6 +17,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../../hooks/useAuth";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
 const navigation = [
   { href: "/admin", label: "Tổng quan", icon: <AppstoreOutlined /> },
@@ -36,6 +37,7 @@ export default function AdminShell({
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const { user, loading, logout } = useAuth();
+  const { settings } = usePlatformSettings();
 
   useEffect(() => {
     if (!loading && user?.platformRole !== "ADMIN") {
@@ -64,7 +66,9 @@ export default function AdminShell({
             <SafetyCertificateOutlined aria-hidden="true" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate font-semibold">TaskFlow</span>
+            <span className="block truncate font-semibold">
+              {settings.platform_name}
+            </span>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
               Platform Admin
             </span>
@@ -143,7 +147,7 @@ export default function AdminShell({
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-800 text-white">
               <SafetyCertificateOutlined aria-hidden="true" />
             </span>
-            TaskFlow
+            {settings.platform_name}
           </Link>
           <nav className="flex items-center gap-1" aria-label="Platform Admin mobile">
             {navigation.filter((item) => !item.manageOnly || user.platformRole === "ADMIN").map((item) => {

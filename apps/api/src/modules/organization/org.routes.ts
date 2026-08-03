@@ -216,9 +216,11 @@ router.delete('/:id/members/:memberId', requirePermission('member:remove'), orgC
 
 import projectRoutes from '../project/project.routes';
 import searchRoutes from '../search/search.routes';
+import trashRoutes from '../trash/trash.routes';
 
 // 3. Quản lý dự án trong tổ chức
 router.use('/:id/projects', projectRoutes);
 router.use('/:id/search', searchRoutes);
+router.use('/:id/trash', trashRoutes);
 
 export default router;

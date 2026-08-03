@@ -13,6 +13,7 @@ export async function getTasks(projectId: string, filters: { status?: TaskStatus
   const tasks = await prisma.task.findMany({
     where: {
       projectId,
+      deletedAt: null,
       ...(filters.status && { status: filters.status }),
       ...(filters.priority && { priority: filters.priority }),
       ...(filters.assigneeId && { assigneeId: filters.assigneeId }),
@@ -38,8 +39,13 @@ export async function getTasks(projectId: string, filters: { status?: TaskStatus
 }
 
 export async function getTaskById(taskId: string, projectId?: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId, ...(projectId && { projectId }) },
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
+      deletedAt: null,
+      project: { deletedAt: null },
+      ...(projectId && { projectId }),
+    },
     include: {
       project: { select: { id: true, key: true, name: true, organizationId: true } },
       assignee: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
@@ -53,6 +59,7 @@ export async function getTaskById(taskId: string, projectId?: string) {
         orderBy: { createdAt: 'asc' },
       },
       subTasks: {
+        where: { deletedAt: null },
         select: {
           id: true,
           taskNumber: true,
@@ -455,13 +462,43 @@ export async function moveTask(taskId: string, projectId: string, newStatus: Tas
   return updated;
 }
 
-export async function deleteTask(taskId: string, projectId?: string) {
-  const task = await prisma.task.findUnique({ where: { id: taskId, ...(projectId && { projectId }) } });
+export async function deleteTask(taskId: string, actorId: string, projectId?: string) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId, ...(projectId && { projectId }) },
+    include: { project: { select: { organizationId: true, key: true, name: true } } },
+  });
   if (!task) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy task.');
 
-  await prisma.task.delete({
-    where: { id: taskId },
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.task.updateMany({
+      where: {
+        OR: [
+          { id: taskId },
+          { parentTaskId: taskId },
+        ],
+      },
+      data: {
+        deletedAt: now,
+        deletedById: actorId,
+      },
+    }),
+  ]);
+
+  logActivity({
+    organizationId: task.project.organizationId,
+    entityType: 'TASK',
+    entityId: taskId,
+    actorId,
+    action: 'deleted',
+    metadata: {
+      taskTitle: task.title,
+      taskNumber: task.taskNumber,
+      projectName: task.project.name,
+      projectKey: task.project.key,
+    },
   });
+
   broadcastTaskUpdated(task.projectId, taskId, { deleted: true });
   return true;
 }

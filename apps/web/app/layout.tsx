@@ -6,7 +6,7 @@ import { taskflowTheme } from "../theme/taskflowTheme";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/nunito/wght.css";
 import "./globals.css";
-
+import { PlatformSettingsProvider } from "../contexts/PlatformSettingsContext";
 export const metadata: Metadata = {
   title: "TaskFlow",
   description: "Modern Task Management System",
@@ -25,11 +25,13 @@ export default function RootLayout({
       >
         <AntdRegistry>
           <ConfigProvider warning={{ strict: false }} theme={taskflowTheme}>
-            <AuthProvider>
-              <App className="min-h-screen w-full flex flex-col">
-                {children}
-              </App>
-            </AuthProvider>
+            <PlatformSettingsProvider>
+              <AuthProvider>
+                <App className="min-h-screen w-full flex flex-col">
+                  {children}
+                </App>
+              </AuthProvider>
+            </PlatformSettingsProvider>
           </ConfigProvider>
         </AntdRegistry>
       </body>

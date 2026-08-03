@@ -41,7 +41,8 @@ export async function globalSearch(
     types.includes('tasks')
       ? prisma.task.findMany({
           where: {
-            project: { organizationId },
+            project: { organizationId, deletedAt: null },
+            deletedAt: null,
             OR: [
               { title: { contains: query, mode: 'insensitive' } },
               ...(taskCode
@@ -49,6 +50,7 @@ export async function globalSearch(
                     taskNumber: taskCode.taskNumber,
                     project: {
                       organizationId,
+                      deletedAt: null,
                       key: { equals: taskCode.projectKey, mode: 'insensitive' as const },
                     },
                   }]
@@ -75,6 +77,7 @@ export async function globalSearch(
       ? prisma.project.findMany({
           where: {
             organizationId,
+            deletedAt: null,
             OR: [
               { name: { contains: query, mode: 'insensitive' } },
               { key: { contains: query, mode: 'insensitive' } },

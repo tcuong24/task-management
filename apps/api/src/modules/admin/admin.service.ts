@@ -1,7 +1,11 @@
-import { Prisma } from '@repo/database';
-import { prisma } from '@repo/database';
-import { AppError } from '../../common/errors';
-
+import { Prisma } from "@repo/database";
+import { prisma } from "@repo/database";
+import { AppError } from "../../common/errors";
+import {
+  PLATFORM_SETTING_DEFAULTS,
+  getPlatformSettings as getSharedPlatformSettings,
+  type PlatformSettingKey,
+} from "../../common/services/platformSetting.service";
 const userSummarySelect = {
   id: true,
   username: true,
@@ -19,8 +23,8 @@ const userSummarySelect = {
 
 export interface UserFilters {
   search?: string;
-  status?: 'ACTIVE' | 'SUSPENDED';
-  platformRole?: 'USER' | 'ADMIN';
+  status?: "ACTIVE" | "SUSPENDED";
+  platformRole?: "USER" | "ADMIN";
   page: number;
   pageSize: number;
 }
@@ -38,7 +42,7 @@ export interface AuditLogFilters {
 
 export interface OrganizationFilters {
   search?: string;
-  status?: 'ACTIVE' | 'SUSPENDED' | 'PENDING_DELETION';
+  status?: "ACTIVE" | "SUSPENDED" | "PENDING_DELETION";
   page: number;
   pageSize: number;
 }
@@ -58,14 +62,14 @@ export async function getOverview() {
     recentActivity,
   ] = await prisma.$transaction([
     prisma.user.count(),
-    prisma.user.count({ where: { status: 'ACTIVE' } }),
+    prisma.user.count({ where: { status: "ACTIVE" } }),
     prisma.organization.count(),
-    prisma.organization.count({ where: { status: 'ACTIVE' } }),
+    prisma.organization.count({ where: { status: "ACTIVE" } }),
     prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-    prisma.organization.count({ where: { status: 'SUSPENDED' } }),
-    prisma.user.count({ where: { status: 'SUSPENDED' } }),
+    prisma.organization.count({ where: { status: "SUSPENDED" } }),
+    prisma.user.count({ where: { status: "SUSPENDED" } }),
     prisma.platformAuditLog.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 5,
       select: {
         id: true,
@@ -101,8 +105,8 @@ export async function getUsers(filters: UserFilters) {
 
   if (filters.search) {
     where.OR = [
-      { email: { contains: filters.search, mode: 'insensitive' } },
-      { username: { contains: filters.search, mode: 'insensitive' } },
+      { email: { contains: filters.search, mode: "insensitive" } },
+      { username: { contains: filters.search, mode: "insensitive" } },
     ];
   }
   if (filters.status) where.status = filters.status;
@@ -112,7 +116,7 @@ export async function getUsers(filters: UserFilters) {
     prisma.user.findMany({
       where,
       select: userSummarySelect,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
     }),
@@ -140,7 +144,7 @@ export async function getUserById(userId: string) {
       isVerified: true,
       suspendedBy: true,
       memberships: {
-        orderBy: { joinedAt: 'desc' },
+        orderBy: { joinedAt: "desc" },
         select: {
           id: true,
           role: true,
@@ -161,7 +165,7 @@ export async function getUserById(userId: string) {
   });
 
   if (!user) {
-    throw new AppError(404, 'USER_NOT_FOUND', 'Không tìm thấy người dùng.');
+    throw new AppError(404, "USER_NOT_FOUND", "Không tìm thấy người dùng.");
   }
 
   const { _count, ...result } = user;
@@ -193,28 +197,37 @@ export async function suspendUser(
   if (userId === actorId) {
     throw new AppError(
       400,
-      'CANNOT_SUSPEND_SELF',
-      'Platform Admin không thể tự khóa tài khoản của mình.',
+      "CANNOT_SUSPEND_SELF",
+      "Platform Admin không thể tự khóa tài khoản của mình.",
     );
   }
 
   return prisma.$transaction(async (tx) => {
     const current = await tx.user.findUnique({
       where: { id: userId },
-      select: { id: true, status: true, suspendedAt: true, suspendReason: true },
+      select: {
+        id: true,
+        status: true,
+        suspendedAt: true,
+        suspendReason: true,
+      },
     });
     if (!current) {
-      throw new AppError(404, 'USER_NOT_FOUND', 'Không tìm thấy người dùng.');
+      throw new AppError(404, "USER_NOT_FOUND", "Không tìm thấy người dùng.");
     }
-    if (current.status === 'SUSPENDED') {
-      throw new AppError(409, 'USER_ALREADY_SUSPENDED', 'Tài khoản đã bị khóa.');
+    if (current.status === "SUSPENDED") {
+      throw new AppError(
+        409,
+        "USER_ALREADY_SUSPENDED",
+        "Tài khoản đã bị khóa.",
+      );
     }
 
     const now = new Date();
     const updated = await tx.user.update({
       where: { id: userId },
       data: {
-        status: 'SUSPENDED',
+        status: "SUSPENDED",
         suspendedAt: now,
         suspendedBy: actorId,
         suspendReason: reason,
@@ -231,8 +244,8 @@ export async function suspendUser(
     await tx.platformAuditLog.create({
       data: {
         actorId,
-        action: 'USER_SUSPENDED',
-        targetType: 'USER',
+        action: "USER_SUSPENDED",
+        targetType: "USER",
         targetId: userId,
         reason,
         oldValue: { status: current.status },
@@ -258,16 +271,20 @@ export async function restoreUser(
       select: { id: true, status: true, suspendReason: true },
     });
     if (!current) {
-      throw new AppError(404, 'USER_NOT_FOUND', 'Không tìm thấy người dùng.');
+      throw new AppError(404, "USER_NOT_FOUND", "Không tìm thấy người dùng.");
     }
-    if (current.status === 'ACTIVE') {
-      throw new AppError(409, 'USER_ALREADY_ACTIVE', 'Tài khoản đang hoạt động.');
+    if (current.status === "ACTIVE") {
+      throw new AppError(
+        409,
+        "USER_ALREADY_ACTIVE",
+        "Tài khoản đang hoạt động.",
+      );
     }
 
     const updated = await tx.user.update({
       where: { id: userId },
       data: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         suspendedAt: null,
         suspendedBy: null,
         suspendReason: null,
@@ -278,8 +295,8 @@ export async function restoreUser(
     await tx.platformAuditLog.create({
       data: {
         actorId,
-        action: 'USER_RESTORED',
-        targetType: 'USER',
+        action: "USER_RESTORED",
+        targetType: "USER",
         targetId: userId,
         reason,
         oldValue: { status: current.status, reason: current.suspendReason },
@@ -297,8 +314,8 @@ export async function getOrganizations(filters: OrganizationFilters) {
   const where: Prisma.OrganizationWhereInput = {};
   if (filters.search) {
     where.OR = [
-      { name: { contains: filters.search, mode: 'insensitive' } },
-      { slug: { contains: filters.search, mode: 'insensitive' } },
+      { name: { contains: filters.search, mode: "insensitive" } },
+      { slug: { contains: filters.search, mode: "insensitive" } },
     ];
   }
   if (filters.status) where.status = filters.status;
@@ -306,7 +323,7 @@ export async function getOrganizations(filters: OrganizationFilters) {
   const [organizations, total] = await prisma.$transaction([
     prisma.organization.findMany({
       where,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
       select: {
@@ -317,7 +334,7 @@ export async function getOrganizations(filters: OrganizationFilters) {
         status: true,
         createdAt: true,
         members: {
-          where: { role: 'OWNER' },
+          where: { role: "OWNER" },
           take: 1,
           select: {
             user: {
@@ -332,12 +349,14 @@ export async function getOrganizations(filters: OrganizationFilters) {
   ]);
 
   return {
-    organizations: organizations.map(({ members, _count, ...organization }) => ({
-      ...organization,
-      owner: members[0]?.user ?? null,
-      memberCount: _count.members,
-      projectCount: _count.projects,
-    })),
+    organizations: organizations.map(
+      ({ members, _count, ...organization }) => ({
+        ...organization,
+        owner: members[0]?.user ?? null,
+        memberCount: _count.members,
+        projectCount: _count.projects,
+      }),
+    ),
     pagination: {
       page: filters.page,
       pageSize: filters.pageSize,
@@ -363,7 +382,7 @@ export async function getOrganizationById(organizationId: string) {
       updatedAt: true,
       _count: { select: { members: true, projects: true } },
       members: {
-        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+        orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
         select: {
           id: true,
           role: true,
@@ -375,7 +394,7 @@ export async function getOrganizationById(organizationId: string) {
         },
       },
       projects: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
           name: true,
@@ -391,8 +410,8 @@ export async function getOrganizationById(organizationId: string) {
   if (!organization) {
     throw new AppError(
       404,
-      'ORGANIZATION_NOT_FOUND',
-      'Không tìm thấy tổ chức.',
+      "ORGANIZATION_NOT_FOUND",
+      "Không tìm thấy tổ chức.",
     );
   }
 
@@ -403,7 +422,8 @@ export async function getOrganizationById(organizationId: string) {
       })
     : null;
   const owner =
-    organization.members.find((member) => member.role === 'OWNER')?.user ?? null;
+    organization.members.find((member) => member.role === "OWNER")?.user ??
+    null;
   const { _count, ...result } = organization;
   return {
     ...result,
@@ -428,22 +448,22 @@ export async function suspendOrganization(
     if (!current) {
       throw new AppError(
         404,
-        'ORGANIZATION_NOT_FOUND',
-        'Không tìm thấy tổ chức.',
+        "ORGANIZATION_NOT_FOUND",
+        "Không tìm thấy tổ chức.",
       );
     }
-    if (current.status !== 'ACTIVE') {
+    if (current.status !== "ACTIVE") {
       throw new AppError(
         409,
-        'ORGANIZATION_NOT_ACTIVE',
-        'Chỉ có thể khóa tổ chức đang hoạt động.',
+        "ORGANIZATION_NOT_ACTIVE",
+        "Chỉ có thể khóa tổ chức đang hoạt động.",
       );
     }
 
     const updated = await tx.organization.update({
       where: { id: organizationId },
       data: {
-        status: 'SUSPENDED',
+        status: "SUSPENDED",
         suspendedAt: new Date(),
         suspendedBy: actorId,
         suspendReason: reason,
@@ -453,8 +473,8 @@ export async function suspendOrganization(
     await tx.platformAuditLog.create({
       data: {
         actorId,
-        action: 'SUSPEND_ORG',
-        targetType: 'ORGANIZATION',
+        action: "SUSPEND_ORG",
+        targetType: "ORGANIZATION",
         targetId: organizationId,
         reason,
         oldValue: { status: current.status },
@@ -481,22 +501,22 @@ export async function restoreOrganization(
     if (!current) {
       throw new AppError(
         404,
-        'ORGANIZATION_NOT_FOUND',
-        'Không tìm thấy tổ chức.',
+        "ORGANIZATION_NOT_FOUND",
+        "Không tìm thấy tổ chức.",
       );
     }
-    if (current.status !== 'SUSPENDED') {
+    if (current.status !== "SUSPENDED") {
       throw new AppError(
         409,
-        'ORGANIZATION_NOT_SUSPENDED',
-        'Chỉ có thể khôi phục tổ chức đang bị khóa.',
+        "ORGANIZATION_NOT_SUSPENDED",
+        "Chỉ có thể khôi phục tổ chức đang bị khóa.",
       );
     }
 
     const updated = await tx.organization.update({
       where: { id: organizationId },
       data: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         suspendedAt: null,
         suspendedBy: null,
         suspendReason: null,
@@ -507,8 +527,8 @@ export async function restoreOrganization(
     await tx.platformAuditLog.create({
       data: {
         actorId,
-        action: 'RESTORE_ORG',
-        targetType: 'ORGANIZATION',
+        action: "RESTORE_ORG",
+        targetType: "ORGANIZATION",
         targetId: organizationId,
         reason,
         oldValue: { status: current.status, reason: current.suspendReason },
@@ -537,7 +557,7 @@ export async function getAuditLogs(filters: AuditLogFilters) {
   const [logs, total] = await prisma.$transaction([
     prisma.platformAuditLog.findMany({
       where,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
       include: {
@@ -559,42 +579,145 @@ export async function getAuditLogs(filters: AuditLogFilters) {
   };
 }
 
-const SETTING_DEFAULTS = {
-  invitation_expiry_days: 7,
-  max_upload_size_mb: 50,
-  allowed_file_types: ['image/png', 'image/jpeg', 'application/pdf'],
-  maintenance_mode: false,
-} as const;
+const STRING_SETTINGS = new Set<PlatformSettingKey>([
+  "platform_name",
+  "support_email",
+  "default_language",
+  "default_timezone",
+  "date_format",
+  "announcement_message",
+]);
 
-type SettingKey = keyof typeof SETTING_DEFAULTS;
+const BOOLEAN_SETTINGS = new Set<PlatformSettingKey>([
+  "registration_enabled",
+  "organization_creation_enabled",
+  "announcement_enabled",
+  "maintenance_mode",
+]);
 
-function validateSetting(key: string, value: unknown): asserts key is SettingKey {
-  if (!(key in SETTING_DEFAULTS)) {
-    throw new AppError(400, 'UNKNOWN_SETTING', 'Key cấu hình không được hỗ trợ.');
+function validateSetting(
+  key: string,
+  value: unknown,
+): asserts key is PlatformSettingKey {
+  if (!(key in PLATFORM_SETTING_DEFAULTS)) {
+    throw new AppError(400, "UNKNOWN_SETTING", "Cấu hình không được hỗ trợ.");
   }
+
+  const settingKey = key as PlatformSettingKey;
+
+  if (STRING_SETTINGS.has(settingKey) && typeof value !== "string") {
+    throw new AppError(400, "INVALID_SETTING_VALUE", "Giá trị phải là chuỗi.");
+  }
+
+  if (BOOLEAN_SETTINGS.has(settingKey) && typeof value !== "boolean") {
+    throw new AppError(
+      400,
+      "INVALID_SETTING_VALUE",
+      "Giá trị phải là boolean.",
+    );
+  }
+
   if (
-    (key === 'invitation_expiry_days' || key === 'max_upload_size_mb') &&
-    (typeof value !== 'number' || !Number.isInteger(value) || value < 1)
+    key === "platform_name" &&
+    (typeof value !== "string" || value.trim().length < 2 || value.length > 100)
   ) {
-    throw new AppError(400, 'INVALID_SETTING_VALUE', 'Giá trị phải là số nguyên dương.');
+    throw new AppError(
+      400,
+      "INVALID_PLATFORM_NAME",
+      "Tên nền tảng phải có từ 2 đến 100 ký tự.",
+    );
   }
+
   if (
-    key === 'allowed_file_types' &&
-    (!Array.isArray(value) || value.some((item) => typeof item !== 'string'))
+    key === "support_email" &&
+    value !== "" &&
+    (typeof value !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
   ) {
-    throw new AppError(400, 'INVALID_SETTING_VALUE', 'Loại file phải là mảng chuỗi.');
+    throw new AppError(
+      400,
+      "INVALID_SUPPORT_EMAIL",
+      "Email hỗ trợ không hợp lệ.",
+    );
   }
-  if (key === 'maintenance_mode' && typeof value !== 'boolean') {
-    throw new AppError(400, 'INVALID_SETTING_VALUE', 'Maintenance mode phải là boolean.');
+
+  if (
+    key === "default_project_view" &&
+    !["summary", "board", "list", "timeline"].includes(String(value))
+  ) {
+    throw new AppError(
+      400,
+      "INVALID_DEFAULT_PROJECT_VIEW",
+      "Màn hình dự án mặc định không hợp lệ.",
+    );
+  }
+
+  if (
+    key === "announcement_message" &&
+    typeof value === "string" &&
+    value.length > 500
+  ) {
+    throw new AppError(
+      400,
+      "ANNOUNCEMENT_TOO_LONG",
+      "Thông báo không được vượt quá 500 ký tự.",
+    );
+  }
+
+  if (
+    (key === "invitation_expiry_days" || key === "max_upload_size_mb") &&
+    (typeof value !== "number" || !Number.isInteger(value) || value < 1)
+  ) {
+    throw new AppError(
+      400,
+      "INVALID_SETTING_VALUE",
+      "Giá trị phải là số nguyên dương.",
+    );
+  }
+
+  if (
+    key === "allowed_file_types" &&
+    (!Array.isArray(value) ||
+      value.length === 0 ||
+      value.some((item) => typeof item !== "string" || !item.trim()))
+  ) {
+    throw new AppError(
+      400,
+      "INVALID_SETTING_VALUE",
+      "Loại file phải là một mảng chuỗi không rỗng.",
+    );
+  }
+
+  if (key === "default_language" && value !== "vi") {
+    throw new AppError(
+      400,
+      "INVALID_DEFAULT_LANGUAGE",
+      "Ngôn ngữ mặc định chưa được hỗ trợ.",
+    );
+  }
+
+  if (key === "default_timezone" && value !== "Asia/Bangkok") {
+    throw new AppError(
+      400,
+      "INVALID_DEFAULT_TIMEZONE",
+      "Múi giờ mặc định chưa được hỗ trợ.",
+    );
+  }
+
+  if (
+    key === "date_format" &&
+    value !== "DD/MM/YYYY" &&
+    value !== "YYYY-MM-DD"
+  ) {
+    throw new AppError(
+      400,
+      "INVALID_DATE_FORMAT",
+      "Định dạng ngày không được hỗ trợ.",
+    );
   }
 }
 
 export async function getPlatformSettings() {
-  const rows = await prisma.platformSetting.findMany();
-  return rows.reduce<Record<string, unknown>>(
-    (settings, row) => ({ ...settings, [row.key]: row.value }),
-    { ...SETTING_DEFAULTS },
-  );
+  return getSharedPlatformSettings();
 }
 
 export async function updatePlatformSetting(
@@ -606,17 +729,21 @@ export async function updatePlatformSetting(
   validateSetting(key, value);
   return prisma.$transaction(async (tx) => {
     const current = await tx.platformSetting.findUnique({ where: { key } });
-    const oldValue = current?.value ?? SETTING_DEFAULTS[key];
+    const oldValue = current?.value ?? PLATFORM_SETTING_DEFAULTS[key];
     const setting = await tx.platformSetting.upsert({
       where: { key },
-      create: { key, value: value as Prisma.InputJsonValue, updatedBy: actorId },
+      create: {
+        key,
+        value: value as Prisma.InputJsonValue,
+        updatedBy: actorId,
+      },
       update: { value: value as Prisma.InputJsonValue, updatedBy: actorId },
     });
     await tx.platformAuditLog.create({
       data: {
         actorId,
-        action: 'UPDATE_SETTING',
-        targetType: 'SETTING',
+        action: "UPDATE_SETTING",
+        targetType: "SETTING",
         targetId: key,
         oldValue: { value: oldValue } as Prisma.InputJsonValue,
         newValue: { value } as Prisma.InputJsonValue,
@@ -633,21 +760,21 @@ export async function getSystemHealth() {
   since.setUTCHours(0, 0, 0, 0);
   since.setUTCDate(since.getUTCDate() - 6);
 
-  let database: { status: 'ok' | 'error'; message: string };
+  let database: { status: "ok" | "error"; message: string };
   try {
     await prisma.$queryRaw`SELECT 1`;
-    database = { status: 'ok', message: 'Kết nối bình thường' };
+    database = { status: "ok", message: "Kết nối bình thường" };
   } catch {
-    database = { status: 'error', message: 'Không thể kết nối database' };
+    database = { status: "error", message: "Không thể kết nối database" };
   }
 
   const redis = {
     configured: false,
     status: null,
-    message: 'Chưa cấu hình',
+    message: "Chưa cấu hình",
   };
 
-  if (database.status === 'error') {
+  if (database.status === "error") {
     return {
       database,
       redis,
@@ -671,10 +798,12 @@ export async function getSystemHealth() {
       prisma.refreshToken.count({
         where: { expiresAt: { lt: now }, revokedAt: null },
       }),
-      prisma.platformSetting.findUnique({ where: { key: 'max_upload_size_mb' } }),
+      prisma.platformSetting.findUnique({
+        where: { key: "max_upload_size_mb" },
+      }),
       prisma.attachment.findMany({
         where: { sizeBytes: { not: null } },
-        orderBy: { sizeBytes: 'desc' },
+        orderBy: { sizeBytes: "desc" },
         take: 100,
         select: {
           id: true,
@@ -690,7 +819,7 @@ export async function getSystemHealth() {
 
   const sizeValue = configuredSize?.value;
   const attachmentThresholdMb =
-    typeof sizeValue === 'number' && sizeValue > 0 ? sizeValue : 50;
+    typeof sizeValue === "number" && sizeValue > 0 ? sizeValue : 50;
   const thresholdBytes = BigInt(attachmentThresholdMb * 1024 * 1024);
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(since);
@@ -699,7 +828,8 @@ export async function getSystemHealth() {
   });
   const activity = days.map((date) => ({
     date,
-    tasks: tasks.filter((item) => item.createdAt.toISOString().startsWith(date)).length,
+    tasks: tasks.filter((item) => item.createdAt.toISOString().startsWith(date))
+      .length,
     projects: projects.filter((item) =>
       item.createdAt.toISOString().startsWith(date),
     ).length,

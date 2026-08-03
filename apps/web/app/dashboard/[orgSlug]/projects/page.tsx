@@ -24,6 +24,8 @@ import {
   UserOutlined,
   ArrowRightOutlined,
   FolderOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import * as projectService from "../../../../services/project";
@@ -41,6 +43,9 @@ export default function OrgProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<projectService.ProjectInfo | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form] = Form.useForm();
 
   const fetchProjects = useCallback(async () => {
@@ -82,8 +87,26 @@ export default function OrgProjectsPage() {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!orgId || !projectToDelete) return;
+    try {
+      setDeleting(true);
+      await projectService.deleteProject(orgId, projectToDelete.id);
+      message.success(`Đã chuyển dự án "${projectToDelete.name}" vào Thùng rác.`);
+      setDeleteModalOpen(false);
+      setProjectToDelete(null);
+      fetchProjects();
+    } catch (err: any) {
+      message.error(err.message || "Xóa dự án thất bại.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const canCreateProject =
     userRole && hasPermission(userRole, "project:create");
+  const canDeleteProject =
+    userRole && hasPermission(userRole, "project:delete");
 
   return (
     <div className="p-3 md:p-4 flex flex-col gap-6  mx-auto w-full text-left">
@@ -149,15 +172,32 @@ export default function OrgProjectsPage() {
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-extrabold text-xs px-2.5 py-1 rounded-lg bg-gray-50 text-gray-700 border border-gray-100">
-                      KEY: {p.key}
-                    </span>
-                    <Tag
-                      color={p.status === "ACTIVE" ? "success" : "default"}
-                      className="rounded-full px-2.5"
-                    >
-                      {p.status}
-                    </Tag>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-xs px-2.5 py-1 rounded-lg bg-gray-50 text-gray-700 border border-gray-100">
+                        KEY: {p.key}
+                      </span>
+                      <Tag
+                        color={p.status === "ACTIVE" ? "success" : "default"}
+                        className="rounded-full px-2.5"
+                      >
+                        {p.status}
+                      </Tag>
+                    </div>
+                    {canDeleteProject && (
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        className="hover:bg-red-50 text-red-500 rounded-lg opacity-80 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToDelete(p);
+                          setDeleteModalOpen(true);
+                        }}
+                        title="Xóa dự án"
+                      />
+                    )}
                   </div>
 
                   <h3 className="text-lg font-bold text-gray-900 group-hover:text-gray-700 transition-colors mb-1.5">
@@ -172,7 +212,7 @@ export default function OrgProjectsPage() {
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-400 mt-2">
                   <div className="flex items-center gap-2">
                     <Avatar
-                      src={p.owner.avatarUrl}
+                      src={p.owner?.avatarUrl}
                       size={22}
                       className="bg-gray-100 text-gray-700 font-bold text-[10px]"
                     >
@@ -260,6 +300,60 @@ export default function OrgProjectsPage() {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* Delete Project Confirmation Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-red-600 font-bold text-lg">
+            <ExclamationCircleOutlined />
+            <span>Xác nhận xóa dự án</span>
+          </div>
+        }
+        open={deleteModalOpen}
+        onCancel={() => {
+          if (!deleting) {
+            setDeleteModalOpen(false);
+            setProjectToDelete(null);
+          }
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            disabled={deleting}
+            onClick={() => {
+              setDeleteModalOpen(false);
+              setProjectToDelete(null);
+            }}
+          >
+            Hủy
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            loading={deleting}
+            onClick={handleDeleteConfirm}
+            className="bg-red-600 hover:bg-red-700 font-semibold"
+          >
+            Xóa dự án
+          </Button>,
+        ]}
+        centered
+        width={460}
+      >
+        <div className="py-2">
+          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+            Bạn có chắc chắn muốn xóa dự án{" "}
+            <strong className="text-gray-900 font-bold">
+              [{projectToDelete?.key}] {projectToDelete?.name}
+            </strong>{" "}
+            không?
+          </p>
+          <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 leading-normal">
+            ⚠️ <strong>Cảnh báo:</strong> Hành động này sẽ xóa vĩnh viễn tất cả công việc (tasks), nhãn, và dữ liệu thuộc dự án này. Không thể hoàn tác.
+          </div>
+        </div>
       </Modal>
     </div>
   );

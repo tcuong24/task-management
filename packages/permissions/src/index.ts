@@ -32,7 +32,12 @@ export type PermissionAction =
 
   // Label and configuration
   | "label:manage" // Create, edit, delete labels
-  | "label:attach"; // Attach label to task
+  | "label:attach" // Attach label to task
+
+  // Trash actions
+  | "trash:view"
+  | "trash:restore"
+  | "trash:purge"; // Hard delete from trash (owner only)
 
 const permissionMatrix: Record<OrgRole, Set<PermissionAction>> = {
   OWNER: new Set<PermissionAction>([
@@ -64,6 +69,10 @@ const permissionMatrix: Record<OrgRole, Set<PermissionAction>> = {
 
     "label:manage",
     "label:attach",
+
+    "trash:view",
+    "trash:restore",
+    "trash:purge",
   ]),
   ADMIN: new Set<PermissionAction>([
     "view:personal-dashboard",
@@ -87,6 +96,10 @@ const permissionMatrix: Record<OrgRole, Set<PermissionAction>> = {
     // 'member:remove-admin' is hidden for ADMIN
     "label:manage",
     "label:attach",
+
+    "trash:view",
+    "trash:restore",
+    // 'trash:purge' is hidden for ADMIN
   ]),
   MEMBER: new Set<PermissionAction>([
     "view:personal-dashboard",

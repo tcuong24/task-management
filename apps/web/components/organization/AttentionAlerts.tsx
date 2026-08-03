@@ -71,9 +71,7 @@ export function AttentionAlerts({
                 </span>
               )}
             </h3>
-            <p className="text-xs text-gray-500 m-0 font-medium">
-              Các mốc công việc cần người quản lý xử lý ngay
-            </p>
+           
           </div>
         </div>
       </div>

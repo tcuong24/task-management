@@ -170,28 +170,37 @@ const canViewActivities = Boolean(
         </Card>
       </div>
 
-      {/* Tier 2: Row 1 - Chart (2/3) & Enhanced Projects Progress (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left (2 cols): Task Status Donut Chart */}
-        <div className="lg:col-span-2">
-          <TaskStatusChart statusBreakdown={summaryData?.statusBreakdown} />
+      {/* Tier 2: Row 1 - Chart (1/2) & Enhanced Projects Progress (1/2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* Left (1/2): Task Status Donut Chart */}
+        <div className="flex min-w-0">
+          <TaskStatusChart
+            className="flex-1"
+            statusBreakdown={summaryData?.statusBreakdown}
+          />
         </div>
 
-        {/* Right (1 col): Enhanced Projects Progress */}
-        <div className="flex flex-col gap-4">
-          <Card className="rounded-2xl border border-gray-200/80 shadow-md bg-white overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+        {/* Right (1/2): Enhanced Projects Progress */}
+        <div className="flex min-w-0">
+          <Card
+            className="flex-1 rounded-2xl border border-gray-200/80 shadow-md bg-white overflow-hidden"
+            styles={{
+              body: {
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              },
+            }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
                   <ProjectOutlined className="text-base" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-gray-900 m-0">
-                    Dự án trong tổ chức
+                    Dự án
                   </h3>
-                  <p className="text-xs text-gray-500 m-0 font-medium">
-                    Tiến độ hoàn thành dự án
-                  </p>
                 </div>
               </div>
               <Link
@@ -202,7 +211,7 @@ const canViewActivities = Boolean(
               </Link>
             </div>
 
-            <div className="flex flex-col gap-3.5">
+            <div className="flex-1 min-h-0 max-h-[170px] overflow-y-auto flex flex-col gap-2.5 pr-1">
               {projectsProgress.map((proj) => {
                 const percent = proj.progressPercentage;
                 const colorInfo =
@@ -216,9 +225,10 @@ const canViewActivities = Boolean(
                   <Link
                     key={proj.id}
                     href={`/dashboard/${orgSlug}/projects/${proj.key}`}
+                    className="shrink-0"
                   >
-                    <div className="p-3 rounded-xl hover:bg-slate-50/80 transition-colors border border-transparent hover:border-gray-200/60 cursor-pointer">
-                      <div className="flex items-center justify-between mb-1.5">
+                    <div className="p-2.5 rounded-xl hover:bg-slate-50/80 transition-colors border border-gray-100 hover:border-gray-200 cursor-pointer">
+                      <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <span
                             className="font-bold text-xs text-gray-800 truncate"
@@ -247,7 +257,7 @@ const canViewActivities = Boolean(
                         size="small"
                       />
 
-                      <div className="flex items-center justify-between text-[11px] text-gray-400 mt-2 font-medium">
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 mt-1.5 font-medium">
                         <span>
                           {proj.doneTasks} / {proj.totalTasks} task xong
                         </span>
@@ -270,7 +280,7 @@ const canViewActivities = Boolean(
               })}
 
               {projectsProgress.length === 0 && (
-                <div className="py-8 text-center text-gray-400 text-sm">
+                <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
                   Chưa có dự án nào trong tổ chức.
                 </div>
               )}

@@ -35,9 +35,11 @@ model User {
   invitedMemberships OrganizationMember[]     @relation("invitedBy")
   memberships        OrganizationMember[]
   ownedProjects      Project[]                @relation("projectOwner")
+  deletedProjects    Project[]                @relation("projectDeletedBy")
   refreshTokens      RefreshToken[]
   assignedTasks      Task[]                   @relation("taskAssignee")
   reportedTasks      Task[]                   @relation("taskReporter")
+  deletedTasks       Task[]                   @relation("taskDeletedBy")
   platformAuditLogs  PlatformAuditLog[]       @relation("PlatformAuditActor")
 
   @@map("users")
@@ -91,12 +93,16 @@ model Project {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   taskCounter    Int          @default(0) @map("task_counter")
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  deletedById    String?      @map("deleted_by") @db.Uuid
   labels         Label[]
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner          User?        @relation("projectOwner", fields: [ownerId], references: [id])
+  deletedBy      User?        @relation("projectDeletedBy", fields: [deletedById], references: [id])
   tasks          Task[]
 
   @@unique([organizationId, key])
+  @@index([organizationId, deletedAt], map: "idx_projects_org_deleted")
   @@map("projects")
 }
 
@@ -117,10 +123,13 @@ model Task {
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   taskNumber   Int          @map("task_number")
   startDate    DateTime?    @map("start_date") @db.Timestamptz(6)
+  deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  deletedById  String?      @map("deleted_by") @db.Uuid
   attachments  Attachment[]
   comments     Comment[]
   labels       TaskLabel[]
   assignee     User?        @relation("taskAssignee", fields: [assigneeId], references: [id])
+  deletedBy    User?        @relation("taskDeletedBy", fields: [deletedById], references: [id])
   parentTask   Task?        @relation("subTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   subTasks     Task[]       @relation("subTasks")
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -130,6 +139,7 @@ model Task {
   @@index([projectId], map: "idx_tasks_project")
   @@index([assigneeId], map: "idx_tasks_assignee")
   @@index([parentTaskId], map: "idx_tasks_parent")
+  @@index([projectId, deletedAt], map: "idx_tasks_project_deleted")
   @@map("tasks")
 }
 

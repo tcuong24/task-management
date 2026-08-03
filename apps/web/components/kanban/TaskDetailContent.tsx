@@ -472,6 +472,8 @@ export function TaskDetailContent({
     return userRole === "MEMBER" && task.reporterId !== user?.id;
   }, [userRole, task, user?.id]);
 
+  // Mỗi task là một presence room riêng. Danh sách này được cập nhật realtime
+  // khi có người mở, đóng hoặc chuyển khỏi màn hình chi tiết task.
   const { activeUsers } = usePresence(taskId ? `task:${taskId}` : undefined);
 
   useTaskRealtimeSync({
@@ -516,6 +518,7 @@ export function TaskDetailContent({
               {task.displayCode}
             </span>
           </div>
+          {/* Hiển thị tên những người hiện đang ở trong room của task. */}
           {activeUsers.length > 0 && (
             <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
               <span className="relative flex h-2 w-2">
@@ -533,6 +536,7 @@ export function TaskDetailContent({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Dùng cùng activeUsers để hiển thị nhóm avatar người đang xem. */}
           {activeUsers.length > 0 && (
             <Avatar.Group max={{ count: 3 }} size="small">
               {activeUsers.map((u) => (

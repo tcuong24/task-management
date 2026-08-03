@@ -6,15 +6,19 @@ import { Modal, Form, Input, App } from "antd";
 import { BankOutlined, PlusOutlined } from "@ant-design/icons";
 import type { UserMembership } from "../../services/user";
 import * as orgService from "../../services/organization";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
 interface OrganizationsTabProps {
   memberships: UserMembership[];
   onOrgCreated?: () => void;
 }
-
-export function OrganizationsTab({ memberships, onOrgCreated }: OrganizationsTabProps) {
+export function OrganizationsTab({
+  memberships,
+  onOrgCreated,
+}: OrganizationsTabProps) {
   const router = useRouter();
   const { message } = App.useApp();
+  const { settings } = usePlatformSettings();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
@@ -48,17 +52,23 @@ export function OrganizationsTab({ memberships, onOrgCreated }: OrganizationsTab
               Tổ chức ({memberships.length})
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              form.resetFields();
-              setCreateModalOpen(true);
-            }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-medium text-sm rounded-xl transition-colors duration-150 ease-out  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer"
-          >
-            <PlusOutlined />
-            Tạo tổ chức
-          </button>
+          {settings.organization_creation_enabled ? (
+            <button
+              type="button"
+              onClick={() => {
+                form.resetFields();
+                setCreateModalOpen(true);
+              }}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white shadow-md transition-colors duration-150 ease-out hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto"
+            >
+              <PlusOutlined aria-hidden="true" />
+              Tạo tổ chức
+            </button>
+          ) : (
+            <span className="text-sm text-gray-500">
+              Hệ thống đang tạm dừng tạo tổ chức
+            </span>
+          )}
         </div>
 
         {/* List / Table or Empty State */}
@@ -159,7 +169,8 @@ export function OrganizationsTab({ memberships, onOrgCreated }: OrganizationsTab
                 Bạn chưa tham gia tổ chức nào
               </p>
               <p className="text-xs text-gray-500 m-0 max-w-sm">
-                Tạo một tổ chức mới để bắt đầu hợp tác và quản lý dự án cùng đội ngũ của bạn.
+                Tạo một tổ chức mới để bắt đầu hợp tác và quản lý dự án cùng đội
+                ngũ của bạn.
               </p>
             </div>
             <button
@@ -199,7 +210,9 @@ export function OrganizationsTab({ memberships, onOrgCreated }: OrganizationsTab
           <Form.Item
             name="name"
             label={
-              <span className="text-xs font-medium text-gray-700">Tên tổ chức</span>
+              <span className="text-xs font-medium text-gray-700">
+                Tên tổ chức
+              </span>
             }
             rules={[{ required: true, message: "Vui lòng nhập tên tổ chức" }]}
           >
@@ -219,7 +232,9 @@ export function OrganizationsTab({ memberships, onOrgCreated }: OrganizationsTab
           <Form.Item
             name="slug"
             label={
-              <span className="text-xs font-medium text-gray-700">Đường dẫn slug</span>
+              <span className="text-xs font-medium text-gray-700">
+                Đường dẫn slug
+              </span>
             }
             rules={[{ required: true, message: "Vui lòng nhập slug" }]}
           >

@@ -166,12 +166,29 @@ export interface AdminOrganizationFilters {
 }
 
 export interface PlatformSettings {
+  platform_name: string;
+  support_email: string;
+  default_language: string;
+  default_timezone: string;
+  date_format: string;
+
+  registration_enabled: boolean;
+  organization_creation_enabled: boolean;
+
+  default_project_view:
+    | "summary"
+    | "board"
+    | "list"
+    | "timeline";
+
+  announcement_enabled: boolean;
+  announcement_message: string;
+
   invitation_expiry_days: number;
   max_upload_size_mb: number;
   allowed_file_types: string[];
   maintenance_mode: boolean;
 }
-
 export interface AdminSystemHealth {
   database: { status: "ok" | "error"; message: string };
   redis: {
@@ -339,12 +356,17 @@ export async function getAdminSettings(signal?: AbortSignal) {
   }>("/admin/settings", { method: "GET", signal });
 }
 
-export async function updateAdminSetting(
-  key: keyof PlatformSettings,
-  value: PlatformSettings[keyof PlatformSettings],
+export async function updateAdminSetting<
+  Key extends keyof PlatformSettings,
+>(
+  key: Key,
+  value: PlatformSettings[Key],
 ) {
-  return request<{ success: boolean; setting: unknown }>("/admin/settings", {
-    method: "PATCH",
-    body: JSON.stringify({ key, value }),
-  });
+  return request<{ success: boolean; setting: unknown }>(
+    "/admin/settings",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ key, value }),
+    },
+  );
 }

@@ -93,3 +93,25 @@ export async function getProjectTimelineHandler(req: Request, res: Response, nex
     next(err);
   }
 }
+
+export async function deleteProjectHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const orgIdRaw = req.params.id || req.params.orgId;
+    const orgId = Array.isArray(orgIdRaw) ? orgIdRaw[0] : (orgIdRaw as string);
+    const projectIdRaw = req.params.projectId;
+    const projectId = Array.isArray(projectIdRaw) ? projectIdRaw[0] : (projectIdRaw as string);
+    const userId = req.user?.userId;
+
+    if (!orgId || !projectId) {
+      throw new ValidationError('Thiếu ID tổ chức hoặc ID dự án.');
+    }
+    if (!userId) {
+      throw new ValidationError('Yêu cầu đăng nhập.');
+    }
+
+    await projectService.deleteProject(orgId, projectId, userId);
+    res.status(200).json({ success: true, message: 'Xóa dự án thành công.' });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -54,6 +54,7 @@ setupSwagger(app);
 import directTaskRoutes from './modules/task/direct-task.routes';
 
 import userRoutes from './modules/user/user.routes';
+import platformRoutes from './modules/platform/platform.routes';
 
 // ─── Public & Protected routes ──────────────────────────────
 app.use('/auth', authRoutes);
@@ -63,6 +64,7 @@ app.use('/invitations', invitationRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/tasks', directTaskRoutes);
 app.use('/admin', adminRoutes);
+app.use('/platform', platformRoutes);
 
 // ─── Protected routes (example) ─────────────────────────────
 /**
@@ -138,7 +140,6 @@ app.get('/me', authenticate, async (req, res, next) => {
     next(err);
   }
 });
-
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from Node.js API!' });
 });

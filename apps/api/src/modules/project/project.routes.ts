@@ -53,6 +53,7 @@ router.get('/by-key/:key', requirePermission('view:personal-dashboard'), project
 // Get project dashboard stats
 router.get('/:projectId/dashboard', requirePermission('view:personal-dashboard'), projectController.getProjectDashboardHandler);
 router.get('/:projectId/timeline', requirePermission('view:personal-dashboard'), projectController.getProjectTimelineHandler);
+router.delete('/:projectId', requirePermission('project:delete'), projectController.deleteProjectHandler);
 
 // Manage tasks within a project
 router.use('/:projectId/tasks', taskRoutes);

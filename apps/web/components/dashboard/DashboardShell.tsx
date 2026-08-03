@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import { OrgProvider, useOrg } from "../../contexts/OrgContext";
 import { Sidebar } from "../../components/sidebar/Sidebar";
-import { Avatar, Button, Popover, Skeleton, Input } from "antd";
-import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
+import { Alert, Avatar, Button, Popover, Skeleton } from "antd";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
+import { LogoutOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
 import NotificationBell from "../../components/notification/NotificationBell";
 import HeaderSearch from "./HeaderSearch";
 
@@ -87,7 +88,7 @@ export default function DashboardShell({
   const router = useRouter();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
+  const { settings } = usePlatformSettings();
   // Load initial collapsed state from cookie
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
     const saved = getCookie("mainSidebarCollapsed");
@@ -164,6 +165,17 @@ export default function DashboardShell({
         Thông tin cá nhân
       </Button>
 
+      {settings.support_email ? (
+        <Button
+          type="link"
+          icon={<MailOutlined />}
+          href={`mailto:${settings.support_email}`}
+          className="flex h-11 w-full items-center justify-start! rounded-xl px-3 text-blue-600 transition-colors duration-150 ease-out hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
+        >
+          Liên hệ hỗ trợ
+        </Button>
+      ) : null}
+
       <Button
         type="text"
         danger
@@ -233,7 +245,16 @@ export default function DashboardShell({
               </div>
             </div>
           </header>
-
+          {settings.announcement_enabled &&
+          settings.announcement_message.trim() ? (
+            <Alert
+              type="info"
+              showIcon
+              banner
+              message={settings.announcement_message}
+              className="rounded-none border-x-0 border-gray-100"
+            />
+          ) : null}
           {/* ─── Main View Content ───────────────────────────── */}
           <main className="flex-1 bg-gray-50 p-4 md:p-6">{children}</main>
         </div>

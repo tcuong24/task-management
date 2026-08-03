@@ -5,10 +5,12 @@ import { Form, Input, Button, Checkbox, Alert, App } from "antd";
 import Link from "next/link";
 import { useAuth } from "../../hooks/useAuth";
 import { useSearchParams } from "next/navigation";
+import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
 function LoginForm() {
   const { message } = App.useApp();
   const { login } = useAuth();
+  const { settings } = usePlatformSettings();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const searchParams = useSearchParams();
@@ -48,10 +50,10 @@ function LoginForm() {
       <div className="w-full max-w-[420px] flex flex-col items-center">
         {/* Header branding */}
         <div className="mb-2 inline-flex items-center justify-center bg-gray-100 text-gray-700 text-xs font-semibold px-4 py-1 rounded-md font-brand">
-          TaskFlow Login
+          {settings.platform_name} Login
         </div>
         <h1 className="font-brand text-4xl font-extrabold tracking-tight text-gray-900 mt-2 mb-8">
-          Welcome TaskFlow!
+          Welcome {settings.platform_name}!
         </h1>
 
         {/* Login Card */}

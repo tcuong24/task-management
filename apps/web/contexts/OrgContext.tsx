@@ -5,6 +5,7 @@ import { useRouter, useParams, usePathname } from 'next/navigation';
 import { getUserOrganizations, UserOrgInfo, createOrganization } from '../services/organization';
 import { OrgRole } from '@repo/permissions';
 import { useAuth } from '../hooks/useAuth';
+import { usePlatformSettings } from './PlatformSettingsContext';
 
 interface OrgContextType {
   organizations: UserOrgInfo[];
@@ -19,7 +20,6 @@ interface OrgContextType {
 const OrgContext = createContext<OrgContextType | undefined>(undefined);
 
 const SELECTED_ORG_KEY = 'taskflow_selected_org_id';
-
 export function OrgProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<UserOrgInfo[]>([]);
   const [currentOrg, setCurrentOrg] = useState<UserOrgInfo | null>(null);
@@ -29,6 +29,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { settings } = usePlatformSettings();
 
   const urlParam = (params?.orgSlug || params?.id) as string | undefined;
 
@@ -107,6 +108,11 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, [fetchOrgs]);
 
   const createNewOrg = useCallback(async (name: string, slug: string): Promise<UserOrgInfo> => {
+    if (!settings.organization_creation_enabled) {
+      throw new Error(
+        "Hệ thống đang tạm dừng tạo tổ chức.",
+      );
+    }
     if (!user) throw new Error('Chưa đăng nhập');
     const res = await createOrganization(name, slug, user.id);
     await fetchOrgs();
@@ -123,7 +129,12 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
     selectOrg(newOrgInfo.id);
     return newOrgInfo;
-  }, [user, fetchOrgs, selectOrg]);
+  }, [
+    user,
+    fetchOrgs,
+    selectOrg,
+    settings.organization_creation_enabled,
+  ]);
 
   const userRole = currentOrg?.userRole || null;
 

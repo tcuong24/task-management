@@ -4,6 +4,7 @@ import { OrgRole } from '@repo/permissions';
 import { randomBytes } from 'crypto';
 import { createNotification } from '../notification/notification.service';
 import { logActivity } from '../../common/services/activityLog.service';
+import { getPlatformSetting } from '../../common/services/platformSetting.service';
 
 /**
  * Lấy thông tin chi tiết tổ chức
@@ -380,6 +381,19 @@ export async function createOrganization(
   slug: string,
   avatarUrl?: string
 ) {
+  const organizationCreationEnabled =
+    await getPlatformSetting(
+      "organization_creation_enabled",
+    );
+
+  if (!organizationCreationEnabled) {
+    throw new AppError(
+      403,
+      "ORGANIZATION_CREATION_DISABLED",
+      "Hệ thống đang tạm dừng tạo tổ chức mới.",
+    );
+  }
+
   const existing = await prisma.organization.findUnique({
     where: { slug },
   });
@@ -607,13 +621,14 @@ export async function getOrganizationWorkload(orgId: string) {
     prisma.task.groupBy({
       by: ['assigneeId'],
       where: {
-        project: { organizationId: orgId },
+        project: { organizationId: orgId, deletedAt: null },
+        deletedAt: null,
         status: { not: 'DONE' },
       },
       _count: true,
     }),
     prisma.task.count({
-      where: { project: { organizationId: orgId } },
+      where: { project: { organizationId: orgId, deletedAt: null }, deletedAt: null },
     }),
   ]);
 
@@ -641,7 +656,7 @@ export async function getOrganizationWorkload(orgId: string) {
  */
 export async function getOrganizationStats(orgId: string) {
   const [projectsCount, membersCount, { workload, totalTasksCount }] = await Promise.all([
-    prisma.project.count({ where: { organizationId: orgId } }),
+    prisma.project.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.organizationMember.count({ where: { organizationId: orgId } }),
     getOrganizationWorkload(orgId),
   ]);
@@ -657,8 +672,10 @@ export async function getOrganizationStats(orgId: string) {
 export async function getMyTasksInOrg(orgId: string, userId: string, filters?: { projectId?: string; priority?: string }) {
   const whereCondition: any = {
     assigneeId: userId,
+    deletedAt: null,
     project: {
       organizationId: orgId,
+      deletedAt: null,
     },
   };
 
@@ -714,12 +731,13 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   startOfWeek.setHours(0, 0, 0, 0);
 
   const totalProjects = await prisma.project.count({
-    where: { organizationId: orgId },
+    where: { organizationId: orgId, deletedAt: null },
   });
 
   const dueSoonTasksCount = await prisma.task.count({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       dueDate: { gte: now, lte: sevenDaysLater },
       status: { not: 'DONE' },
     },
@@ -727,7 +745,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   const overdueTasksCount = await prisma.task.count({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       dueDate: { lt: now },
       status: { not: 'DONE' },
     },
@@ -735,7 +754,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   const completedThisWeekCount = await prisma.task.count({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       status: 'DONE',
       updatedAt: { gte: startOfWeek },
     },
@@ -743,7 +763,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   const blockedOrCriticalCount = await prisma.task.count({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       priority: 'CRITICAL',
       status: { not: 'DONE' },
     },
@@ -752,7 +773,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   // Task status breakdown for Donut Chart
   const statusGroup = await prisma.task.groupBy({
     by: ['status'],
-    where: { project: { organizationId: orgId } },
+    where: {
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
+    },
     _count: { id: true },
   });
 
@@ -770,7 +794,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   // Enhanced project statistics
   const projects = await prisma.project.findMany({
-    where: { organizationId: orgId },
+    where: { organizationId: orgId, deletedAt: null },
     select: {
       id: true,
       key: true,
@@ -782,6 +806,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
         },
       },
       tasks: {
+        where: { deletedAt: null },
         select: {
           id: true,
           status: true,
@@ -817,7 +842,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   // Attention Items
   const overdueTasksRaw = await prisma.task.findMany({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       status: { not: 'DONE' },
       dueDate: { lt: now },
     },
@@ -836,7 +862,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   const unassignedTasksRaw = await prisma.task.findMany({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       status: { not: 'DONE' },
       assigneeId: null,
     },
@@ -853,7 +880,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
   const criticalTasksRaw = await prisma.task.findMany({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       status: { not: 'DONE' },
       priority: 'CRITICAL',
     },
@@ -872,7 +900,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   // Upcoming Deadlines (next 14 days)
   const upcomingDeadlinesRaw = await prisma.task.findMany({
     where: {
-      project: { organizationId: orgId },
+      project: { organizationId: orgId, deletedAt: null },
+      deletedAt: null,
       status: { not: 'DONE' },
       dueDate: { gte: now, lte: fourteenDaysLater },
     },

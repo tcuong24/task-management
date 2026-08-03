@@ -73,3 +73,12 @@ export async function getProjectTimeline(
     signal,
   });
 }
+
+export async function deleteProject(
+  orgId: string,
+  projectId: string
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/organizations/${orgId}/projects/${projectId}`, {
+    method: 'DELETE',
+  });
+}
