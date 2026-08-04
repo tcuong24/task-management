@@ -47,6 +47,20 @@ export async function updateOrganizationHandler(req: Request, res: Response, nex
   }
 }
 
+export async function deleteOrganizationHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params as { id: string };
+    if (!id) {
+      throw new ValidationError('Mã tổ chức không được để trống.');
+    }
+
+    await orgService.deleteOrganization(id);
+    res.status(200).json({ success: true, message: 'Đã xóa tổ chức.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getMembersHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params as { id: string };

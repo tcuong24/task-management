@@ -21,12 +21,11 @@ export function requirePermission(action: PermissionAction) {
 
       if (orgId) {
         // Check role for specific organization
-        const membership = await prisma.organizationMember.findUnique({
+        const membership = await prisma.organizationMember.findFirst({
           where: {
-            organizationId_userId: {
-              organizationId: orgId,
-              userId: userId,
-            },
+            organizationId: orgId,
+            userId,
+            organization: { deletedAt: null },
           },
         });
         if (membership) {

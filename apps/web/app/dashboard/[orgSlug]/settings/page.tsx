@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card, Skeleton } from "antd";
+import { Alert, App, Button, Card, Skeleton } from "antd";
 import {
   ClockCircleOutlined,
+  DeleteOutlined,
   SettingOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
@@ -23,6 +24,7 @@ function formatDate(value?: string) {
 
 export default function OrgSettingsPage() {
   const router = useRouter();
+  const { message, modal } = App.useApp();
   const { currentOrg, userRole, refreshOrganizations } = useOrg();
   const orgId = currentOrg?.id;
 
@@ -32,6 +34,35 @@ export default function OrgSettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const canEdit = userRole === "ADMIN" || userRole === "OWNER";
+  const canDelete = userRole === "OWNER";
+
+  const handleDelete = () => {
+    if (!organization) return;
+
+    modal.confirm({
+      title: "Xóa tổ chức?",
+      content: `Tổ chức “${organization.name}” sẽ bị xóa và không còn hiển thị với các thành viên.`,
+      okText: "Xóa tổ chức",
+      okType: "danger",
+      cancelText: "Hủy",
+      centered: true,
+      async onOk() {
+        try {
+          await orgService.deleteOrganization(organization.id);
+          await refreshOrganizations();
+          message.success("Đã xóa tổ chức.");
+          router.replace("/dashboard");
+        } catch (err: any) {
+          if (err.status === 403) {
+            message.error("Chỉ chủ sở hữu mới có thể xóa tổ chức.");
+          } else {
+            message.error(err.message || "Không thể xóa tổ chức.");
+          }
+          throw err;
+        }
+      },
+    });
+  };
 
   const fetchOrganization = useCallback(async () => {
     if (!orgId) return;
@@ -183,6 +214,33 @@ export default function OrgSettingsPage() {
           </dl>
         </Card>
       </section>
+
+      {canDelete && (
+        <section aria-labelledby="danger-zone-title">
+          <Card
+            className="rounded-2xl border border-red-200 bg-white shadow-sm"
+            styles={{ body: { padding: 0 } }}
+          >
+            <div className="border-b border-red-100 p-6">
+              <h2 id="danger-zone-title" className="text-lg font-semibold text-red-700">
+                Khu vực nguy hiểm
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-gray-500">
+                Xóa tổ chức sẽ khiến tổ chức không còn hiển thị với tất cả thành viên.
+              </p>
+            </div>
+            <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-gray-900">Xóa tổ chức</p>
+                <p className="mt-1 text-sm text-gray-500">Hành động này chỉ dành cho chủ sở hữu.</p>
+              </div>
+              <Button danger icon={<DeleteOutlined />} onClick={handleDelete} className="h-11 rounded-xl px-5 font-semibold">
+                Xóa tổ chức
+              </Button>
+            </div>
+          </Card>
+        </section>
+      )}
     </div>
   );
 }

@@ -94,7 +94,7 @@ export function TaskDetailContent({
   onTaskUpdated,
   onOpenTask,
 }: TaskDetailContentProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { user } = useAuth();
   const { userRole } = useOrg();
   const { settings: platformSettings } = usePlatformSettings();
@@ -481,6 +481,45 @@ export function TaskDetailContent({
     return userRole === "MEMBER" && task.reporterId !== user?.id;
   }, [userRole, task, user?.id]);
 
+  const canDeleteTask =
+    userRole === "OWNER" ||
+    userRole === "ADMIN" ||
+    task?.reporterId === user?.id;
+
+  const handleDeleteTask = () => {
+    if (!task || !task.project?.organizationId) return;
+    const organizationId = task.project.organizationId;
+
+    modal.confirm({
+      title: "Xóa công việc?",
+      content: `Công việc “${task.title}” sẽ được chuyển vào thùng rác.`,
+      okText: "Xóa công việc",
+      okType: "danger",
+      cancelText: "Hủy",
+      centered: true,
+      async onOk() {
+        try {
+          await taskService.deleteTask(
+            organizationId,
+            task.projectId,
+            task.id,
+          );
+          message.success("Đã chuyển công việc vào thùng rác.");
+          onTaskUpdated?.();
+
+          if (onClose) {
+            onClose();
+          } else {
+            router.replace(`/dashboard/${orgSlug}/projects/${projectKey}`);
+          }
+        } catch (err: any) {
+          message.error(err.message || "Không thể xóa công việc.");
+          throw err;
+        }
+      },
+    });
+  };
+
   // Mỗi task là một presence room riêng. Danh sách này được cập nhật realtime
   // khi có người mở, đóng hoặc chuyển khỏi màn hình chi tiết task.
   const { activeUsers } = usePresence(taskId ? `task:${taskId}` : undefined);
@@ -559,6 +598,17 @@ export function TaskDetailContent({
                 </Tooltip>
               ))}
             </Avatar.Group>
+          )}
+
+          {canDeleteTask && (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleDeleteTask}
+              className="rounded-xl font-semibold"
+            >
+              Xóa
+            </Button>
           )}
 
           {onClose && (

@@ -23,6 +23,7 @@ import {
   ProjectOutlined,
   CheckCircleFilled,
   CheckSquareOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -166,7 +167,7 @@ export function KanbanBoard({
   onTaskSave,
   onTaskDelete,
 }: KanbanBoardProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { user } = useAuth();
   const { userRole } = useOrg();
   const params = useParams();
@@ -234,6 +235,31 @@ export function KanbanBoard({
     if (!task) return true;
     if (userRole === "OWNER" || userRole === "ADMIN") return true;
     return task.assigneeId === user?.id || task.reporterId === user?.id;
+  };
+
+  const canDelete = (task: TaskItem) => {
+    if (!onTaskDelete) return false;
+    if (userRole === "OWNER" || userRole === "ADMIN") return true;
+    return task.reporterId === user?.id;
+  };
+
+  const handleDeleteTask = (task: TaskItem) => {
+    modal.confirm({
+      title: "Xóa công việc?",
+      content: `Công việc “${task.title}” sẽ được chuyển vào thùng rác.`,
+      okText: "Xóa công việc",
+      okType: "danger",
+      cancelText: "Hủy",
+      centered: true,
+      async onOk() {
+        try {
+          await onTaskDelete?.(task);
+        } catch (err: any) {
+          message.error(err.message || "Không thể xóa công việc.");
+          throw err;
+        }
+      },
+    });
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -409,6 +435,22 @@ export function KanbanBoard({
                             : ""
                         } ${hasSubtasks ? "border-l-4 border-l-gray-300/80 pl-2.5" : ""}`}
                       >
+                        {canDelete(task) && (
+                          <button
+                            type="button"
+                            aria-label={`Xóa công việc ${task.title}`}
+                            title="Xóa công việc"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteTask(task);
+                            }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            draggable={false}
+                            className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 opacity-0 shadow-sm transition-opacity hover:bg-red-50 hover:text-red-700 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500 group-hover:opacity-100"
+                          >
+                            <DeleteOutlined className="text-xs" />
+                          </button>
+                        )}
                         {/* Project & Code Badge */}
                         <div className="mb-2 flex items-center justify-between gap-1.5">
                           {showProjectBadge && task.project ? (

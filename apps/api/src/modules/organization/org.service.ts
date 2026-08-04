@@ -1,10 +1,10 @@
-import { prisma, MemberStatus } from '@repo/database';
-import { AppError } from '../../common/errors';
-import { OrgRole } from '@repo/permissions';
-import { randomBytes } from 'crypto';
-import { createNotification } from '../notification/notification.service';
-import { logActivity } from '../../common/services/activityLog.service';
-import { getPlatformSetting } from '../../common/services/platformSetting.service';
+import { prisma, MemberStatus } from "@repo/database";
+import { AppError } from "../../common/errors";
+import { OrgRole } from "@repo/permissions";
+import { randomBytes } from "crypto";
+import { createNotification } from "../notification/notification.service";
+import { logActivity } from "../../common/services/activityLog.service";
+import { getPlatformSetting } from "../../common/services/platformSetting.service";
 
 /**
  * Lấy thông tin chi tiết tổ chức
@@ -13,8 +13,12 @@ export async function getOrganization(orgId: string) {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
   });
-  if (!org) {
-    throw new AppError(404, 'ORGANIZATION_NOT_FOUND', 'Không tìm thấy tổ chức.');
+  if (!org || org.deletedAt) {
+    throw new AppError(
+      404,
+      "ORGANIZATION_NOT_FOUND",
+      "Không tìm thấy tổ chức.",
+    );
   }
   return org;
 }
@@ -26,8 +30,12 @@ export async function getOrganizationBySlug(slug: string) {
   const org = await prisma.organization.findUnique({
     where: { slug },
   });
-  if (!org) {
-    throw new AppError(404, 'ORGANIZATION_NOT_FOUND', 'Không tìm thấy tổ chức.');
+  if (!org || org.deletedAt) {
+    throw new AppError(
+      404,
+      "ORGANIZATION_NOT_FOUND",
+      "Không tìm thấy tổ chức.",
+    );
   }
   return org;
 }
@@ -35,13 +43,21 @@ export async function getOrganizationBySlug(slug: string) {
 /**
  * Cập nhật thông tin chung của tổ chức
  */
-export async function updateOrganization(orgId: string, name: string, slug: string) {
+export async function updateOrganization(
+  orgId: string,
+  name: string,
+  slug: string,
+) {
   if (slug) {
     const existing = await prisma.organization.findUnique({
       where: { slug },
     });
     if (existing && existing.id !== orgId) {
-      throw new AppError(400, 'SLUG_TAKEN', 'Đường dẫn định danh này đã được sử dụng.');
+      throw new AppError(
+        400,
+        "SLUG_TAKEN",
+        "Đường dẫn định danh này đã được sử dụng.",
+      );
     }
   }
 
@@ -51,6 +67,21 @@ export async function updateOrganization(orgId: string, name: string, slug: stri
   });
 }
 
+export async function deleteOrganization(orgId: string) {
+  const result = await prisma.organization.updateMany({
+    where: { id: orgId, deletedAt: null },
+    data: { deletedAt: new Date(), status: "PENDING_DELETION" },
+  });
+
+  if (result.count === 0) {
+    throw new AppError(
+      404,
+      "ORGANIZATION_NOT_FOUND",
+      "Không tìm thấy tổ chức.",
+    );
+  }
+}
+
 /**
  * Lấy danh sách toàn bộ thành viên trong tổ chức
  */
@@ -58,25 +89,34 @@ export async function getOrganizationActivities(orgId: string, limit = 20) {
   const logs = await prisma.activityLog.findMany({
     where: { organizationId: orgId },
     include: {
-      actor: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
+      actor: {
+        select: { id: true, fullName: true, username: true, avatarUrl: true },
+      },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: Number(limit) || 20,
   });
 
   const taskIds = logs
-    .filter((l) => l.entityType === 'TASK' && !(l.metadata as any)?.projectKey)
+    .filter((l) => l.entityType === "TASK" && !(l.metadata as any)?.projectKey)
     .map((l) => l.entityId);
 
   const projectIds = logs
-    .filter((l) => l.entityType === 'PROJECT' && !(l.metadata as any)?.projectKey)
+    .filter(
+      (l) => l.entityType === "PROJECT" && !(l.metadata as any)?.projectKey,
+    )
     .map((l) => l.entityId);
 
   const tasks =
     taskIds.length > 0
       ? await prisma.task.findMany({
           where: { id: { in: taskIds } },
-          select: { id: true, title: true, taskNumber: true, project: { select: { key: true, name: true } } },
+          select: {
+            id: true,
+            title: true,
+            taskNumber: true,
+            project: { select: { key: true, name: true } },
+          },
         })
       : [];
   const taskMap = new Map(tasks.map((t) => [t.id, t]));
@@ -93,13 +133,13 @@ export async function getOrganizationActivities(orgId: string, limit = 20) {
   return logs.map((l) => {
     const meta = { ...((l.metadata as Record<string, any>) || {}) };
     if (!meta.projectKey) {
-      if (l.entityType === 'TASK' && taskMap.has(l.entityId)) {
+      if (l.entityType === "TASK" && taskMap.has(l.entityId)) {
         const taskInfo = taskMap.get(l.entityId)!;
         meta.projectKey = taskInfo.project.key;
         meta.projectName = meta.projectName || taskInfo.project.name;
         meta.taskTitle = meta.taskTitle || taskInfo.title;
         meta.taskNumber = meta.taskNumber || taskInfo.taskNumber;
-      } else if (l.entityType === 'PROJECT' && projectMap.has(l.entityId)) {
+      } else if (l.entityType === "PROJECT" && projectMap.has(l.entityId)) {
         const projInfo = projectMap.get(l.entityId)!;
         meta.projectKey = projInfo.key;
         meta.projectName = meta.projectName || projInfo.name;
@@ -127,12 +167,16 @@ export async function getMembers(orgId: string) {
       },
     },
     orderBy: {
-      joinedAt: 'asc',
+      joinedAt: "asc",
     },
   });
 
   const invitations = await prisma.organizationInvitation.findMany({
-    where: { organizationId: orgId, status: 'PENDING', expiresAt: { gt: new Date() } },
+    where: {
+      organizationId: orgId,
+      status: "PENDING",
+      expiresAt: { gt: new Date() },
+    },
     include: {
       invitedBy: {
         select: {
@@ -142,7 +186,7 @@ export async function getMembers(orgId: string) {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
   return { members, invitations };
@@ -151,26 +195,33 @@ export async function getMembers(orgId: string) {
 /**
  * Mời thành viên tham gia tổ chức bằng email
  */
-export async function inviteMember(orgId: string, email: string, role: OrgRole, invitedById: string) {
+export async function inviteMember(
+  orgId: string,
+  email: string,
+  role: OrgRole,
+  invitedById: string,
+) {
   // Chặn mời thẳng ai đó làm OWNER qua luồng invite
-  if (role === 'OWNER') {
-    throw new AppError(400, 'CANNOT_INVITE_AS_OWNER', 'Không thể mời trực tiếp làm Owner.');
+  if (role === "OWNER") {
+    throw new AppError(
+      400,
+      "CANNOT_INVITE_AS_OWNER",
+      "Không thể mời trực tiếp làm Owner.",
+    );
   }
 
   // Tìm user theo email hoặc username
   const existingUser = await prisma.user.findFirst({
     where: {
-      OR: [
-        { email },
-        { username: email }
-      ]
-    }
+      OR: [{ email }, { username: email }],
+    },
   });
 
   // Xác định email thực tế dùng cho invitation
   let inviteEmail = email;
   if (existingUser) {
-    inviteEmail = existingUser.email || `${existingUser.username}@taskflow.local`;
+    inviteEmail =
+      existingUser.email || `${existingUser.username}@taskflow.local`;
   }
 
   // Nếu email đã có tài khoản VÀ đã là thành viên → chặn mời trùng
@@ -179,19 +230,32 @@ export async function inviteMember(orgId: string, email: string, role: OrgRole, 
       where: { organizationId: orgId, userId: existingUser.id },
     });
     if (existingMember) {
-      throw new AppError(400, 'ALREADY_MEMBER', 'Người dùng này đã là thành viên của tổ chức.');
+      throw new AppError(
+        400,
+        "ALREADY_MEMBER",
+        "Người dùng này đã là thành viên của tổ chức.",
+      );
     }
   }
 
   // Chặn mời trùng khi đã có invitation PENDING chưa hết hạn
   const existingInvite = await prisma.organizationInvitation.findFirst({
-    where: { organizationId: orgId, email: inviteEmail, status: 'PENDING', expiresAt: { gt: new Date() } },
+    where: {
+      organizationId: orgId,
+      email: inviteEmail,
+      status: "PENDING",
+      expiresAt: { gt: new Date() },
+    },
   });
   if (existingInvite) {
-    throw new AppError(400, 'INVITE_ALREADY_SENT', 'Đã gửi lời mời tới người dùng này, đang chờ phản hồi.');
+    throw new AppError(
+      400,
+      "INVITE_ALREADY_SENT",
+      "Đã gửi lời mời tới người dùng này, đang chờ phản hồi.",
+    );
   }
 
-  const token = randomBytes(32).toString('hex');
+  const token = randomBytes(32).toString("hex");
   const invitation = await prisma.organizationInvitation.create({
     data: {
       organizationId: orgId,
@@ -209,23 +273,23 @@ export async function inviteMember(orgId: string, email: string, role: OrgRole, 
       where: { id: orgId },
       select: { name: true },
     });
-    const orgName = org?.name || 'một tổ chức';
-    
+    const orgName = org?.name || "một tổ chức";
+
     await createNotification(
       existingUser.id,
-      'ORG_INVITE',
-      'Lời mời tham gia tổ chức',
+      "ORG_INVITE",
+      "Lời mời tham gia tổ chức",
       `Bạn được mời tham gia tổ chức ${orgName}`,
-      { token, orgId }
+      { token, orgId },
     );
   }
 
   logActivity({
     organizationId: orgId,
-    entityType: 'MEMBER',
+    entityType: "MEMBER",
     entityId: invitation.id,
     actorId: invitedById,
-    action: 'member_invited',
+    action: "member_invited",
     metadata: {
       email: inviteEmail,
       invitedRole: role,
@@ -238,21 +302,38 @@ export async function inviteMember(orgId: string, email: string, role: OrgRole, 
 /**
  * Thay đổi vai trò của thành viên trong tổ chức
  */
-export async function updateMemberRole(orgId: string, memberId: string, role: OrgRole, actorId?: string) {
+export async function updateMemberRole(
+  orgId: string,
+  memberId: string,
+  role: OrgRole,
+  actorId?: string,
+) {
   const member = await prisma.organizationMember.findFirst({
     where: { id: memberId, organizationId: orgId },
     include: { user: { select: { fullName: true, username: true } } },
   });
   if (!member) {
-    throw new AppError(404, 'MEMBER_NOT_FOUND', 'Không tìm thấy thành viên trong tổ chức này.');
+    throw new AppError(
+      404,
+      "MEMBER_NOT_FOUND",
+      "Không tìm thấy thành viên trong tổ chức này.",
+    );
   }
 
-  if (member.role === 'OWNER') {
-    throw new AppError(400, 'CANNOT_CHANGE_OWNER_ROLE', 'Không thể thay đổi quyền hạn của Owner.');
+  if (member.role === "OWNER") {
+    throw new AppError(
+      400,
+      "CANNOT_CHANGE_OWNER_ROLE",
+      "Không thể thay đổi quyền hạn của Owner.",
+    );
   }
 
-  if (role === 'OWNER') {
-    throw new AppError(400, 'CANNOT_PROMOTE_TO_OWNER', 'Đổi Owner phải qua chức năng Transfer Ownership riêng.');
+  if (role === "OWNER") {
+    throw new AppError(
+      400,
+      "CANNOT_PROMOTE_TO_OWNER",
+      "Đổi Owner phải qua chức năng Transfer Ownership riêng.",
+    );
   }
 
   const updated = await prisma.organizationMember.update({
@@ -262,14 +343,15 @@ export async function updateMemberRole(orgId: string, memberId: string, role: Or
 
   logActivity({
     organizationId: orgId,
-    entityType: 'MEMBER',
+    entityType: "MEMBER",
     entityId: memberId,
     actorId: actorId || member.userId,
-    action: 'role_changed',
+    action: "role_changed",
     oldValue: member.role,
     newValue: role,
     metadata: {
-      memberName: member.user?.fullName || member.user?.username || 'Thành viên',
+      memberName:
+        member.user?.fullName || member.user?.username || "Thành viên",
       oldRole: member.role,
       newRole: role,
     },
@@ -281,32 +363,45 @@ export async function updateMemberRole(orgId: string, memberId: string, role: Or
 /**
  * Xóa thành viên khỏi tổ chức
  */
-export async function removeMember(orgId: string, memberId: string, actorId?: string) {
+export async function removeMember(
+  orgId: string,
+  memberId: string,
+  actorId?: string,
+) {
   const member = await prisma.organizationMember.findFirst({
     where: { id: memberId, organizationId: orgId },
     include: { user: { select: { fullName: true, username: true } } },
   });
   if (!member) {
-    throw new AppError(404, 'MEMBER_NOT_FOUND', 'Không tìm thấy thành viên trong tổ chức này.');
+    throw new AppError(
+      404,
+      "MEMBER_NOT_FOUND",
+      "Không tìm thấy thành viên trong tổ chức này.",
+    );
   }
 
-  if (member.role === 'OWNER') {
-    throw new AppError(400, 'CANNOT_REMOVE_OWNER', 'Không thể xóa Owner khỏi tổ chức.');
+  if (member.role === "OWNER") {
+    throw new AppError(
+      400,
+      "CANNOT_REMOVE_OWNER",
+      "Không thể xóa Owner khỏi tổ chức.",
+    );
   }
 
   const result = await prisma.organizationMember.update({
     where: { id: memberId },
-    data: { status: 'SUSPENDED' },
+    data: { status: "SUSPENDED" },
   });
 
   logActivity({
     organizationId: orgId,
-    entityType: 'MEMBER',
+    entityType: "MEMBER",
     entityId: memberId,
     actorId: actorId || member.userId,
-    action: 'member_removed',
+    action: "member_removed",
     metadata: {
-      memberName: member.user?.fullName || member.user?.username || 'Thành viên',
+      memberName:
+        member.user?.fullName || member.user?.username || "Thành viên",
     },
   });
 
@@ -316,16 +411,28 @@ export async function removeMember(orgId: string, memberId: string, actorId?: st
 /**
  * Thay đổi trạng thái hoạt động của thành viên
  */
-export async function updateMemberStatus(orgId: string, memberId: string, status: MemberStatus) {
+export async function updateMemberStatus(
+  orgId: string,
+  memberId: string,
+  status: MemberStatus,
+) {
   const member = await prisma.organizationMember.findFirst({
     where: { id: memberId, organizationId: orgId },
   });
   if (!member) {
-    throw new AppError(404, 'MEMBER_NOT_FOUND', 'Không tìm thấy thành viên trong tổ chức này.');
+    throw new AppError(
+      404,
+      "MEMBER_NOT_FOUND",
+      "Không tìm thấy thành viên trong tổ chức này.",
+    );
   }
 
-  if (member.role === 'OWNER' && status !== 'ACTIVE') {
-    throw new AppError(400, 'CANNOT_SUSPEND_OWNER', 'Không thể khóa tài khoản của Owner.');
+  if (member.role === "OWNER" && status !== "ACTIVE") {
+    throw new AppError(
+      400,
+      "CANNOT_SUSPEND_OWNER",
+      "Không thể khóa tài khoản của Owner.",
+    );
   }
 
   return prisma.organizationMember.update({
@@ -334,14 +441,12 @@ export async function updateMemberStatus(orgId: string, memberId: string, status
   });
 }
 
-
-
 /**
  * Lấy danh sách các tổ chức user tham gia
  */
 export async function getUserOrganizations(userId: string) {
   const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
+    where: { userId, organization: { deletedAt: null } },
     include: {
       organization: {
         select: {
@@ -350,7 +455,7 @@ export async function getUserOrganizations(userId: string) {
           slug: true,
           avatarUrl: true,
           members: {
-            where: { role: 'OWNER' },
+            where: { role: "OWNER" },
             select: { user: { select: { fullName: true } } },
             take: 1,
           },
@@ -371,7 +476,7 @@ export async function getUserOrganizations(userId: string) {
     avatarUrl: m.organization.avatarUrl,
     userRole: m.role,
     membersCount: m.organization._count.members,
-    ownerName: m.organization.members[0]?.user.fullName || 'Unknown',
+    ownerName: m.organization.members[0]?.user.fullName || "Unknown",
   }));
 }
 
@@ -379,12 +484,11 @@ export async function createOrganization(
   creatorId: string,
   name: string,
   slug: string,
-  avatarUrl?: string
+  avatarUrl?: string,
 ) {
-  const organizationCreationEnabled =
-    await getPlatformSetting(
-      "organization_creation_enabled",
-    );
+  const organizationCreationEnabled = await getPlatformSetting(
+    "organization_creation_enabled",
+  );
 
   if (!organizationCreationEnabled) {
     throw new AppError(
@@ -398,7 +502,11 @@ export async function createOrganization(
     where: { slug },
   });
   if (existing) {
-    throw new AppError(400, 'SLUG_TAKEN', 'Đường dẫn định danh này đã được sử dụng.');
+    throw new AppError(
+      400,
+      "SLUG_TAKEN",
+      "Đường dẫn định danh này đã được sử dụng.",
+    );
   }
 
   const org = await prisma.organization.create({
@@ -414,8 +522,8 @@ export async function createOrganization(
     data: {
       organizationId: org.id,
       userId: creatorId,
-      role: 'OWNER',
-      status: 'ACTIVE',
+      role: "OWNER",
+      status: "ACTIVE",
     },
   });
 
@@ -445,7 +553,7 @@ export async function getInvitationByToken(token: string) {
   });
 
   if (!invitation) {
-    throw new AppError(404, 'INVITATION_NOT_FOUND', 'Không tìm thấy lời mời.');
+    throw new AppError(404, "INVITATION_NOT_FOUND", "Không tìm thấy lời mời.");
   }
 
   return invitation;
@@ -460,19 +568,23 @@ export async function acceptInvitation(token: string, userId: string) {
   });
 
   if (!invitation) {
-    throw new AppError(404, 'INVITATION_NOT_FOUND', 'Không tìm thấy lời mời.');
+    throw new AppError(404, "INVITATION_NOT_FOUND", "Không tìm thấy lời mời.");
   }
 
-  if (invitation.status !== 'PENDING') {
-    throw new AppError(400, 'INVITATION_NOT_PENDING', 'Lời mời đã được xử lý hoặc không còn hiệu lực.');
+  if (invitation.status !== "PENDING") {
+    throw new AppError(
+      400,
+      "INVITATION_NOT_PENDING",
+      "Lời mời đã được xử lý hoặc không còn hiệu lực.",
+    );
   }
 
   if (invitation.expiresAt < new Date()) {
     await prisma.organizationInvitation.update({
       where: { id: invitation.id },
-      data: { status: 'EXPIRED' },
+      data: { status: "EXPIRED" },
     });
-    throw new AppError(400, 'INVITATION_EXPIRED', 'Lời mời đã hết hạn.');
+    throw new AppError(400, "INVITATION_EXPIRED", "Lời mời đã hết hạn.");
   }
 
   const user = await prisma.user.findUnique({
@@ -481,13 +593,17 @@ export async function acceptInvitation(token: string, userId: string) {
   });
 
   if (!user) {
-    throw new AppError(404, 'USER_NOT_FOUND', 'Không tìm thấy người dùng.');
+    throw new AppError(404, "USER_NOT_FOUND", "Không tìm thấy người dùng.");
   }
 
   const userHasNoEmail = !user.email;
 
   if (user.email && user.email !== invitation.email) {
-    throw new AppError(403, 'EMAIL_MISMATCH', 'Email của bạn không khớp với email được mời.');
+    throw new AppError(
+      403,
+      "EMAIL_MISMATCH",
+      "Email của bạn không khớp với email được mời.",
+    );
   }
 
   // Thực hiện trong một transaction
@@ -497,7 +613,11 @@ export async function acceptInvitation(token: string, userId: string) {
         where: { email: invitation.email },
       });
       if (emailExists) {
-        throw new AppError(400, 'EMAIL_ALREADY_TAKEN', 'Email của lời mời đã được sử dụng bởi tài khoản khác.');
+        throw new AppError(
+          400,
+          "EMAIL_ALREADY_TAKEN",
+          "Email của lời mời đã được sử dụng bởi tài khoản khác.",
+        );
       }
       await tx.user.update({
         where: { id: userId },
@@ -508,7 +628,7 @@ export async function acceptInvitation(token: string, userId: string) {
     // 1. Cập nhật trạng thái invitation thành ACCEPTED
     await tx.organizationInvitation.update({
       where: { id: invitation.id },
-      data: { status: 'ACCEPTED' },
+      data: { status: "ACCEPTED" },
     });
 
     // 2. Tạo bản ghi OrganizationMember
@@ -517,7 +637,7 @@ export async function acceptInvitation(token: string, userId: string) {
         organizationId: invitation.organizationId,
         userId,
         role: invitation.invitedRole,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       include: {
         organization: {
@@ -543,31 +663,34 @@ export async function acceptInvitation(token: string, userId: string) {
     const ownersAndAdmins = await prisma.organizationMember.findMany({
       where: {
         organizationId: invitation.organizationId,
-        role: { in: ['OWNER', 'ADMIN'] },
+        role: { in: ["OWNER", "ADMIN"] },
         userId: { not: userId },
       },
       select: { userId: true },
     });
 
-    const userName = newlyJoinedUser?.fullName || newlyJoinedUser?.username || 'Thành viên mới';
+    const userName =
+      newlyJoinedUser?.fullName ||
+      newlyJoinedUser?.username ||
+      "Thành viên mới";
     const orgName = resultMember.organization.name;
 
     for (const target of ownersAndAdmins) {
       await createNotification(
         target.userId,
-        'GENERAL',
-        'Thành viên mới gia nhập',
+        "GENERAL",
+        "Thành viên mới gia nhập",
         `${userName} vừa chấp nhận lời mời và chính thức gia nhập tổ chức ${orgName}.`,
         {
           orgId: invitation.organizationId,
           orgSlug: resultMember.organization.slug,
           memberId: resultMember.id,
           userId,
-        }
+        },
       );
     }
   } catch (err) {
-    console.error('Error sending member joined notification:', err);
+    console.error("Error sending member joined notification:", err);
   }
 
   return resultMember;
@@ -582,19 +705,23 @@ export async function declineInvitation(token: string, userId: string) {
   });
 
   if (!invitation) {
-    throw new AppError(404, 'INVITATION_NOT_FOUND', 'Không tìm thấy lời mời.');
+    throw new AppError(404, "INVITATION_NOT_FOUND", "Không tìm thấy lời mời.");
   }
 
-  if (invitation.status !== 'PENDING') {
-    throw new AppError(400, 'INVITATION_NOT_PENDING', 'Lời mời đã được xử lý hoặc không còn hiệu lực.');
+  if (invitation.status !== "PENDING") {
+    throw new AppError(
+      400,
+      "INVITATION_NOT_PENDING",
+      "Lời mời đã được xử lý hoặc không còn hiệu lực.",
+    );
   }
 
   if (invitation.expiresAt < new Date()) {
     await prisma.organizationInvitation.update({
       where: { id: invitation.id },
-      data: { status: 'EXPIRED' },
+      data: { status: "EXPIRED" },
     });
-    throw new AppError(400, 'INVITATION_EXPIRED', 'Lời mời đã hết hạn.');
+    throw new AppError(400, "INVITATION_EXPIRED", "Lời mời đã hết hạn.");
   }
 
   const user = await prisma.user.findUnique({
@@ -603,15 +730,18 @@ export async function declineInvitation(token: string, userId: string) {
   });
 
   if (!user || user.email !== invitation.email) {
-    throw new AppError(403, 'EMAIL_MISMATCH', 'Email của bạn không khớp với email được mời.');
+    throw new AppError(
+      403,
+      "EMAIL_MISMATCH",
+      "Email của bạn không khớp với email được mời.",
+    );
   }
 
   return prisma.organizationInvitation.update({
     where: { id: invitation.id },
-    data: { status: 'DECLINED' },
+    data: { status: "DECLINED" },
   });
 }
-
 
 /**
  * Thống kê khối lượng công việc theo thành viên trong tổ chức
@@ -619,20 +749,25 @@ export async function declineInvitation(token: string, userId: string) {
 export async function getOrganizationWorkload(orgId: string) {
   const [workloadRaw, totalTasksCount] = await Promise.all([
     prisma.task.groupBy({
-      by: ['assigneeId'],
+      by: ["assigneeId"],
       where: {
         project: { organizationId: orgId, deletedAt: null },
         deletedAt: null,
-        status: { not: 'DONE' },
+        status: { not: "DONE" },
       },
       _count: true,
     }),
     prisma.task.count({
-      where: { project: { organizationId: orgId, deletedAt: null }, deletedAt: null },
+      where: {
+        project: { organizationId: orgId, deletedAt: null },
+        deletedAt: null,
+      },
     }),
   ]);
 
-  const assigneeIds = workloadRaw.map((w) => w.assigneeId).filter(Boolean) as string[];
+  const assigneeIds = workloadRaw
+    .map((w) => w.assigneeId)
+    .filter(Boolean) as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: assigneeIds } },
     select: { id: true, fullName: true, avatarUrl: true },
@@ -642,8 +777,12 @@ export async function getOrganizationWorkload(orgId: string) {
   const workload = workloadRaw
     .map((w) => ({
       assigneeId: w.assigneeId,
-      assigneeName: w.assigneeId ? userMap.get(w.assigneeId)?.fullName ?? 'Không rõ' : 'Chưa phân công',
-      avatarUrl: w.assigneeId ? userMap.get(w.assigneeId)?.avatarUrl ?? null : null,
+      assigneeName: w.assigneeId
+        ? (userMap.get(w.assigneeId)?.fullName ?? "Không rõ")
+        : "Chưa phân công",
+      avatarUrl: w.assigneeId
+        ? (userMap.get(w.assigneeId)?.avatarUrl ?? null)
+        : null,
       taskCount: w._count,
     }))
     .sort((a, b) => b.taskCount - a.taskCount);
@@ -655,11 +794,14 @@ export async function getOrganizationWorkload(orgId: string) {
  * Thống kê tổng quan tổ chức
  */
 export async function getOrganizationStats(orgId: string) {
-  const [projectsCount, membersCount, { workload, totalTasksCount }] = await Promise.all([
-    prisma.project.count({ where: { organizationId: orgId, deletedAt: null } }),
-    prisma.organizationMember.count({ where: { organizationId: orgId } }),
-    getOrganizationWorkload(orgId),
-  ]);
+  const [projectsCount, membersCount, { workload, totalTasksCount }] =
+    await Promise.all([
+      prisma.project.count({
+        where: { organizationId: orgId, deletedAt: null },
+      }),
+      prisma.organizationMember.count({ where: { organizationId: orgId } }),
+      getOrganizationWorkload(orgId),
+    ]);
 
   return {
     projectsCount,
@@ -669,7 +811,11 @@ export async function getOrganizationStats(orgId: string) {
   };
 }
 
-export async function getMyTasksInOrg(orgId: string, userId: string, filters?: { projectId?: string; priority?: string }) {
+export async function getMyTasksInOrg(
+  orgId: string,
+  userId: string,
+  filters?: { projectId?: string; priority?: string },
+) {
   const whereCondition: any = {
     assigneeId: userId,
     deletedAt: null,
@@ -713,7 +859,7 @@ export async function getMyTasksInOrg(orgId: string, userId: string, filters?: {
       },
     },
     orderBy: {
-      position: 'asc',
+      position: "asc",
     },
   });
 }
@@ -727,7 +873,9 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   const fourteenDaysLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+  startOfWeek.setDate(
+    now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1),
+  );
   startOfWeek.setHours(0, 0, 0, 0);
 
   const totalProjects = await prisma.project.count({
@@ -739,7 +887,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
       dueDate: { gte: now, lte: sevenDaysLater },
-      status: { not: 'DONE' },
+      status: { not: "DONE" },
     },
   });
 
@@ -748,7 +896,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
       dueDate: { lt: now },
-      status: { not: 'DONE' },
+      status: { not: "DONE" },
     },
   });
 
@@ -756,7 +904,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      status: 'DONE',
+      status: "DONE",
       updatedAt: { gte: startOfWeek },
     },
   });
@@ -765,14 +913,14 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      priority: 'CRITICAL',
-      status: { not: 'DONE' },
+      priority: "CRITICAL",
+      status: { not: "DONE" },
     },
   });
 
   // Task status breakdown for Donut Chart
   const statusGroup = await prisma.task.groupBy({
-    by: ['status'],
+    by: ["status"],
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
@@ -788,7 +936,8 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
   };
   statusGroup.forEach((item) => {
     if (item.status in statusBreakdown) {
-      statusBreakdown[item.status as keyof typeof statusBreakdown] = item._count.id;
+      statusBreakdown[item.status as keyof typeof statusBreakdown] =
+        item._count.id;
     }
   });
 
@@ -814,14 +963,14 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
         },
       },
     },
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
   });
 
   const projectsProgress = projects.map((p) => {
     const total = p.tasks.length;
-    const done = p.tasks.filter((t) => t.status === 'DONE').length;
+    const done = p.tasks.filter((t) => t.status === "DONE").length;
     const overdueCount = p.tasks.filter(
-      (t) => t.status !== 'DONE' && t.dueDate && new Date(t.dueDate) < now
+      (t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < now,
     ).length;
     const progressPercentage = total > 0 ? Math.round((done / total) * 100) : 0;
     return {
@@ -833,7 +982,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
       progressPercentage,
       overdueCount,
       owner: {
-        fullName: p.owner?.fullName || 'Chủ dự án',
+        fullName: p.owner?.fullName || "Chủ dự án",
         avatarUrl: p.owner?.avatarUrl || null,
       },
     };
@@ -844,10 +993,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      status: { not: 'DONE' },
+      status: { not: "DONE" },
       dueDate: { lt: now },
     },
-    orderBy: { dueDate: 'asc' },
+    orderBy: { dueDate: "asc" },
     take: 5,
     select: {
       id: true,
@@ -864,10 +1013,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      status: { not: 'DONE' },
+      status: { not: "DONE" },
       assigneeId: null,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: 5,
     select: {
       id: true,
@@ -882,10 +1031,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      status: { not: 'DONE' },
-      priority: 'CRITICAL',
+      status: { not: "DONE" },
+      priority: "CRITICAL",
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: 5,
     select: {
       id: true,
@@ -902,10 +1051,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
     where: {
       project: { organizationId: orgId, deletedAt: null },
       deletedAt: null,
-      status: { not: 'DONE' },
+      status: { not: "DONE" },
       dueDate: { gte: now, lte: fourteenDaysLater },
     },
-    orderBy: { dueDate: 'asc' },
+    orderBy: { dueDate: "asc" },
     take: 8,
     select: {
       id: true,
@@ -939,7 +1088,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
         dueDate: t.dueDate ? t.dueDate.toISOString() : null,
         priority: t.priority,
         projectKey: t.project.key,
-        assigneeName: t.assignee?.fullName || 'Chưa giao',
+        assigneeName: t.assignee?.fullName || "Chưa giao",
         assigneeAvatarUrl: t.assignee?.avatarUrl || null,
       })),
       unassignedTasks: unassignedTasksRaw.map((t) => ({
@@ -955,7 +1104,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
         displayCode: `${t.project.key}-${t.taskNumber}`,
         status: t.status,
         projectKey: t.project.key,
-        assigneeName: t.assignee?.fullName || 'Chưa giao',
+        assigneeName: t.assignee?.fullName || "Chưa giao",
       })),
     },
     upcomingDeadlines: upcomingDeadlinesRaw.map((t) => ({
@@ -966,7 +1115,7 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
       priority: t.priority,
       status: t.status,
       projectKey: t.project.key,
-      assigneeName: t.assignee?.fullName || 'Chưa giao',
+      assigneeName: t.assignee?.fullName || "Chưa giao",
       assigneeAvatarUrl: t.assignee?.avatarUrl || null,
     })),
     workload,
@@ -976,10 +1125,10 @@ export async function getDashboardSummary(orgId: string, _userId: string) {
 
 export async function resendInvitation(orgId: string, invitationId: string) {
   const invitation = await prisma.organizationInvitation.findFirst({
-    where: { id: invitationId, organizationId: orgId, status: 'PENDING' },
+    where: { id: invitationId, organizationId: orgId, status: "PENDING" },
   });
   if (!invitation) {
-    throw new AppError(404, 'INVITATION_NOT_FOUND', 'Không tìm thấy lời mời.');
+    throw new AppError(404, "INVITATION_NOT_FOUND", "Không tìm thấy lời mời.");
   }
 
   const updated = await prisma.organizationInvitation.update({

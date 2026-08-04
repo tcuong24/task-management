@@ -205,6 +205,7 @@ router.get('/:id/tasks/me', requirePermission('view:personal-dashboard'), orgCon
 router.get('/:id/my-tasks', requirePermission('view:personal-dashboard'), orgController.getMyTasksHandler);
 router.get('/:id', orgController.getOrganizationHandler);
 router.patch('/:id', requirePermission('view:org-settings'), orgController.updateOrganizationHandler);
+router.delete('/:id', requirePermission('view:billing-delete-org'), orgController.deleteOrganizationHandler);
 
 // 2. Quản lý thành viên trong tổ chức
 router.get('/:id/members', requirePermission('view:members'), orgController.getMembersHandler);

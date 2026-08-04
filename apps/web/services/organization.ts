@@ -118,6 +118,12 @@ export async function updateOrganization(id: string, name: string, slug: string)
   });
 }
 
+export async function deleteOrganization(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/organizations/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getMembers(
   id: string,
   signal?: AbortSignal,
