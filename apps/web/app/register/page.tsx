@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, type ReactNode } from "react";
-import { Alert, Button, Form, Input } from "antd";
+import { Alert, Button, Form, Input, Spin } from "antd";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -51,7 +51,22 @@ function RegisterForm() {
     }
   };
 
-  if (!settingsLoading && !settings.registration_enabled) {
+  if (settingsLoading) {
+    return (
+      <AuthPageShell platformName={settings.platform_name}>
+        <div
+          className="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-sm text-gray-500"
+          role="status"
+          aria-live="polite"
+        >
+          <Spin size="large" />
+          <span>Đang kiểm tra cấu hình đăng ký…</span>
+        </div>
+      </AuthPageShell>
+    );
+  }
+
+  if (!settings.registration_enabled) {
     return (
       <AuthPageShell platformName={settings.platform_name}>
         <Alert
@@ -87,7 +102,7 @@ function RegisterForm() {
         layout="vertical"
         requiredMark={false}
         onFinish={handleSubmit}
-        disabled={submitting || settingsLoading}
+        disabled={submitting}
       >
         <Form.Item
           label={<span className="text-sm font-semibold text-gray-700">Họ và tên</span>}
