@@ -6,6 +6,7 @@ import {
   getPlatformSettings as getSharedPlatformSettings,
   type PlatformSettingKey,
 } from "../../common/services/platformSetting.service";
+import { createNotification } from "../notification/notification.service";
 const userSummarySelect = {
   id: true,
   username: true,
@@ -443,7 +444,23 @@ export async function suspendOrganization(
   return prisma.$transaction(async (tx) => {
     const current = await tx.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        suspendReason: true,
+        members: {
+          where: {
+            role: "OWNER",
+            status: "ACTIVE",
+          },
+          select: {
+            userId: true,
+          },
+          take: 1,
+        },
+      },
     });
     if (!current) {
       throw new AppError(
@@ -482,6 +499,24 @@ export async function suspendOrganization(
         ipAddress,
       },
     });
+    const ownerId = current.members[0]?.userId;
+
+    if (ownerId) {
+      await createNotification(
+        ownerId,
+        "GENERAL",
+        "Tổ chức đã bị khóa",
+        `Tổ chức ${current.name} đã bị khóa. Lý do: ${reason}`,
+        {
+          action: "ORGANIZATION_SUSPENDED",
+          organizationId: current.id,
+          organizationSlug: current.slug,
+          href: `/access-restricted?type=organization&org=${current.slug}`,
+        },
+      ).catch((error) => {
+        console.error("Failed to notify organization owner:", error);
+      });
+    }
 
     return updated;
   });
@@ -496,7 +531,23 @@ export async function restoreOrganization(
   return prisma.$transaction(async (tx) => {
     const current = await tx.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, status: true, suspendReason: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        suspendReason: true,
+        members: {
+          where: {
+            role: "OWNER",
+            status: "ACTIVE",
+          },
+          select: {
+            userId: true,
+          },
+          take: 1,
+        },
+      },
     });
     if (!current) {
       throw new AppError(
@@ -536,7 +587,24 @@ export async function restoreOrganization(
         ipAddress,
       },
     });
+    const ownerId = current.members[0]?.userId;
 
+    if (ownerId) {
+      await createNotification(
+        ownerId,
+        "GENERAL",
+        "Tổ chức đã được mở khóa",
+        `Tổ chức ${current.name} đã hoạt động trở lại.`,
+        {
+          action: "ORGANIZATION_RESTORED",
+          organizationId: current.id,
+          organizationSlug: current.slug,
+          href: `/dashboard/${current.slug}`,
+        },
+      ).catch((error) => {
+        console.error("Failed to notify organization owner:", error);
+      });
+    }
     return updated;
   });
 }

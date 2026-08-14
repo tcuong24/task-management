@@ -1,26 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const accessToken = request.cookies.get('access_token')?.value;
-
-  // Protect dashboard routes
-  if (pathname.startsWith('/dashboard')) {
-    if (!accessToken) {
-      const loginUrl = new URL('/login', request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  // Redirect logged-in users away from auth pages
-  if (pathname === '/login') {
-    if (accessToken) {
-      const rootUrl = new URL('/', request.url);
-      return NextResponse.redirect(rootUrl);
-    }
-  }
-
+export function middleware(_request: NextRequest) {
+  // The auth cookie belongs to the Render origin, so Netlify middleware cannot
+  // inspect it. Protected data remains enforced by the authenticated API.
   return NextResponse.next();
 }
 

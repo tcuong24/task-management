@@ -1,39 +1,37 @@
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
 
-interface AccessTokenPayload {
-  userId: string;
-  username: string;
-  email: string | null;
-  platformRole?: "USER" | "ADMIN";
-}
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET is not configured for Next.js");
-  }
-  return new TextEncoder().encode(secret);
-}
-export default async function RootPage() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("access_token")?.value;
+import { Skeleton } from "antd";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 
-  if (!accessToken) {
-    redirect("/login");
-  }
+export default function RootPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  let destination = "/login";
+  useEffect(() => {
+    if (loading) return;
 
-  try {
-    const { payload } = await jwtVerify(accessToken, getJwtSecret(), {
-      algorithms: ["HS512"],
-    });
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-    destination = payload.platformRole === "ADMIN" ? "/admin" : "/dashboard";
-  } catch {
-    destination = "/login";
-  }
+    router.replace(user.platformRole === "ADMIN" ? "/admin" : "/dashboard");
+  }, [loading, router, user]);
 
-  redirect(destination);
+  return (
+    <main
+      className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-6"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="w-full max-w-md space-y-4">
+        <p className="text-center text-sm text-gray-500">
+          Đang kiểm tra phiên đăng nhập…
+        </p>
+        <Skeleton active avatar paragraph={{ rows: 3 }} />
+      </div>
+    </main>
+  );
 }

@@ -173,11 +173,14 @@ export async function resendInvitation(id: string, invitationId: string): Promis
 }
 
 export interface UserOrgInfo {
-  id: string;
+    id: string;
   name: string;
   slug: string;
   avatarUrl: string | null;
   userRole: OrgRole;
+  membershipStatus: "ACTIVE" | "INVITED" | "SUSPENDED";
+  organizationStatus: "ACTIVE" | "SUSPENDED" | "PENDING_DELETION";
+  suspendReason?: string | null;
   membersCount: number;
   ownerName: string;
 }

@@ -1,79 +1,117 @@
-import { Request, Response, NextFunction } from 'express';
-import { PermissionAction, hasPermission, OrgRole } from '@repo/permissions';
-import { prisma } from '@repo/database';
+import { NextFunction, Request, Response } from "express";
+import { prisma } from "@repo/database";
+import { PermissionAction, hasPermission } from "@repo/permissions";
+import { AppError } from "../errors";
 
 /**
- * Express middleware to enforce role-based access control (RBAC).
- * Requires the request to have gone through the `authenticate` middleware first.
+ * Enforces organization-scoped RBAC.
+ *
+ * This middleware must run after `authenticate` and only grants access when:
+ * - the request contains an organization context;
+ * - the organization exists, is not deleted, and is ACTIVE;
+ * - the authenticated user's membership is ACTIVE; and
+ * - the membership role allows the requested action.
  */
 export function requirePermission(action: PermissionAction) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        res.status(401).json({ success: false, message: 'Yêu cầu xác thực tài khoản.' });
-        return;
+        throw new AppError(
+          401,
+          "AUTHENTICATION_REQUIRED",
+          "Yêu cầu xác thực tài khoản.",
+        );
       }
 
-      const orgId = req.params.id || req.params.orgId || req.body.organizationId || req.body.orgId;
+      // `id` is used by /organizations/:id/*; `orgId` supports routes that use
+      // an explicit organization parameter or pass it in the request body.
+      const organizationId =
+        req.params.id ??
+        req.params.orgId ??
+        req.body?.organizationId ??
+        req.body?.orgId;
 
-      let resolvedRole: OrgRole | null = null;
+      // Never infer access from a role in another organization. A permission
+      // check without organization context must fail closed.
+      if (!organizationId || typeof organizationId !== "string") {
+        throw new AppError(
+          400,
+          "ORGANIZATION_CONTEXT_REQUIRED",
+          "Thiếu thông tin tổ chức để kiểm tra quyền truy cập.",
+        );
+      }
 
-      if (orgId) {
-        // Check role for specific organization
-        const membership = await prisma.organizationMember.findFirst({
-          where: {
-            organizationId: orgId,
-            userId,
-            organization: { deletedAt: null },
+      const membership = await prisma.organizationMember.findFirst({
+        where: {
+          organizationId,
+          userId,
+          organization: { deletedAt: null },
+        },
+        select: {
+          role: true,
+          status: true,
+          organization: {
+            select: { status: true },
           },
-        });
-        if (membership) {
-          resolvedRole = membership.role;
-        }
-      } else {
-        // Fallback to highest role across memberships if no org context is provided
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            memberships: { select: { role: true } },
-          },
-        });
+        },
+      });
 
-        if (user && user.memberships && user.memberships.length > 0) {
-          const roles = user.memberships.map((m) => m.role);
-          if (roles.includes('OWNER')) {
-            resolvedRole = 'OWNER';
-          } else if (roles.includes('ADMIN')) {
-            resolvedRole = 'ADMIN';
-          } else if (roles.includes('MEMBER')) {
-            resolvedRole = 'MEMBER';
-          } else if (roles.includes('GUEST')) {
-            resolvedRole = 'GUEST';
-          }
-        }
+      if (!membership) {
+        throw new AppError(
+          403,
+          "ORG_ACCESS_DENIED",
+          "Bạn không phải là thành viên của tổ chức này.",
+        );
       }
 
-      if (!resolvedRole) {
-        res.status(403).json({
-          success: false,
-          message: 'Bạn không phải là thành viên của tổ chức này hoặc không có quyền truy cập.',
-        });
-        return;
+      if (membership.organization.status !== "ACTIVE") {
+        if (membership.organization.status === "SUSPENDED") {
+          throw new AppError(
+            403,
+            "ORGANIZATION_SUSPENDED",
+            "Tổ chức này đã bị khóa.",
+          );
+        }
+
+        throw new AppError(
+          403,
+          "ORGANIZATION_UNAVAILABLE",
+          "Tổ chức này hiện không khả dụng.",
+        );
       }
 
-      // Verify the permission matrix
-      if (!hasPermission(resolvedRole, action)) {
-        res.status(403).json({
-          success: false,
-          message: 'Bạn không có đủ quyền hạn để thực hiện hành động này.',
-        });
-        return;
+      if (membership.status !== "ACTIVE") {
+        if (membership.status === "SUSPENDED") {
+          throw new AppError(
+            403,
+            "MEMBERSHIP_SUSPENDED",
+            "Quyền truy cập của bạn vào tổ chức này đã bị khóa.",
+          );
+        }
+
+        throw new AppError(
+          403,
+          "MEMBERSHIP_INACTIVE",
+          "Tư cách thành viên của bạn chưa được kích hoạt.",
+        );
+      }
+
+      if (!hasPermission(membership.role, action)) {
+        throw new AppError(
+          403,
+          "PERMISSION_DENIED",
+          "Bạn không có đủ quyền để thực hiện hành động này.",
+        );
       }
 
       next();
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 }

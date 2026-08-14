@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import type { CookieOptions } from 'express';
 import * as authService from './auth.service';
 import { validateRegisterInput, validateLoginInput } from './auth.validation';
 import { TokenInvalidError } from '../../common/errors';
@@ -6,19 +7,15 @@ import { TokenInvalidError } from '../../common/errors';
 // ─── Cookie helpers ──────────────────────────────────────────
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-const ACCESS_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: IS_PRODUCTION,
-  sameSite: 'lax' as const,
-  path: '/',
-};
-
-const REFRESH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: IS_PRODUCTION,
-  sameSite: 'lax' as const,
-  path: '/',
-};
+function getCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    // Netlify and Render are different sites without a custom domain.
+    sameSite: IS_PRODUCTION ? 'none' : 'lax',
+    path: '/',
+  };
+}
 
 // ─── Handlers ────────────────────────────────────────────────
 
@@ -56,12 +53,14 @@ export async function loginHandler(
       ? 30 * 24 * 60 * 60 * 1000 // 30 days
       : 7 * 24 * 60 * 60 * 1000; // 7 days
 
+    const cookieOptions = getCookieOptions();
+
     res.cookie('access_token', result.accessToken, {
-      ...ACCESS_COOKIE_OPTIONS,
+      ...cookieOptions,
       maxAge: cookieMaxAge,
     });
     res.cookie('refresh_token', result.refreshToken, {
-      ...REFRESH_COOKIE_OPTIONS,
+      ...cookieOptions,
       maxAge: cookieMaxAge,
     });
 
@@ -89,12 +88,14 @@ export async function refreshHandler(
       ? 30 * 24 * 60 * 60 * 1000
       : 7 * 24 * 60 * 60 * 1000;
 
+    const cookieOptions = getCookieOptions();
+
     res.cookie('access_token', result.accessToken, {
-      ...ACCESS_COOKIE_OPTIONS,
+      ...cookieOptions,
       maxAge: cookieMaxAge,
     });
     res.cookie('refresh_token', result.refreshToken, {
-      ...REFRESH_COOKIE_OPTIONS,
+      ...cookieOptions,
       maxAge: cookieMaxAge,
     });
 
@@ -115,9 +116,10 @@ export async function logoutHandler(
       await authService.logout(refreshToken);
     }
 
-    // Clear cookies
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    // Cookie clearing must use the same attributes used when setting it.
+    const cookieOptions = getCookieOptions();
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
 
     res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {

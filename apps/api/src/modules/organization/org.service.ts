@@ -454,6 +454,8 @@ export async function getUserOrganizations(userId: string) {
           name: true,
           slug: true,
           avatarUrl: true,
+          status: true,
+        suspendReason: true,
           members: {
             where: { role: "OWNER" },
             select: { user: { select: { fullName: true } } },
@@ -476,7 +478,9 @@ export async function getUserOrganizations(userId: string) {
     avatarUrl: m.organization.avatarUrl,
     userRole: m.role,
     membersCount: m.organization._count.members,
-    ownerName: m.organization.members[0]?.user.fullName || "Unknown",
+    ownerName: m.organization.members[0]?.user.fullName || "Unknown",membershipStatus: m.status,
+  organizationStatus: m.organization.status,
+  suspendReason: m.organization.suspendReason,
   }));
 }
 

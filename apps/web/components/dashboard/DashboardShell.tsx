@@ -118,6 +118,12 @@ export default function DashboardShell({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [loading, router, user]);
+
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-8">
@@ -128,7 +134,11 @@ export default function DashboardShell({
     );
   }
 
-  const firstLetter = user?.fullName
+  if (!user) {
+    return null;
+  }
+
+  const firstLetter = user.fullName
     ? user.fullName.charAt(0).toUpperCase()
     : "U";
 
