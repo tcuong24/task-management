@@ -18,6 +18,21 @@ export interface LoginResponse {
   user: UserProfile;
 }
 
+export interface RegisterInput {
+  username: string;
+  email?: string;
+  password: string;
+  fullName: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  user: Pick<
+    UserProfile,
+    "id" | "username" | "email" | "fullName" | "avatarUrl"
+  >;
+}
+
 export interface GetMeResponse {
   success: boolean;
   user: UserProfile;
@@ -148,6 +163,13 @@ export async function login(username: string, password: string, rememberMe = fal
   return request<LoginResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ username, password, rememberMe }),
+  });
+}
+
+export async function register(input: RegisterInput): Promise<RegisterResponse> {
+  return request<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }
 

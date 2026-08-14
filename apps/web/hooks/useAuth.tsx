@@ -7,7 +7,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import * as authService from "../services/auth";
 
 interface AuthContextType {
@@ -31,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
 
   const fetchUser = async () => {
     try {
@@ -39,11 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await authService.getMe();
       setUser(data.user);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setUser(null);
       // Don't treat a 401 as a hard error page-wise, just means guest
-      if (err.status !== 401) {
-        setError(err.message || "Failed to authenticate.");
+      if (!(err instanceof authService.ApiError && err.status === 401)) {
+        setError(
+          err instanceof Error ? err.message : "Failed to authenticate.",
+        );
       }
     } finally {
       setLoading(false);
@@ -69,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (
         redirectTo &&
         redirectTo !== "/dashboard" &&
-        redirectTo.startsWith("/")
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("//")
       ) {
         router.replace(redirectTo);
         return;
@@ -80,8 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       router.replace("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Login failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed.");
       throw err;
     } finally {
       setLoading(false);

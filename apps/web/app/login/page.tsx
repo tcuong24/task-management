@@ -7,6 +7,12 @@ import { useAuth } from "../../hooks/useAuth";
 import { useSearchParams } from "next/navigation";
 import { usePlatformSettings } from "../../contexts/PlatformSettingsContext";
 
+interface LoginFormValues {
+  username: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
 function LoginForm() {
   const { message } = App.useApp();
   const { login } = useAuth();
@@ -16,6 +22,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
   const expired = searchParams.get("expired");
+  const registered = searchParams.get("registered");
 
   React.useEffect(() => {
     if (expired === "true") {
@@ -26,9 +33,19 @@ function LoginForm() {
       url.searchParams.delete("expired");
       window.history.replaceState({}, "", url);
     }
-  }, [expired]);
+  }, [expired, message]);
 
-  const onFinish = async (values: any) => {
+  React.useEffect(() => {
+    if (registered === "true") {
+      message.success("Tạo tài khoản thành công. Bạn có thể đăng nhập ngay.");
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete("registered");
+      window.history.replaceState({}, "", url);
+    }
+  }, [registered, message]);
+
+  const onFinish = async (values: LoginFormValues) => {
     try {
       setLoading(true);
       setServerError(null);
@@ -38,8 +55,12 @@ function LoginForm() {
         values.rememberMe,
         redirect,
       );
-    } catch (err: any) {
-      setServerError(err.message || "Tài khoản hoặc mật khẩu không chính xác.");
+    } catch (err: unknown) {
+      setServerError(
+        err instanceof Error
+          ? err.message
+          : "Tài khoản hoặc mật khẩu không chính xác.",
+      );
     } finally {
       setLoading(false);
     }
@@ -68,7 +89,7 @@ function LoginForm() {
             />
           )}
 
-          <Form
+          <Form<LoginFormValues>
             name="login_form"
             initialValues={{ rememberMe: false }}
             onFinish={onFinish}
@@ -192,8 +213,24 @@ function LoginForm() {
         </div>
 
         {/* Small Footer Text */}
-        <p className="mt-8 text-center text-xs text-gray-400 font-medium">
-          Chưa có tài khoản? Vui lòng liên hệ với Quản trị viên để được cấp.
+        <p className="mt-8 text-center text-sm text-gray-500 font-medium">
+          {settings.registration_enabled ? (
+            <>
+              Chưa có tài khoản?{" "}
+              <Link
+                href={
+                  redirect !== "/dashboard"
+                    ? `/register?redirect=${encodeURIComponent(redirect)}`
+                    : "/register"
+                }
+                className="font-semibold text-blue-600 transition-colors duration-150 ease-out hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                Đăng ký ngay
+              </Link>
+            </>
+          ) : (
+            "Chưa có tài khoản? Vui lòng liên hệ Quản trị viên để được cấp."
+          )}
         </p>
       </div>
     </div>
