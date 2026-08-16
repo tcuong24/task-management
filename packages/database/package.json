@@ -10,9 +10,10 @@
     }
   },
   "scripts": {
-    "generate": "prisma generate",
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "postinstall": "prisma generate"
+    "generate": "prisma generate --generator client",
+    "generate:erd": "prisma generate --generator erd",
+    "build": "prisma generate --generator client && tsc -p tsconfig.json",
+    "postinstall": "prisma generate --generator client"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.16.0",
