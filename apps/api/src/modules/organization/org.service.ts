@@ -820,6 +820,15 @@ export async function getMyTasksInOrg(
   userId: string,
   filters?: { projectId?: string; priority?: string },
 ) {
+  const hasProjects = await prisma.project.findFirst({
+    where: { organizationId: orgId, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!hasProjects) {
+    return [];
+  }
+
   const whereCondition: any = {
     assigneeId: userId,
     deletedAt: null,

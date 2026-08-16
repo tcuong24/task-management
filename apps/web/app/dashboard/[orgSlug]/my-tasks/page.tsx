@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
-import { Select, Spin, App } from "antd";
-import { FilterOutlined } from "@ant-design/icons";
+import { useParams, useRouter } from "next/navigation";
+import { Select, Spin, App, Button } from "antd";
+import {
+  FilterOutlined,
+  FolderOpenOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import { useOrg } from "../../../../contexts/OrgContext";
 import * as orgService from "../../../../services/organization";
 import * as projectService from "../../../../services/project";
@@ -15,6 +19,7 @@ import {
 
 export default function MyTasksPage() {
   const params = useParams();
+  const router = useRouter();
   const orgSlug = (params?.orgSlug || params?.id) as string;
 
   const { message } = App.useApp();
@@ -26,6 +31,7 @@ export default function MyTasksPage() {
   const [projectsList, setProjectsList] = useState<
     { id: string; key: string; name: string }[]
   >([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
 
   // Filter States
   const [selectedProjectId, setSelectedProjectId] = useState<
@@ -37,7 +43,13 @@ export default function MyTasksPage() {
 
   const fetchMyTasks = useCallback(
     async (signal?: AbortSignal) => {
-      if (!orgId) {
+      if (!orgId || !projectsLoaded) {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
+
+      if (projectsList.length === 0) {
         setTasks([]);
         setLoading(false);
         return;
@@ -71,12 +83,20 @@ export default function MyTasksPage() {
         }
       }
     },
-    [orgId, selectedProjectId, selectedPriority, message],
+    [
+      orgId,
+      projectsLoaded,
+      projectsList.length,
+      selectedProjectId,
+      selectedPriority,
+      message,
+    ],
   );
   const fetchProjects = useCallback(
     async (signal?: AbortSignal) => {
       if (!orgId) {
         setProjectsList([]);
+        setProjectsLoaded(true);
         return;
       }
 
@@ -98,6 +118,10 @@ export default function MyTasksPage() {
         }
 
         console.error("Không thể tải project:", error);
+      } finally {
+        if (!signal?.aborted) {
+          setProjectsLoaded(true);
+        }
       }
     },
     [orgId],
@@ -183,6 +207,7 @@ export default function MyTasksPage() {
             placeholder="Tất cả dự án"
             allowClear
             value={selectedProjectId}
+            disabled={!projectsLoaded || projectsList.length === 0}
             onChange={(val) => setSelectedProjectId(val)}
             className="w-[180px]"
           >
@@ -197,6 +222,7 @@ export default function MyTasksPage() {
             placeholder="Độ ưu tiên"
             allowClear
             value={selectedPriority}
+            disabled={!projectsLoaded || projectsList.length === 0}
             onChange={(val) => setSelectedPriority(val)}
             className="w-[140px]"
           >
@@ -208,17 +234,44 @@ export default function MyTasksPage() {
         </div>
       </div>
 
-      {/* Main Kanban Board */}
-      <KanbanBoard
-        tasks={tasks}
-        loading={loading}
-        showProjectBadge={true}
-        requireProjectSelect={true}
-        projectsList={projectsList}
-        onStatusChange={handleStatusChange}
-        onTaskSave={handleTaskSave}
-        onTaskDelete={handleTaskDelete}
-      />
+      {!projectsLoaded ? (
+        <div className="flex justify-center py-20">
+          <Spin size="large" tip="Đang tải danh sách dự án..." />
+        </div>
+      ) : projectsList.length === 0 ? (
+        <section className="flex min-h-96 flex-col items-center justify-center gap-4 p-6 text-center md:p-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-500">
+            <FolderOpenOutlined className="text-2xl" />
+          </div>
+          <div className="max-w-md">
+            <h2 className="m-0 text-lg font-semibold text-gray-900">
+              Chưa có dự án
+            </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Hãy tạo dự án đầu tiên để bắt đầu thêm và quản lý công việc của bạn.
+            </p>
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => router.push(`/dashboard/${orgSlug}/projects`)}
+            className="!bg-blue-600 font-semibold shadow-md hover:!bg-blue-700"
+          >
+            Đi đến dự án
+          </Button>
+        </section>
+      ) : (
+        <KanbanBoard
+          tasks={tasks}
+          loading={loading}
+          showProjectBadge={true}
+          requireProjectSelect={true}
+          projectsList={projectsList}
+          onStatusChange={handleStatusChange}
+          onTaskSave={handleTaskSave}
+          onTaskDelete={handleTaskDelete}
+        />
+      )}
     </div>
   );
 }
