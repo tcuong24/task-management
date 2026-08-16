@@ -12,6 +12,7 @@
   "scripts": {
     "generate": "prisma generate --generator client",
     "generate:erd": "prisma generate --generator erd",
+    "migrate:deploy": "prisma migrate deploy",
     "build": "prisma generate --generator client && tsc -p tsconfig.json",
     "postinstall": "prisma generate --generator client"
   },
