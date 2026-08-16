@@ -218,6 +218,39 @@ export default function ProjectDashboard({
   const [data, setData] = useState<ProjectDashboardData | null>(
     initialDashboardData,
   );
+  const [dashboardLoading, setDashboardLoading] = useState(
+    !initialDashboardData,
+  );
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+
+  const fetchDashboard = useCallback(async () => {
+    if (!orgId || !projectId) return;
+
+    try {
+      setDashboardLoading(true);
+      setDashboardError(null);
+      const response = await projectService.getProjectDashboard(
+        orgId,
+        projectId,
+      );
+      if (response.success) {
+        setData(response.dashboard);
+      }
+    } catch (error: any) {
+      console.error("Error fetching project dashboard:", error);
+      setDashboardError(
+        error.message || "Không thể tải dữ liệu tổng quan của dự án.",
+      );
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, [orgId, projectId]);
+
+  useEffect(() => {
+    if (!initialDashboardData) {
+      void fetchDashboard();
+    }
+  }, [initialDashboardData, fetchDashboard]);
 
   // Mỗi project là một presence room riêng. Hook trả về danh sách người
   // đang mở dashboard này; activeUsers.length chính là số người đang xem.
@@ -517,10 +550,27 @@ export default function ProjectDashboard({
     }
   };
 
-  if (!data) {
+  if (dashboardLoading && !data) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-64 flex-col items-center justify-center gap-4 p-6 text-center">
+        <WarningOutlined className="text-3xl text-amber-500" />
+        <div className="max-w-md">
+          <h2 className="m-0 text-lg font-semibold text-gray-900">
+            Không thể tải dự án
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            {dashboardError || "Dữ liệu dự án hiện chưa sẵn sàng."}
+          </p>
+        </div>
+        <Button onClick={() => void fetchDashboard()}>Thử lại</Button>
       </div>
     );
   }
