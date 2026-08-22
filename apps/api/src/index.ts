@@ -36,6 +36,10 @@ const io = new Server(server, {
   },
 });
 
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 setIo(io);
 
 // ─── Global middleware ───────────────────────────────────────

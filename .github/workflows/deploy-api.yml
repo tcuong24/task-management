@@ -1,0 +1,50 @@
+name: Deploy TaskFlow API
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: taskflow-api-production
+  cancel-in-progress: false
+
+jobs:
+  verify-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production API image
+        run: docker build -f apps/api/Dockerfile -t taskflow-api:ci .
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: verify-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/taskflow.pem
+          chmod 600 ~/.ssh/taskflow.pem
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/taskflow.pem "$EC2_USER@$EC2_HOST" '
+            set -eu
+            cd ~/task-management
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+            chmod +x deploy/ec2/deploy.sh
+            ./deploy/ec2/deploy.sh
+          '
+

@@ -1,0 +1,36 @@
+name: taskflow
+
+services:
+  api:
+    container_name: taskflow-api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: taskflow-api:local
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    networks:
+      - cv-online
+    mem_limit: 384m
+    mem_reservation: 128m
+    cpus: 0.75
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  cv-online:
+    external: true
+    name: ${CV_ONLINE_NETWORK:-cv-online_default}
+
