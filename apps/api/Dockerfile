@@ -2,6 +2,7 @@ FROM node:22-alpine AS builder
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 RUN corepack enable
 
@@ -10,6 +11,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/database/package.json packages/database/package.json
+COPY packages/database/prisma.config.ts packages/database/prisma.config.ts
+COPY packages/database/prisma packages/database/prisma
 COPY packages/permissions/package.json packages/permissions/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
 
@@ -50,4 +53,3 @@ USER taskflow
 EXPOSE 3001
 
 CMD ["sh", "-c", "pnpm --filter @repo/database migrate:deploy && node apps/api/dist/index.js"]
-
