@@ -80,7 +80,11 @@ function addRefreshSubscriber(callback: (success: boolean) => void) {
   refreshSubscribers.push(callback);
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  redirectOnUnauthorized = true,
+): Promise<T> {
   const url = `${API_URL}${path}`;
   
   // Enforce credentials inclusion for cookie transmission
@@ -110,7 +114,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
           response = await performRequest();
         } else {
           onRefreshed(false);
-          if (!window.location.pathname.startsWith('/login')) {
+          if (
+            redirectOnUnauthorized &&
+            !window.location.pathname.startsWith('/login')
+          ) {
             message.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
             setTimeout(() => {
               window.location.href = '/login?expired=true';
@@ -122,7 +129,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
         }
       } catch (error) {
         onRefreshed(false);
-        if (!window.location.pathname.startsWith('/login')) {
+        if (
+          redirectOnUnauthorized &&
+          !window.location.pathname.startsWith('/login')
+        ) {
           message.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
           setTimeout(() => {
             window.location.href = '/login?expired=true';
@@ -180,7 +190,11 @@ export async function logout(): Promise<LogoutResponse> {
 }
 
 export async function getMe(): Promise<GetMeResponse> {
-  return request<GetMeResponse>('/me', {
-    method: 'GET',
-  });
+  return request<GetMeResponse>(
+    '/me',
+    {
+      method: 'GET',
+    },
+    false,
+  );
 }

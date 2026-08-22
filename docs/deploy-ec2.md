@@ -54,7 +54,6 @@ Các giá trị bắt buộc:
 DATABASE_URL=postgresql://taskflow_user:PASSWORD@postgres:5432/taskflow?schema=public
 CORS_ORIGIN=https://YOUR_VERCEL_PROJECT.vercel.app
 JWT_SECRET=RANDOM_SECRET_AT_LEAST_64_HEX_CHARACTERS
-COOKIE_DOMAIN=YOUR_SSLIP_HOST
 CV_ONLINE_NETWORK=cv-online_default
 ```
 
