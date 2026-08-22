@@ -132,19 +132,12 @@ docker compose --env-file .env.production -f compose.production.yml down
 
 ## 7. GitHub Actions deploy tự động
 
-Workflow `.github/workflows/deploy-api.yml` build thử image trước, sau đó SSH vào EC2 và deploy khi nhánh `main` thành công. Tạo bốn repository secrets:
+Workflow `.github/workflows/ci.yml` build thử image. Khi `API CI` trên nhánh `main` thành công, `.github/workflows/deploy-api.yml` mới SSH vào EC2 và deploy. Tạo ba secret trong GitHub Environment `Production`:
 
 ```text
 EC2_HOST
 EC2_USER
 EC2_SSH_KEY
-EC2_KNOWN_HOSTS
 ```
 
-Lấy host key từ máy cá nhân đã tin cậy kết nối EC2, kiểm tra fingerprint trước khi lưu:
-
-```bash
-ssh-keyscan -H YOUR_ELASTIC_IP
-```
-
-`EC2_KNOWN_HOSTS` nên chứa output đầy đủ; không tạo host key động ngay trong workflow.
+Workflow lấy public host key bằng `ssh-keyscan`, giống luồng deploy của UI Maker. Job deploy khai báo `environment: Production`, nên các secret phải nằm đúng trong environment này hoặc được tạo ở cấp repository.

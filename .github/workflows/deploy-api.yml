@@ -1,48 +1,49 @@
 name: Deploy TaskFlow API
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["API CI"]
+    types: [completed]
 
 concurrency:
   group: taskflow-api-production
   cancel-in-progress: false
 
 jobs:
-  verify-image:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build production API image
-        run: docker build -f apps/api/Dockerfile -t taskflow-api:ci .
-
   deploy:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     environment: Production
-    if: github.ref == 'refs/heads/main'
-    needs: verify-image
     runs-on: ubuntu-latest
+
     steps:
+      - name: Validate deployment secrets
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          test -n "$EC2_HOST" || { echo "Missing Production secret: EC2_HOST" >&2; exit 1; }
+          test -n "$EC2_USER" || { echo "Missing Production secret: EC2_USER" >&2; exit 1; }
+          test -n "$EC2_SSH_KEY" || { echo "Missing Production secret: EC2_SSH_KEY" >&2; exit 1; }
+
       - name: Configure SSH
         env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
         run: |
-          test -n "$EC2_SSH_KEY" || { echo "Missing repository secret: EC2_SSH_KEY" >&2; exit 1; }
-          test -n "$EC2_KNOWN_HOSTS" || { echo "Missing repository secret: EC2_KNOWN_HOSTS" >&2; exit 1; }
           install -m 700 -d ~/.ssh
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/taskflow.pem
           chmod 600 ~/.ssh/taskflow.pem
-          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Deploy on EC2
+      - name: Deploy API on EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          test -n "$EC2_HOST" || { echo "Missing repository secret: EC2_HOST" >&2; exit 1; }
-          test -n "$EC2_USER" || { echo "Missing repository secret: EC2_USER" >&2; exit 1; }
           ssh -i ~/.ssh/taskflow.pem "$EC2_USER@$EC2_HOST" '
             set -eu
             cd ~/task-management
